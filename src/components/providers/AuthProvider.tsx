@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { createClientComponentClient } from '@/lib/supabase'
 import type { Database } from '@/lib/supabase'
@@ -13,18 +13,33 @@ interface AuthState {
   loading: boolean
 }
 
-export const useAuth = () => {
+interface AuthContextType extends AuthState {
+  signIn: (email: string, password: string) => Promise<{ data: any; error: any }>
+  signUp: (email: string, password: string, name?: string) => Promise<{ data: any; error: any }>
+  signOut: () => Promise<{ error: any }>
+  resetPassword: (email: string) => Promise<{ error: any }>
+  updatePassword: (newPassword: string) => Promise<{ error: any }>
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>
+  isAuthenticated: boolean
+  isLoading: boolean
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+// Hot Reload対応のSupabaseクライアント（グローバルスコープで管理）
+const getSupabaseClient = () => createClientComponentClient()
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     profile: null,
     loading: true
   })
-  
-  const supabase = createClientComponentClient()
 
   // ユーザープロフィールを取得
   const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
+      const supabase = getSupabaseClient()
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -46,6 +61,7 @@ export const useAuth = () => {
   // ログイン
   const signIn = async (email: string, password: string) => {
     try {
+      const supabase = getSupabaseClient()
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -63,6 +79,7 @@ export const useAuth = () => {
   // サインアップ
   const signUp = async (email: string, password: string, name?: string) => {
     try {
+      const supabase = getSupabaseClient()
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -85,6 +102,7 @@ export const useAuth = () => {
   // ログアウト
   const signOut = async () => {
     try {
+      const supabase = getSupabaseClient()
       const { error } = await supabase.auth.signOut()
       if (error) throw error
       
@@ -104,6 +122,7 @@ export const useAuth = () => {
   // パスワードリセット
   const resetPassword = async (email: string) => {
     try {
+      const supabase = getSupabaseClient()
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`
       })
@@ -120,6 +139,7 @@ export const useAuth = () => {
   // パスワード更新
   const updatePassword = async (newPassword: string) => {
     try {
+      const supabase = getSupabaseClient()
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       })
@@ -138,6 +158,7 @@ export const useAuth = () => {
     try {
       if (!authState.user) throw new Error('User not authenticated')
       
+      const supabase = getSupabaseClient()
       const { error } = await supabase
         .from('users')
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -159,6 +180,9 @@ export const useAuth = () => {
   }
 
   useEffect(() => {
+    // 同一のSupabaseクライアントインスタンスを使用
+    const supabase = getSupabaseClient()
+    
     // 初期セッション取得
     const getInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
@@ -181,7 +205,7 @@ export const useAuth = () => {
 
     getInitialSession()
 
-    // 認証状態の変更を監視
+    // 認証状態の変更を監視（同じクライアントインスタンスを使用）
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
@@ -204,7 +228,7 @@ export const useAuth = () => {
     return () => subscription.unsubscribe()
   }, [])
 
-  return {
+  const value: AuthContextType = {
     ...authState,
     signIn,
     signUp,
@@ -215,4 +239,18 @@ export const useAuth = () => {
     isAuthenticated: !!authState.user,
     isLoading: authState.loading
   }
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
 }

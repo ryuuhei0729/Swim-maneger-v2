@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AuthForm } from '@/components/auth'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/components/providers'
 
 export default function SignupPage() {
   const { isAuthenticated, isLoading } = useAuth()
