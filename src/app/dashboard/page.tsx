@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { AuthGuard } from '@/components/auth'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/components/providers'
 
 export default function DashboardPage() {
   const { user, profile, signOut } = useAuth()

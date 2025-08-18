@@ -238,7 +238,8 @@ CREATE TABLE announcements (
 CREATE INDEX idx_users_name ON users(name);
 CREATE INDEX idx_users_generation ON users(generation);
 CREATE INDEX idx_users_gender ON users(gender);
-CREATE INDEX idx_users_user_type ON users(user_type);
+-- user_type column does not exist, using role instead
+CREATE INDEX idx_users_role ON users(role);
 
 CREATE INDEX idx_styles_distance ON styles(distance);
 CREATE INDEX idx_styles_style ON styles(style);
@@ -316,91 +317,8 @@ ALTER TABLE race_feedbacks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE split_times ENABLE ROW LEVEL SECURITY;
 ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
 
--- 基本的なポリシー（全ユーザーが読み書き可能）
-CREATE POLICY "Enable read access for all users" ON users FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON users FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON users FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON users FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON user_sessions FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON user_sessions FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON user_sessions FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON user_sessions FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON styles FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON styles FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON styles FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON styles FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON events FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON events FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON events FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON events FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON records FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON records FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON records FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON records FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON attendance FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON attendance FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON attendance FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON attendance FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON entries FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON entries FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON entries FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON entries FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON practice_logs FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON practice_logs FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON practice_logs FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON practice_logs FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON practice_times FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON practice_times FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON practice_times FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON practice_times FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON objectives FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON objectives FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON objectives FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON objectives FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON race_goals FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON race_goals FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON race_goals FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON race_goals FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON race_reviews FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON race_reviews FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON race_reviews FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON race_reviews FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON milestones FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON milestones FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON milestones FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON milestones FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON milestone_reviews FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON milestone_reviews FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON milestone_reviews FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON milestone_reviews FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON race_feedbacks FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON race_feedbacks FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON race_feedbacks FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON race_feedbacks FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON split_times FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON split_times FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON split_times FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON split_times FOR DELETE USING (true);
-
-CREATE POLICY "Enable read access for all users" ON announcements FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON announcements FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON announcements FOR UPDATE USING (true);
-CREATE POLICY "Enable delete access for all users" ON announcements FOR DELETE USING (true);
+-- 注意: RLSポリシーは別ファイル (08_rls_policies_optimized.sql) で定義されています
+-- ここではRLSを有効化するだけで、具体的なポリシーは設定しません
 
 -- 新しいユーザーが認証されたときに自動的にusersテーブルにプロフィールを作成する関数
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -414,7 +332,7 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- トリガーの作成
 CREATE OR REPLACE TRIGGER on_auth_user_created
