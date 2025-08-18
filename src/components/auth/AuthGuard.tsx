@@ -8,7 +8,7 @@ interface AuthGuardProps {
   children: React.ReactNode
   requireAuth?: boolean
   redirectTo?: string
-  allowedRoles?: Array<'admin' | 'coach' | 'swimmer'>
+  allowedRoles?: Array<'admin' | 'manager' | 'player' | 'coach' | 'director'>
 }
 
 export const AuthGuard: React.FC<AuthGuardProps> = ({

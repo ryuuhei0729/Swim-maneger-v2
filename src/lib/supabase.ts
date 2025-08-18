@@ -48,7 +48,11 @@ export type Database = {
           email: string
           name: string | null
           avatar_url: string | null
-          role: 'admin' | 'coach' | 'swimmer'
+          role: 'admin' | 'manager' | 'player' | 'coach' | 'director'
+          generation: number | null
+          birthday: string | null
+          bio: string | null
+          gender: number
           created_at: string
           updated_at: string
         }
@@ -57,7 +61,11 @@ export type Database = {
           email: string
           name?: string | null
           avatar_url?: string | null
-          role?: 'admin' | 'coach' | 'swimmer'
+          role?: 'admin' | 'manager' | 'player' | 'coach' | 'director'
+          generation?: number | null
+          birthday?: string | null
+          bio?: string | null
+          gender?: number
           created_at?: string
           updated_at?: string
         }
@@ -66,7 +74,11 @@ export type Database = {
           email?: string
           name?: string | null
           avatar_url?: string | null
-          role?: 'admin' | 'coach' | 'swimmer'
+          role?: 'admin' | 'manager' | 'player' | 'coach' | 'director'
+          generation?: number | null
+          birthday?: string | null
+          bio?: string | null
+          gender?: number
           created_at?: string
           updated_at?: string
         }
