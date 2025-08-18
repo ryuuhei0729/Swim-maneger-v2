@@ -22,13 +22,15 @@ DROP TABLE IF EXISTS users CASCADE;
 
 -- 1. ユーザーテーブル（Supabase Authと連携）
 CREATE TABLE users (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  generation INTEGER NOT NULL,
-  name TEXT NOT NULL,
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  email TEXT NOT NULL,
+  name TEXT,
+  avatar_url TEXT,
+  role TEXT DEFAULT 'swimmer' CHECK (role IN ('admin', 'coach', 'swimmer')),
+  generation INTEGER,
   birthday DATE,
   bio TEXT,
   gender INTEGER DEFAULT 0 CHECK (gender IN (0, 1, 2)), -- 0: 未設定, 1: 男性, 2: 女性
-  user_type INTEGER DEFAULT 0 CHECK (user_type IN (0, 1, 2, 3)), -- 0: 選手, 1: コーチ, 2: 保護者, 3: その他
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -399,3 +401,22 @@ CREATE POLICY "Enable read access for all users" ON announcements FOR SELECT USI
 CREATE POLICY "Enable insert access for all users" ON announcements FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable update access for all users" ON announcements FOR UPDATE USING (true);
 CREATE POLICY "Enable delete access for all users" ON announcements FOR DELETE USING (true);
+
+-- 新しいユーザーが認証されたときに自動的にusersテーブルにプロフィールを作成する関数
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (id, email, name)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'name', '')
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- トリガーの作成
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
