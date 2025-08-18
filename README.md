@@ -184,12 +184,12 @@
 ## 12. 技術要件
 
 ### 12.1 使用技術
-- **フレームワーク**: Ruby on Rails 8.0
-- **データベース**: PostgreSQL
-- **認証**: Devise
-- **フロントエンド**: Tailwind CSS, Stimulus
-- **ファイル管理**: Active Storage
-- **API**: RESTful API
+- **フレームワーク**: Next.js
+- **データベース**: Supabase (PostgreSQL)
+- **認証**: Supabase Auth
+- **フロントエンド**: Tailwind CSS, React
+- **ファイル管理**: Supabase Storage
+- **API**: Supabase API
 
 ### 12.2 セキュリティ要件
 - [x] パスワードの複雑性チェック
@@ -198,7 +198,7 @@
 - [x] SQLインジェクション対策
 - [x] XSS対策
 
-## 13. Rails開発ベストプラクティス
+## 13. Next.js開発ベストプラクティス
 
 ### 13.1 コード品質・設計原則
 
@@ -209,39 +209,48 @@
 - **YAGNI (You Aren't Gonna Need It)**: 必要になるまで実装しない
 
 #### 13.1.2 命名規則
-- **モデル**: 単数形、キャメルケース（例: `User`, `PracticeLog`）
-- **コントローラー**: 複数形、キャメルケース（例: `UsersController`, `PracticeLogsController`）
-- **ビュー**: スネークケース（例: `index.html.erb`, `show.html.erb`）
-- **メソッド**: スネークケース（例: `create_user`, `update_practice_log`）
+- **コンポーネント**: パスカルケース（例: `User`, `PracticeLog`）
+- **ページ**: スネークケース（例: `users`, `practice-logs`）
+- **フック**: camelCase（例: `useUser`, `usePracticeLog`）
+- **関数**: camelCase（例: `createUser`, `updatePracticeLog`）
 - **定数**: 大文字、アンダースコア（例: `MAX_RECORDS`, `DEFAULT_PAGE_SIZE`）
 
-### 13.2 モデル層のベストプラクティス
+### 13.2 データ層のベストプラクティス
 
-#### 13.2.1 モデル設計
-- **アソシエーション**: 適切な関連付けを定義
+#### 13.2.1 Supabase設計
+- **テーブル設計**: 適切な関連付けを定義
 - **バリデーション**: データ整合性の確保
-- **コールバック**: 必要最小限の使用
-- **スコープ**: よく使うクエリの定義
+- **RLS（Row Level Security）**: セキュリティの確保
+- **関数**: よく使うクエリの定義
 - **enum**: 状態管理の活用
 
-```ruby
-# 良い例
-class User < ApplicationRecord
-  has_one :user_auth, dependent: :destroy
-  has_many :records, dependent: :destroy
-  
-  validates :name, presence: true, length: { maximum: 255 }
-  validates :generation, presence: true, numericality: { greater_than: 0 }
-  
-  enum user_type: { player: 0, manager: 1, coach: 2, director: 3 }
-  
-  scope :active, -> { where(active: true) }
-  scope :by_generation, ->(gen) { where(generation: gen) }
-  
-  def admin?
-    %w[coach director manager].include?(user_type)
-  end
-end
+```sql
+-- 良い例
+CREATE TYPE user_type AS ENUM ('player', 'manager', 'coach', 'director');
+
+CREATE TABLE users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  generation INTEGER NOT NULL CHECK (generation > 0),
+  user_type user_type NOT NULL DEFAULT 'player',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- RLSの設定
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own data" ON users
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Admins can view all users" ON users
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE id = auth.uid() 
+      AND user_type IN ('coach', 'director', 'manager')
+    )
+  );
 ```
 
 #### 13.2.2 データベース設計
@@ -250,188 +259,321 @@ end
 - **マイグレーション**: 段階的な変更管理
 - **シードデータ**: 開発・テスト用データの管理
 
-### 13.3 コントローラー層のベストプラクティス
+### 13.3 コンポーネント層のベストプラクティス
 
-#### 13.3.1 コントローラー設計
-- **単一責任**: 1つのコントローラーに1つの責任
-- **スキニーコントローラー**: ビジネスロジックはモデルに委譲
-- **Strong Parameters**: セキュリティの確保
-- **before_action**: 共通処理の抽出
+#### 13.3.1 コンポーネント設計
+- **単一責任**: 1つのコンポーネントに1つの責任
+- **スキニーコンポーネント**: ビジネスロジックはカスタムフックに委譲
+- **Props型定義**: TypeScriptによる型安全性の確保
+- **カスタムフック**: 共通処理の抽出
 
-```ruby
-# 良い例
-class Admin::UsersController < Admin::BaseController
-  before_action :set_user, only: [:show, :edit, :update, :destroy]
-  before_action :check_permissions, only: [:create, :update, :destroy]
+```typescript
+// 良い例
+interface User {
+  id: string;
+  name: string;
+  generation: number;
+  user_type: 'player' | 'manager' | 'coach' | 'director';
+}
 
-  def index
-    @users = User.includes(:user_auth).order(:generation, :name)
-  end
+const AdminUsersPage: React.FC = () => {
+  const { users, loading, error, createUser } = useUsers();
+  const { user } = useAuth();
 
-  def create
-    @user = User.new(user_params)
-    if @user.save
-      redirect_to admin_users_path, notice: 'ユーザーを作成しました'
-    else
-      render :new, status: :unprocessable_entity
-    end
-  end
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage message={error} />;
 
-  private
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">ユーザー管理</h1>
+      <UserList users={users} onUserCreate={createUser} />
+    </div>
+  );
+};
 
-  def set_user
-    @user = User.find(params[:id])
-  end
+// カスタムフック
+const useUsers = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  def user_params
-    params.require(:user).permit(:name, :generation, :user_type, :gender, :birthday)
-  end
-end
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('generation', { ascending: true });
+      
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  return { users, loading, error, fetchUsers };
+};
 ```
 
 #### 13.3.2 エラーハンドリング
-- **適切なHTTPステータスコード**: レスポンスの明確化
+- **適切なエラー境界**: React Error Boundaryの使用
 - **例外処理**: 予期しないエラーの適切な処理
 - **ログ出力**: デバッグ情報の記録
 
-### 13.4 ビュー層のベストプラクティス
+### 13.4 UI層のベストプラクティス
 
-#### 13.4.1 ビュー設計
-- **パーシャル**: 再利用可能なコンポーネントの作成
-- **ヘルパー**: ビュー専用のロジックの分離
+#### 13.4.1 コンポーネント設計
+- **再利用可能コンポーネント**: 共通UIコンポーネントの作成
+- **カスタムフック**: UI専用のロジックの分離
 - **フォーム**: 適切なバリデーション表示
 - **レスポンシブデザイン**: モバイル対応
 
-```erb
-<!-- 良い例 -->
-<%= form_with(model: @user, local: true) do |form| %>
-  <div class="form-group">
-    <%= form.label :name, class: "form-label" %>
-    <%= form.text_field :name, class: "form-input #{'error' if @user.errors[:name].any?}" %>
-    <% if @user.errors[:name].any? %>
-      <div class="error-message"><%= @user.errors[:name].join(', ') %></div>
-    <% end %>
-  </div>
-<% end %>
+```tsx
+// 良い例
+interface UserFormProps {
+  user?: User;
+  onSubmit: (user: Partial<User>) => void;
+  onCancel: () => void;
+}
+
+const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel }) => {
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    generation: user?.generation || 1,
+    user_type: user?.user_type || 'player'
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const validationErrors = validateForm(formData);
+    if (Object.keys(validationErrors).length === 0) {
+      onSubmit(formData);
+    } else {
+      setErrors(validationErrors);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          名前
+        </label>
+        <input
+          type="text"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm ${
+            errors.name ? 'border-red-500' : ''
+          }`}
+        />
+        {errors.name && (
+          <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+        )}
+      </div>
+      {/* 他のフィールド */}
+    </form>
+  );
+};
 ```
 
 #### 13.4.2 アセット管理
 - **CSS**: Tailwind CSSの活用
-- **JavaScript**: Stimulusコントローラーの使用
-- **画像**: Active Storageの活用
+- **JavaScript**: React Hooksの使用
+- **画像**: Supabase Storageの活用
 
 ### 13.5 API設計のベストプラクティス
 
-#### 13.5.1 RESTful API
-- **HTTPメソッド**: 適切なメソッドの使用
-- **URL設計**: リソース指向の設計
-- **レスポンス形式**: 一貫したJSON形式
-- **バージョニング**: APIバージョンの管理
+#### 13.5.1 Supabase API
+- **Supabase Client**: 適切なクライアントの使用
+- **RLS（Row Level Security）**: セキュリティの確保
+- **レスポンス形式**: 一貫したデータ形式
+- **エラーハンドリング**: 適切なエラー処理
 
-```ruby
-# 良い例
-class Api::V1::UsersController < Api::V1::BaseController
-  def index
-    users = User.includes(:user_auth).order(:name)
-    render_success({
-      users: users.map { |user| user_serializer(user) }
-    })
-  end
+```typescript
+// 良い例
+class UserService {
+  private supabase: SupabaseClient;
 
-  def show
-    user = User.find(params[:id])
-    render_success({ user: user_serializer(user) })
-  rescue ActiveRecord::RecordNotFound
-    render_error("ユーザーが見つかりません", :not_found)
-  end
+  constructor() {
+    this.supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }
 
-  private
+  async getUsers(): Promise<User[]> {
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('*')
+      .order('name', { ascending: true });
 
-  def user_serializer(user)
-    {
-      id: user.id,
-      name: user.name,
-      user_type: user.user_type,
-      email: user.user_auth&.email
+    if (error) {
+      throw new Error(`ユーザー取得エラー: ${error.message}`);
     }
-  end
-end
+
+    return data || [];
+  }
+
+  async getUserById(id: string): Promise<User | null> {
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        throw new Error('ユーザーが見つかりません');
+      }
+      throw new Error(`ユーザー取得エラー: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async createUser(userData: Partial<User>): Promise<User> {
+    const { data, error } = await this.supabase
+      .from('users')
+      .insert([userData])
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`ユーザー作成エラー: ${error.message}`);
+    }
+
+    return data;
+  }
+}
 ```
 
 ### 13.6 テストのベストプラクティス
 
 #### 13.6.1 テスト戦略
-- **単体テスト**: モデル、ヘルパー、サービスクラス
-- **統合テスト**: コントローラー、ビュー
+- **単体テスト**: コンポーネント、カスタムフック、ユーティリティ関数
+- **統合テスト**: ページ、API呼び出し
 - **システムテスト**: エンドツーエンドの動作確認
-- **ファクトリー**: テストデータの管理
+- **モック**: テストデータの管理
 
-```ruby
-# 良い例
-RSpec.describe User, type: :model do
-  describe 'バリデーション' do
-    it '名前が必須であること' do
-      user = build(:user, name: nil)
-      expect(user).not_to be_valid
-      expect(user.errors[:name]).to include("を入力してください")
-    end
-  end
+```typescript
+// 良い例
+import { render, screen, fireEvent } from '@testing-library/react';
+import { UserForm } from './UserForm';
 
-  describe 'メソッド' do
-    it '管理者かどうかを判定できること' do
-      coach = build(:user, :coach)
-      player = build(:user, :player)
-      
-      expect(coach.admin?).to be true
-      expect(player.admin?).to be false
-    end
-  end
-end
+describe('UserForm', () => {
+  const mockOnSubmit = jest.fn();
+  const mockOnCancel = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('名前が必須であること', () => {
+    render(
+      <UserForm 
+        onSubmit={mockOnSubmit} 
+        onCancel={mockOnCancel} 
+      />
+    );
+
+    const submitButton = screen.getByRole('button', { name: /送信/i });
+    fireEvent.click(submitButton);
+
+    expect(screen.getByText(/名前は必須です/i)).toBeInTheDocument();
+    expect(mockOnSubmit).not.toHaveBeenCalled();
+  });
+
+  it('正常に送信できること', () => {
+    render(
+      <UserForm 
+        onSubmit={mockOnSubmit} 
+        onCancel={mockOnCancel} 
+      />
+    );
+
+    const nameInput = screen.getByLabelText(/名前/i);
+    fireEvent.change(nameInput, { target: { value: 'テストユーザー' } });
+
+    const submitButton = screen.getByRole('button', { name: /送信/i });
+    fireEvent.click(submitButton);
+
+    expect(mockOnSubmit).toHaveBeenCalledWith({
+      name: 'テストユーザー',
+      generation: 1,
+      user_type: 'player'
+    });
+  });
+});
 ```
 
 ### 13.7 セキュリティのベストプラクティス
 
 #### 13.7.1 認証・認可
-- **Devise**: 認証機能の活用
-- **権限管理**: 適切なアクセス制御
+- **Supabase Auth**: 認証機能の活用
+- **RLS（Row Level Security）**: 適切なアクセス制御
 - **セッション管理**: セキュアなセッション処理
-- **CSRF対策**: トークンの適切な使用
+- **JWTトークン**: トークンの適切な使用
 
 #### 13.7.2 データ保護
-- **Strong Parameters**: パラメータの制限
-- **SQLインジェクション対策**: プリペアドステートメントの使用
-- **XSS対策**: エスケープ処理の徹底
+- **型安全性**: TypeScriptによる型チェック
+- **SQLインジェクション対策**: Supabase Clientの使用
+- **XSS対策**: Reactの自動エスケープ機能
 - **ファイルアップロード**: 適切な検証
 
 ### 13.8 パフォーマンスのベストプラクティス
 
 #### 13.8.1 データベース最適化
-- **N+1問題の回避**: includes, preload, eager_loadの活用
+- **N+1問題の回避**: 適切なJOINクエリの使用
 - **インデックス**: 適切なインデックスの設定
 - **クエリ最適化**: 不要なクエリの削減
 - **ページネーション**: 大量データの適切な処理
 
-```ruby
-# 良い例（N+1問題の回避）
-users = User.includes(:user_auth, :records).where(generation: 1)
+```typescript
+// 良い例（N+1問題の回避）
+const { data: users } = await supabase
+  .from('users')
+  .select(`
+    *,
+    user_auth(email),
+    records(*)
+  `)
+  .eq('generation', 1);
 
-# 悪い例（N+1問題が発生）
-users = User.where(generation: 1)
-users.each { |user| user.user_auth.email } # 追加クエリが発生
+// 悪い例（N+1問題が発生）
+const { data: users } = await supabase
+  .from('users')
+  .select('*')
+  .eq('generation', 1);
+
+// 各ユーザーに対して個別にクエリが発生
+users?.forEach(async (user) => {
+  const { data: userAuth } = await supabase
+    .from('user_auth')
+    .select('email')
+    .eq('user_id', user.id);
+});
 ```
 
 #### 13.8.2 キャッシュ戦略
-- **フラグメントキャッシュ**: 部分的なキャッシュ
-- **ページキャッシュ**: 静的ページのキャッシュ
-- **Redis**: セッション・キャッシュの管理
+- **React Query**: サーバー状態のキャッシュ
+- **Next.jsキャッシュ**: 静的ページのキャッシュ
+- **Supabaseキャッシュ**: データベースクエリのキャッシュ
 
 ### 13.9 開発環境のベストプラクティス
 
 #### 13.9.1 開発ツール
-- **RuboCop**: コードスタイルの統一
-- **Brakeman**: セキュリティチェック
-- **RSpec**: テストフレームワーク
-- **FactoryBot**: テストデータの管理
+- **ESLint**: コードスタイルの統一
+- **Prettier**: コードフォーマット
+- **Jest**: テストフレームワーク
+- **TypeScript**: 型安全性の確保
 
 #### 13.9.2 環境管理
 - **環境変数**: 機密情報の適切な管理
@@ -441,15 +583,16 @@ users.each { |user| user.user_auth.email } # 追加クエリが発生
 ### 13.10 デプロイメントのベストプラクティス
 
 #### 13.10.1 本番環境
+- **Vercel/Netlify**: ホスティングプラットフォーム
 - **環境変数**: 本番用設定の管理
 - **ログ管理**: 適切なログ出力
 - **監視**: システム監視の設定
-- **バックアップ**: データの定期バックアップ
+- **バックアップ**: Supabaseの自動バックアップ
 
 #### 13.10.2 CI/CD
 - **自動テスト**: プルリクエスト時の自動テスト
 - **コードレビュー**: 品質確保のためのレビュー
-- **自動デプロイ**: 安全なデプロイメント
+- **自動デプロイ**: Vercel/Netlifyの自動デプロイ
 
 ### 13.11 コードレビューのチェックポイント
 
@@ -465,11 +608,11 @@ users.each { |user| user.user_auth.email } # 追加クエリが発生
 - [ ] 重複コードがないか
 - [ ] テストが十分か
 
-#### 13.11.3 Rails慣例
-- [ ] Railsの慣例に従っているか
+#### 13.11.3 Next.js慣例
+- [ ] Next.jsの慣例に従っているか
 - [ ] 適切なディレクトリ構造か
 - [ ] 適切なファイル名か
-- [ ] 適切なメソッド名か
+- [ ] 適切なコンポーネント名か
 
 ## 14. 運用要件
 
@@ -638,28 +781,44 @@ users.each { |user| user.user_auth.email } # 追加クエリが発生
 - **APIドキュメント**: 新規API作成時はSwagger/OpenAPI形式でドキュメント化
 - **requirements更新**: 新機能追加時はrequirements.mdを更新
 
-```ruby
-# 良い例
-class PracticeLog < ApplicationRecord
-  # 練習記録の作成時に自動的に練習時間を計算
-  # 泳法と距離から標準的な練習時間を算出
-  before_create :calculate_practice_duration
+```typescript
+// 良い例
+interface PracticeLog {
+  id: string;
+  style: 'freestyle' | 'backstroke' | 'breaststroke' | 'butterfly';
+  distance: number;
+  duration?: number;
+  created_at: string;
+}
+
+// 練習記録の作成時に自動的に練習時間を計算
+// 泳法と距離から標準的な練習時間を算出
+const calculatePracticeDuration = (style: string, distance: number): number => {
+  // 泳法別の標準時間（分/100m）を定義
+  const standardTimes: Record<string, number> = {
+    'freestyle': 2.5,
+    'backstroke': 3.0,
+    'breaststroke': 3.5,
+    'butterfly': 3.0
+  };
   
-  private
+  const timePer100m = standardTimes[style] || 3.0;
+  return Math.round(distance / 100.0 * timePer100m);
+};
+
+// 使用例
+const createPracticeLog = async (practiceData: Partial<PracticeLog>) => {
+  const duration = calculatePracticeDuration(practiceData.style!, practiceData.distance!);
   
-  def calculate_practice_duration
-    # 泳法別の標準時間（分/100m）を定義
-    standard_times = {
-      'freestyle' => 2.5,
-      'backstroke' => 3.0,
-      'breaststroke' => 3.5,
-      'butterfly' => 3.0
-    }
+  const { data, error } = await supabase
+    .from('practice_logs')
+    .insert([{ ...practiceData, duration }])
+    .select()
+    .single();
     
-    time_per_100m = standard_times[style] || 3.0
-    self.duration = (distance / 100.0 * time_per_100m).round
-  end
-end
+  if (error) throw error;
+  return data;
+};
 ```
 
 #### 15.1.2 エラーハンドリング
@@ -667,21 +826,27 @@ end
 - **ユーザーフレンドリー**: エラーメッセージは一般ユーザーが理解できる内容
 - **ログレベル**: 適切なログレベル（debug, info, warn, error）の使用
 
-```ruby
-# 良い例
-def create_practice_log
-  @practice_log = PracticeLog.new(practice_log_params)
-  
-  if @practice_log.save
-    redirect_to practice_logs_path, notice: '練習記録を作成しました'
-  else
-    Rails.logger.error "練習記録作成失敗: #{@practice_log.errors.full_messages}"
-    render :new, status: :unprocessable_entity
-  end
-rescue => e
-  Rails.logger.error "練習記録作成中にエラーが発生: #{e.message}"
-  redirect_to practice_logs_path, alert: '練習記録の作成に失敗しました。しばらく時間をおいて再度お試しください。'
-end
+```typescript
+// 良い例
+const createPracticeLog = async (practiceData: Partial<PracticeLog>) => {
+  try {
+    const { data, error } = await supabase
+      .from('practice_logs')
+      .insert([practiceData])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('練習記録作成失敗:', error.message);
+      throw new Error('練習記録の作成に失敗しました');
+    }
+    
+    return { success: true, data };
+  } catch (error) {
+    console.error('練習記録作成中にエラーが発生:', error.message);
+    throw new Error('練習記録の作成に失敗しました。しばらく時間をおいて再度お試しください。');
+  }
+};
 ```
 
 ### 15.2 セキュリティ強化ルール
@@ -692,19 +857,51 @@ end
 - **データ削除**: 物理削除ではなく論理削除を基本とする
 - **バックアップ暗号化**: バックアップデータも暗号化
 
-```ruby
-# 良い例
-class User < ApplicationRecord
-  # 論理削除の実装
-  scope :active, -> { where(deleted_at: nil) }
-  
-  def soft_delete
-    update(deleted_at: Time.current)
-  end
-  
-  # 個人情報の暗号化
-  encrypts :phone_number, :emergency_contact
-end
+```typescript
+// 良い例
+interface User {
+  id: string;
+  name: string;
+  deleted_at?: string;
+  phone_number?: string;
+  emergency_contact?: string;
+}
+
+// 論理削除の実装
+const getActiveUsers = async (): Promise<User[]> => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .is('deleted_at', null);
+    
+  if (error) throw error;
+  return data || [];
+};
+
+const softDeleteUser = async (userId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('users')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', userId);
+    
+  if (error) throw error;
+};
+
+// 個人情報の暗号化（Supabaseの暗号化機能を使用）
+const createUserWithEncryptedData = async (userData: Partial<User>) => {
+  const { data, error } = await supabase
+    .from('users')
+    .insert([{
+      ...userData,
+      phone_number: userData.phone_number, // Supabaseで自動暗号化
+      emergency_contact: userData.emergency_contact // Supabaseで自動暗号化
+    }])
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data;
+};
 ```
 
 #### 15.2.2 認証・認可の強化
@@ -713,26 +910,46 @@ end
 - **ログイン試行制限**: 5回失敗でアカウントロック
 - **二段階認証**: 管理者アカウントは二段階認証必須
 
-```ruby
-# 良い例
-class UserAuth < ApplicationRecord
-  devise :database_authenticatable, :registerable,
-         :recoverable, :rememberable, :validatable,
-         :lockable, :timeoutable, :trackable
-  
-  # パスワードポリシー
-  validates :password, 
-    length: { minimum: 8 },
-    format: { 
-      with: /\A(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      message: 'は英大文字、英小文字、数字を含む必要があります'
+```typescript
+// 良い例
+interface UserAuth {
+  id: string;
+  email: string;
+  user_type: 'player' | 'manager' | 'coach' | 'director';
+}
+
+// Supabase Authの設定
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+// パスワードポリシー（Supabase Authで設定）
+const signUpWithPassword = async (email: string, password: string) => {
+  // パスワードポリシーの検証
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    throw new Error('パスワードは英大文字、英小文字、数字を含む8文字以上である必要があります');
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        user_type: 'player' // デフォルトは選手
+      }
     }
-  
-  # 管理者は二段階認証必須
-  def require_two_factor?
-    user.user_type.in?(%w[coach director manager])
-  end
-end
+  });
+
+  if (error) throw error;
+  return data;
+};
+
+// 管理者は二段階認証必須
+const requireTwoFactor = (userType: string): boolean => {
+  return ['coach', 'director', 'manager'].includes(userType);
+};
 ```
 
 ### 15.3 パフォーマンス最適化ルール
@@ -743,28 +960,61 @@ end
 - **バッチ処理**: 大量データ処理はバックグラウンドジョブで実行
 - **キャッシュ戦略**: 頻繁にアクセスされるデータはキャッシュ
 
-```ruby
-# 良い例
-class PracticeLog < ApplicationRecord
-  # 検索用インデックス
-  scope :by_date_range, ->(start_date, end_date) {
-    where(created_at: start_date.beginning_of_day..end_date.end_of_day)
-  }
+```typescript
+// 良い例
+interface PracticeLog {
+  id: string;
+  user_id: string;
+  created_at: string;
+  style: string;
+  distance: number;
+  user?: {
+    name: string;
+  };
+}
+
+// 検索用インデックス
+const getPracticeLogsByDateRange = async (
+  startDate: Date, 
+  endDate: Date
+): Promise<PracticeLog[]> => {
+  const { data, error } = await supabase
+    .from('practice_logs')
+    .select('*')
+    .gte('created_at', startDate.toISOString())
+    .lte('created_at', endDate.toISOString());
+    
+  if (error) throw error;
+  return data || [];
+};
+
+// パフォーマンス最適化
+const getPracticeLogsWithUserInfo = async (): Promise<PracticeLog[]> => {
+  const { data, error } = await supabase
+    .from('practice_logs')
+    .select(`
+      *,
+      user:users(name)
+    `);
+    
+  if (error) throw error;
+  return data || [];
+};
+
+// バッチ処理用
+const bulkCreateFromCSV = async (csvData: Partial<PracticeLog>[]): Promise<void> => {
+  const batchSize = 100;
   
-  # パフォーマンス最適化
-  scope :with_user_info, -> {
-    includes(:user).select('practice_logs.*, users.name as user_name')
+  for (let i = 0; i < csvData.length; i += batchSize) {
+    const batch = csvData.slice(i, i + batchSize);
+    
+    const { error } = await supabase
+      .from('practice_logs')
+      .insert(batch);
+      
+    if (error) throw error;
   }
-  
-  # バッチ処理用
-  def self.bulk_create_from_csv(csv_data)
-    PracticeLog.transaction do
-      csv_data.each_slice(100) do |batch|
-        PracticeLog.create!(batch)
-      end
-    end
-  end
-end
+};
 ```
 
 #### 15.3.2 フロントエンド最適化
@@ -780,27 +1030,56 @@ end
 - **監視アラート**: エラー率5%以上でアラート
 - **パフォーマンス監視**: レスポンス時間3秒以上でアラート
 
-```ruby
-# 良い例
-class ApplicationController < ActionController::Base
-  around_action :log_request
+```typescript
+// 良い例
+import { NextApiRequest, NextApiResponse } from 'next';
+
+// APIルートでのログ記録
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const startTime = Date.now();
   
-  private
-  
-  def log_request
-    start_time = Time.current
-    yield
-    duration = Time.current - start_time
+  try {
+    // API処理
+    const result = await processApiRequest(req);
     
-    Rails.logger.info({
-      method: request.method,
-      path: request.path,
-      duration: duration,
-      status: response.status,
-      user_id: current_user&.id
-    }.to_json)
-  end
-end
+    const duration = Date.now() - startTime;
+    
+    console.log(JSON.stringify({
+      method: req.method,
+      path: req.url,
+      duration,
+      status: res.statusCode,
+      user_id: req.headers.authorization // JWTトークンから取得
+    }));
+    
+    res.status(200).json(result);
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    
+    console.error(JSON.stringify({
+      method: req.method,
+      path: req.url,
+      duration,
+      status: 500,
+      error: error.message
+    }));
+    
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+
+// クライアントサイドでのログ記録
+const logClientRequest = (method: string, path: string, duration: number) => {
+  console.log(JSON.stringify({
+    method,
+    path,
+    duration,
+    timestamp: new Date().toISOString()
+  }));
+};
 ```
 
 #### 15.4.2 バックアップ・復旧
@@ -831,12 +1110,15 @@ end
 - **スクリーンリーダー対応**: 適切なaria属性の設定
 - **色覚異常対応**: 色だけでなく形状でも情報を表現
 
-```erb
-<!-- 良い例 -->
-<button class="btn btn-primary" 
-        aria-label="練習記録を追加"
-        role="button">
-  <i class="fas fa-plus" aria-hidden="true"></i>
+```tsx
+// 良い例
+<button 
+  className="btn btn-primary" 
+  aria-label="練習記録を追加"
+  role="button"
+  onClick={handleAddPracticeLog}
+>
+  <i className="fas fa-plus" aria-hidden="true"></i>
   追加
 </button>
 ```
@@ -855,17 +1137,32 @@ end
 - **日付形式**: 日本の慣習に合わせた日付表示
 - **数値形式**: 日本の慣習に合わせた数値表示
 
-```ruby
-# 良い例
-class ApplicationController < ActionController::Base
-  before_action :set_locale
+```typescript
+// 良い例
+import { useRouter } from 'next/router';
+
+// 国際化の設定
+const useLocale = () => {
+  const router = useRouter();
+  const { locale } = router;
   
-  private
+  const setLocale = (newLocale: string) => {
+    router.push(router.pathname, router.asPath, { locale: newLocale });
+  };
   
-  def set_locale
-    I18n.locale = :ja # デフォルトは日本語
-  end
-end
+  return { locale: locale || 'ja', setLocale };
+};
+
+// 使用例
+const LocaleProvider: React.FC = ({ children }) => {
+  const { locale } = useLocale();
+  
+  return (
+    <div lang={locale}>
+      {children}
+    </div>
+  );
+};
 ```
 
 ### 15.8 データ管理ルール
