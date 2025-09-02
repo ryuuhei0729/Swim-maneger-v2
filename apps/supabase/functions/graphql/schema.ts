@@ -15,7 +15,7 @@ export const typeDefs = `
 
   type Profile {
     id: ID!
-    email: String!
+    email: String
     name: String
     avatarUrl: String
     role: String!
@@ -23,8 +23,8 @@ export const typeDefs = `
     birthday: String
     bio: String
     gender: Int
-    createdAt: DateTime
-    updatedAt: DateTime
+    createdAt: DateTime!
+    updatedAt: DateTime!
   }
 
   # イベント関連

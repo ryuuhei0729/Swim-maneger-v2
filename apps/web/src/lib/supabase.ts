@@ -1,8 +1,15 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserClient } from '@supabase/ssr'
+import { type SupabaseClient } from '@supabase/supabase-js'
+import { getCurrentEnvConfig, getSupabaseConfig } from './env'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// 環境別のSupabase設定を取得
+const { url: supabaseUrl, anonKey: supabaseAnonKey, environment } = getSupabaseConfig()
+const envConfig = getCurrentEnvConfig()
+
+// 環境情報をログ出力（開発・ステージング環境のみ）
+if (envConfig.debug) {
+  console.log(`🏊 Swim Manager - ${envConfig.name} (${envConfig.supabaseProject})`)
+}
 
 // ブラウザ環境でSupabaseクライアントを管理（Hot Reload対応）
 declare global {
@@ -22,7 +29,7 @@ export const createClientComponentClient = (): SupabaseClient => {
   if (!window.__supabase_client__) {
     window.__supabase_client__ = createBrowserClient(supabaseUrl, supabaseAnonKey, {
       auth: {
-        storageKey: 'swim-manager-auth',
+        storageKey: `swim-manager-auth-${environment}`, // 環境別にストレージキーを分離
         storage: window.localStorage,
         detectSessionInUrl: false, // URLからセッション検出を無効化
         autoRefreshToken: true,

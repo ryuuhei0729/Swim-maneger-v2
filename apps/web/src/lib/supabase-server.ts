@@ -1,10 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { getSupabaseConfig } from './env'
 import type { Database } from './supabase'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// 環境別のSupabase設定を取得
+const { url: supabaseUrl, anonKey: supabaseAnonKey, serviceRoleKey } = getSupabaseConfig()
 
 // サーバーコンポーネント用のSupabaseクライアント
 export const createServerComponentClient = async () => {
@@ -22,5 +23,5 @@ export const createServerComponentClient = async () => {
 // サーバーサイド用のクライアント（RLSをバイパスする場合）
 export const supabaseAdmin = createClient<Database>(
   supabaseUrl,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  serviceRoleKey || ''
 )

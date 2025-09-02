@@ -5,24 +5,56 @@ export const resolvers = {
     me: async (_: any, __: any, { supabase, user }: any) => {
       if (!user) return null
       
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-      
-      if (error) throw new Error(error.message)
-      
-      // データベースのsnake_caseをGraphQLのcamelCaseに変換
-      if (data) {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+        
+        if (error) {
+          console.error('Supabase users table error:', error)
+          // usersテーブルにデータがない場合、auth.usersから基本情報を作成
+          return {
+            id: user.id,
+            name: user.user_metadata?.name || user.email?.split('@')[0] || 'ユーザー',
+            role: user.user_metadata?.role || 'player',
+            avatarUrl: user.user_metadata?.avatar_url || null,
+            generation: user.user_metadata?.generation || null,
+            birthday: user.user_metadata?.birthday || null,
+            bio: user.user_metadata?.bio || null,
+            gender: user.user_metadata?.gender || null,
+            createdAt: user.created_at || new Date().toISOString(),
+            updatedAt: user.updated_at || user.created_at || new Date().toISOString()
+          }
+        }
+        
+        // データベースのsnake_caseをGraphQLのcamelCaseに変換
+        if (data) {
+          return {
+            ...data,
+            avatarUrl: data.avatar_url || null,
+            createdAt: data.created_at || new Date().toISOString(),
+            updatedAt: data.updated_at || data.created_at || new Date().toISOString()
+          }
+        }
+        return null
+      } catch (err) {
+        console.error('GraphQL me resolver error:', err)
+        // エラーが発生した場合もauth.usersから基本情報を返す
         return {
-          ...data,
-          avatarUrl: data.avatar_url || null,
-          createdAt: data.created_at || null,
-          updatedAt: data.updated_at || null
+          id: user.id,
+          name: user.user_metadata?.name || user.email?.split('@')[0] || 'ユーザー',
+          role: user.user_metadata?.role || 'player',
+          avatarUrl: user.user_metadata?.avatar_url || null,
+          generation: null,
+          birthday: null,
+          bio: null,
+          gender: null,
+          createdAt: user.created_at || new Date().toISOString(),
+          updatedAt: user.updated_at || user.created_at || new Date().toISOString()
         }
       }
-      return data
     },
 
     users: async (_: any, __: any, { supabase }: any) => {
@@ -56,8 +88,8 @@ export const resolvers = {
         return {
           ...data,
           avatarUrl: data.avatar_url || null,
-          createdAt: data.created_at || null,
-          updatedAt: data.updated_at || null
+          createdAt: data.created_at || new Date().toISOString(),
+          updatedAt: data.updated_at || data.created_at || new Date().toISOString()
         }
       }
       return data

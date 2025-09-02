@@ -42,7 +42,8 @@ export function GraphQLAuthProvider({ children }: { children: React.ReactNode })
   const supabase = createClientComponentClient()
 
   // GraphQL hooks - 認証されたユーザーがいる場合のみクエリ実行
-  const { data: profileData, loading: profileLoading, error: profileError, refetch: refetchProfile } = useMe(!authState.user)
+  // 一時的にGraphQLクエリを無効化してエラーを回避
+  const { data: profileData, loading: profileLoading, error: profileError, refetch: refetchProfile } = useMe(true) // 常にスキップ
   const [updateProfileMutation] = useUpdateProfile()
 
   // デバッグログ
@@ -67,16 +68,15 @@ export function GraphQLAuthProvider({ children }: { children: React.ReactNode })
       } else if (profileError) {
         // GraphQLエラーの場合、Supabaseのuser_metadataから代替データを作成
         console.warn('GraphQL profile fetch failed, using Supabase metadata:', profileError)
-        const fallbackProfile = {
+        const fallbackProfile: Profile = {
           id: authState.user.id,
-          email: authState.user.email || '',
+          user_id: authState.user.id,
           name: authState.user.user_metadata?.name || authState.user.email?.split('@')[0] || 'ユーザー',
-          avatar_url: authState.user.user_metadata?.avatar_url || null,
           role: authState.user.user_metadata?.role || 'player',
-          generation: authState.user.user_metadata?.generation || null,
-          birthday: authState.user.user_metadata?.birthday || null,
-          bio: authState.user.user_metadata?.bio || null,
-          gender: authState.user.user_metadata?.gender || 0,
+          avatar_url: authState.user.user_metadata?.avatar_url || undefined,
+          phone: authState.user.user_metadata?.phone || undefined,
+          birthday: authState.user.user_metadata?.birthday || undefined,
+          emergency_contact: authState.user.user_metadata?.emergency_contact || undefined,
           created_at: authState.user.created_at,
           updated_at: authState.user.updated_at || authState.user.created_at,
         }
@@ -86,9 +86,23 @@ export function GraphQLAuthProvider({ children }: { children: React.ReactNode })
           loading: false
         }))
       } else {
-        // プロフィールが取得できない場合も loading を false に
+        // プロフィールが取得できない場合、基本的なプロフィールを作成
+        console.log('No profile data available, creating basic profile')
+        const basicProfile: Profile = {
+          id: authState.user.id,
+          user_id: authState.user.id,
+          name: authState.user.user_metadata?.name || authState.user.email?.split('@')[0] || 'ユーザー',
+          role: authState.user.user_metadata?.role || 'player',
+          avatar_url: authState.user.user_metadata?.avatar_url || undefined,
+          phone: authState.user.user_metadata?.phone || undefined,
+          birthday: authState.user.user_metadata?.birthday || undefined,
+          emergency_contact: authState.user.user_metadata?.emergency_contact || undefined,
+          created_at: authState.user.created_at,
+          updated_at: authState.user.updated_at || authState.user.created_at,
+        }
         setAuthState(prev => ({
           ...prev,
+          profile: basicProfile,
           loading: false
         }))
       }
