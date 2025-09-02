@@ -1,0 +1,12 @@
+{
+  "/announcements/page": "app/announcements/page.js",
+  "/attendance/page": "app/attendance/page.js",
+  "/competitions/page": "app/competitions/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/login/page": "app/login/page.js",
+  "/members/page": "app/members/page.js",
+  "/practice/page": "app/practice/page.js",
+  "/schedule/page": "app/schedule/page.js",
+  "/settings/page": "app/settings/page.js"
+}
