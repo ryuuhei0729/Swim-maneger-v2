@@ -26,9 +26,9 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-center space-x-4">
                 <div className="text-sm text-gray-700">
-                  {profile?.name || user?.email}
+                  {profile?.name || user?.email || 'ユーザー'}
                   <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                    {profile?.role || 'ユーザー'}
+                    {profile?.role || 'ロード中...'}
                   </span>
                 </div>
                 <button

@@ -20,16 +20,21 @@ export const createClientComponentClient = (): SupabaseClient => {
   
   // windowオブジェクトでクライアントを管理してHot Reloadに対応
   if (!window.__supabase_client__) {
-    console.log('[Supabase] Creating new client instance')
     window.__supabase_client__ = createBrowserClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         storageKey: 'swim-manager-auth',
         storage: window.localStorage,
         detectSessionInUrl: false, // URLからセッション検出を無効化
+        autoRefreshToken: true,
+        persistSession: true,
+      },
+      // リアルタイム機能を無効にしてパフォーマンス向上
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
+        },
       },
     })
-  } else {
-    console.log('[Supabase] Using existing client instance')
   }
   
   return window.__supabase_client__

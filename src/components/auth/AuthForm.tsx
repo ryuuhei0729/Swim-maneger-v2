@@ -24,6 +24,27 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 
   const { signIn, signUp } = useAuth()
 
+  const formatAuthError = (err: unknown, action: 'signin' | 'signup'): string => {
+    const e = err as any
+    const status = e?.status ? ` [status: ${e.status}]` : ''
+    const message = e?.message || e?.error_description || e?.error || '不明なエラーが発生しました。'
+
+    // 補足ヒント（既知パターンの説明）
+    if (typeof message === 'string') {
+      const msg = message.toLowerCase()
+      if (msg.includes('invalid') && msg.includes('email')) {
+        return `${message}${status}\n原因の可能性: メール形式の不備、または許可ドメイン制限（Auth設定のAllowed email domains）。` 
+      }
+      if (msg.includes('captcha')) {
+        return `${message}${status}\n原因の可能性: Captchaが有効ですがトークンが未提供。AuthのCaptcha設定をご確認ください。`
+      }
+      if (msg.includes('rate limit') || e?.status === 429) {
+        return `${message}${status}\n原因の可能性: メール送信のレート制限に達しました。時間をおいて再試行してください。`
+      }
+    }
+    return `${message}${status}`
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -34,14 +55,14 @@ export const AuthForm: React.FC<AuthFormProps> = ({
       if (formMode === 'signin') {
         const { error } = await signIn(email, password)
         if (error) {
-          setError('ログインに失敗しました。メールアドレスとパスワードを確認してください。')
+          setError(formatAuthError(error, 'signin'))
         } else {
           onSuccess?.()
         }
       } else {
         const { error } = await signUp(email, password, name)
         if (error) {
-          setError('アカウント作成に失敗しました。')
+          setError(formatAuthError(error, 'signup'))
         } else {
           setMessage('確認メールを送信しました。メールを確認してアカウントを有効化してください。')
         }

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { User } from '@supabase/supabase-js'
 import { createClientComponentClient } from '@/lib/supabase'
 import type { Database } from '@/lib/supabase'
@@ -36,24 +36,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading: true
   })
 
+  // タイムアウト用のref
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   // ユーザープロフィールを取得
   const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
       const supabase = getSupabaseClient()
-      const { data, error } = await supabase
+      
+      // タイムアウト付きでプロフィールを取得
+      const profilePromise = supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single()
+
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000) // 5秒タイムアウト
+      })
+
+      const { data, error } = await Promise.race([profilePromise, timeoutPromise])
       
       if (error) {
-        console.error('Error fetching user profile:', error)
+        // プロフィールが存在しない場合は作成を試行（タイムアウトの場合は除く）
+        if (error.code === 'PGRST116' && error.message !== 'Profile fetch timeout') {
+          return await createUserProfile(userId)
+        }
         return null
       }
       
       return data
     } catch (error) {
-      console.error('Error fetching user profile:', error)
+      return null
+    }
+  }
+
+  // プロフィールを非同期で更新（UIをブロックしない）
+  const updateProfileAsync = async (userId: string) => {
+    try {
+      const profile = await fetchUserProfile(userId)
+      setAuthState(prev => ({ ...prev, profile }))
+    } catch (error) {
+      console.error('[Auth] Failed to update profile async:', error)
+    }
+  }
+
+  // ユーザープロフィールを作成
+  const createUserProfile = async (userId: string): Promise<UserProfile | null> => {
+    try {
+      const supabase = getSupabaseClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) return null
+      
+      const newProfile = {
+        id: userId,
+        email: user.email || '',
+        name: user.user_metadata?.name || '',
+        avatar_url: null,
+        role: 'player' as const, // デフォルトロール
+        generation: null,
+        birthday: null,
+        bio: null,
+        gender: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      const { data, error } = await supabase
+        .from('users')
+        .insert(newProfile)
+        .select()
+        .single()
+      
+      if (error) {
+        return null
+      }
+      
+      return data
+    } catch (error) {
       return null
     }
   }
@@ -71,7 +132,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       return { data, error: null }
     } catch (error) {
-      console.error('Sign in error:', error)
       return { data: null, error }
     }
   }
@@ -92,9 +152,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error
       
+      // サインアップ成功時にプロフィールも作成
+      if (data.user) {
+        await createUserProfile(data.user.id)
+      }
+      
       return { data, error: null }
     } catch (error) {
-      console.error('Sign up error:', error)
       return { data: null, error }
     }
   }
@@ -114,7 +178,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       return { error: null }
     } catch (error) {
-      console.error('Sign out error:', error)
       return { error }
     }
   }
@@ -131,7 +194,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       return { error: null }
     } catch (error) {
-      console.error('Password reset error:', error)
       return { error }
     }
   }
@@ -148,7 +210,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       return { error: null }
     } catch (error) {
-      console.error('Password update error:', error)
       return { error }
     }
   }
@@ -174,7 +235,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       return { error: null }
     } catch (error) {
-      console.error('Profile update error:', error)
       return { error }
     }
   }
@@ -183,23 +243,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // 同一のSupabaseクライアントインスタンスを使用
     const supabase = getSupabaseClient()
     
+    // ローディングタイムアウトを設定（5秒）
+    loadingTimeoutRef.current = setTimeout(() => {
+      setAuthState(prev => ({ ...prev, loading: false }))
+    }, 5000)
+    
     // 初期セッション取得
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (session?.user) {
-        const profile = await fetchUserProfile(session.user.id)
-        setAuthState({
-          user: session.user,
-          profile,
-          loading: false
-        })
-      } else {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          setAuthState({
+            user: null,
+            profile: null,
+            loading: false
+          })
+          return
+        }
+        
+        if (session?.user) {
+          setAuthState({
+            user: session.user,
+            profile: null, // プロフィールは後で取得
+            loading: false
+          })
+          
+          // プロフィールを非同期で取得（UIをブロックしない）
+          updateProfileAsync(session.user.id)
+        } else {
+          setAuthState({
+            user: null,
+            profile: null,
+            loading: false
+          })
+        }
+      } catch (error) {
         setAuthState({
           user: null,
           profile: null,
           loading: false
         })
+      } finally {
+        // タイムアウトをクリア
+        if (loadingTimeoutRef.current) {
+          clearTimeout(loadingTimeoutRef.current)
+          loadingTimeoutRef.current = null
+        }
       }
     }
 
@@ -208,24 +298,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // 認証状態の変更を監視（同じクライアントインスタンスを使用）
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user) {
-          const profile = await fetchUserProfile(session.user.id)
-          setAuthState({
-            user: session.user,
-            profile,
-            loading: false
-          })
-        } else {
-          setAuthState({
-            user: null,
-            profile: null,
-            loading: false
-          })
+        try {
+          if (session?.user) {
+            setAuthState({
+              user: session.user,
+              profile: null, // プロフィールは後で取得
+              loading: false
+            })
+            // プロフィールを非同期で取得
+            updateProfileAsync(session.user.id)
+          } else {
+            setAuthState({
+              user: null,
+              profile: null,
+              loading: false
+            })
+          }
+        } catch (error) {
+          setAuthState(prev => ({ ...prev, loading: false }))
         }
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      // タイムアウトをクリア
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current)
+        loadingTimeoutRef.current = null
+      }
+    }
   }, [])
 
   const value: AuthContextType = {
