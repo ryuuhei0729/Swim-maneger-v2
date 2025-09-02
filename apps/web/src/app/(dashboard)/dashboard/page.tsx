@@ -1,6 +1,8 @@
 'use client'
 
 import { useAuth } from '@/components/providers'
+import DashboardStats, { UpcomingEventsList } from '@/components/dashboard/DashboardStats'
+import Link from 'next/link'
 import { 
   UsersIcon,
   ChartBarIcon,
@@ -80,43 +82,36 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* GraphQL統計情報 */}
+      <DashboardStats />
+
       {/* 機能カード */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {dashboardCards.map((card) => (
-          <div
-            key={card.title}
-            className="bg-white rounded-lg shadow hover:shadow-md transition-shadow duration-200 cursor-pointer group"
-          >
-            <div className="p-6">
-              <div className="flex items-center">
-                <div className={`flex-shrink-0 p-3 rounded-lg ${card.color}`}>
-                  <card.icon className="h-6 w-6 text-white" aria-hidden="true" />
-                </div>
-                <div className="ml-4 flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200">
-                    {card.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {card.description}
-                  </p>
+          <Link key={card.title} href={card.href}>
+            <div className="bg-white rounded-lg shadow hover:shadow-md transition-shadow duration-200 cursor-pointer group">
+              <div className="p-6">
+                <div className="flex items-center">
+                  <div className={`flex-shrink-0 p-3 rounded-lg ${card.color}`}>
+                    <card.icon className="h-6 w-6 text-white" aria-hidden="true" />
+                  </div>
+                  <div className="ml-4 flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200">
+                      {card.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {card.description}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
-      {/* 最近の活動（今後実装予定） */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          最近の活動
-        </h2>
-        <div className="text-center py-8">
-          <p className="text-gray-500">
-            最近の活動データはまだありません
-          </p>
-        </div>
-      </div>
+      {/* GraphQL今後のイベント */}
+      <UpcomingEventsList />
     </div>
   )
 }

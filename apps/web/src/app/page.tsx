@@ -4,9 +4,12 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/components/providers'
+import { FullScreenLoading } from '@/components/ui/LoadingSpinner'
 
 export default function Home() {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { user, loading } = useAuth()
+  const isAuthenticated = !!user
+  const isLoading = loading
   const router = useRouter()
 
   useEffect(() => {
@@ -16,11 +19,7 @@ export default function Home() {
   }, [isAuthenticated, isLoading, router])
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    )
+    return <FullScreenLoading message="水泳選手マネジメントシステムを起動中..." />
   }
 
   if (isAuthenticated) {

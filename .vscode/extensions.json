@@ -1,5 +1,9 @@
 {
   "recommendations": [
-    "denoland.vscode-deno"
+    "denoland.vscode-deno",
+    "ms-vscode.vscode-typescript-next",
+    "bradlc.vscode-tailwindcss",
+    "GraphQL.vscode-graphql",
+    "GraphQL.vscode-graphql-syntax"
   ]
 }

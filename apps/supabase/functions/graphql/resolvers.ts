@@ -6,33 +6,60 @@ export const resolvers = {
       if (!user) return null
       
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .single()
       
       if (error) throw new Error(error.message)
+      
+      // データベースのsnake_caseをGraphQLのcamelCaseに変換
+      if (data) {
+        return {
+          ...data,
+          avatarUrl: data.avatar_url || null,
+          createdAt: data.created_at || null,
+          updatedAt: data.updated_at || null
+        }
+      }
       return data
     },
 
     users: async (_: any, __: any, { supabase }: any) => {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .order('created_at', { ascending: false })
       
       if (error) throw new Error(error.message)
-      return data
+      
+      // データベースのsnake_caseをGraphQLのcamelCaseに変換
+      return data?.map((user: any) => ({
+        ...user,
+        avatarUrl: user.avatar_url || null,
+        createdAt: user.created_at || null,
+        updatedAt: user.updated_at || null
+      })) || []
     },
 
     user: async (_: any, { id }: any, { supabase }: any) => {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .eq('id', id)
         .single()
       
       if (error) throw new Error(error.message)
+      
+      // データベースのsnake_caseをGraphQLのcamelCaseに変換
+      if (data) {
+        return {
+          ...data,
+          avatarUrl: data.avatar_url || null,
+          createdAt: data.created_at || null,
+          updatedAt: data.updated_at || null
+        }
+      }
       return data
     },
 
@@ -41,7 +68,7 @@ export const resolvers = {
       const { data, error } = await supabase
         .from('events')
         .select('*')
-        .order('start_time', { ascending: true })
+        .order('date', { ascending: true })
       
       if (error) throw new Error(error.message)
       return data
@@ -59,12 +86,12 @@ export const resolvers = {
     },
 
     upcomingEvents: async (_: any, __: any, { supabase }: any) => {
-      const now = new Date().toISOString()
+      const now = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
       const { data, error } = await supabase
         .from('events')
         .select('*')
-        .gte('start_time', now)
-        .order('start_time', { ascending: true })
+        .gte('date', now)
+        .order('date', { ascending: true })
         .limit(10)
       
       if (error) throw new Error(error.message)
@@ -131,9 +158,9 @@ export const resolvers = {
       if (!user) throw new Error('認証が必要です')
       
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .update(input)
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .select()
         .single()
       
@@ -236,98 +263,7 @@ export const resolvers = {
     },
   },
 
-  // リレーション解決
-  Profile: {
-    user: async (parent: any, _: any, { supabase }: any) => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', parent.user_id)
-        .single()
-      
-      if (error) return null
-      return data
-    },
-  },
+  // リレーション解決は不要（Profileが直接usersテーブル）
 
-  Event: {
-    creator: async (parent: any, _: any, { supabase }: any) => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', parent.created_by)
-        .single()
-      
-      if (error) return null
-      return data
-    },
-
-    attendances: async (parent: any, _: any, { supabase }: any) => {
-      const { data, error } = await supabase
-        .from('attendances')
-        .select('*')
-        .eq('event_id', parent.id)
-      
-      if (error) return []
-      return data
-    },
-
-    practiceRecords: async (parent: any, _: any, { supabase }: any) => {
-      const { data, error } = await supabase
-        .from('practice_records')
-        .select('*')
-        .eq('event_id', parent.id)
-      
-      if (error) return []
-      return data
-    },
-  },
-
-  Attendance: {
-    event: async (parent: any, _: any, { supabase }: any) => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('id', parent.event_id)
-        .single()
-      
-      if (error) return null
-      return data
-    },
-
-    user: async (parent: any, _: any, { supabase }: any) => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', parent.user_id)
-        .single()
-      
-      if (error) return null
-      return data
-    },
-  },
-
-  PracticeRecord: {
-    event: async (parent: any, _: any, { supabase }: any) => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('id', parent.event_id)
-        .single()
-      
-      if (error) return null
-      return data
-    },
-
-    user: async (parent: any, _: any, { supabase }: any) => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', parent.user_id)
-        .single()
-      
-      if (error) return null
-      return data
-    },
-  },
+  // リレーション解決は一旦削除してシンプルに
 }

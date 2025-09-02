@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/providers'
+import { FullScreenLoading } from '@/components/ui/LoadingSpinner'
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -17,7 +18,9 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   redirectTo = '/login',
   allowedRoles
 }) => {
-  const { isAuthenticated, isLoading, profile } = useAuth()
+  const { user, loading, profile } = useAuth()
+  const isAuthenticated = !!user
+  const isLoading = loading
   const router = useRouter()
 
   useEffect(() => {
@@ -35,11 +38,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   }, [isAuthenticated, isLoading, profile, requireAuth, allowedRoles, router, redirectTo])
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    )
+    return <FullScreenLoading message="認証情報を確認中..." />
   }
 
   if (requireAuth && !isAuthenticated) {

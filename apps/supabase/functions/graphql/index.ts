@@ -1,11 +1,15 @@
+/// <reference no-default-lib="true" />
+/// <reference lib="deno.window" />
+/// <reference lib="deno.ns" />
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { GraphQLHTTP } from 'https://deno.land/x/gql@1.1.2/mod.ts'
 import { makeExecutableSchema } from 'https://deno.land/x/graphql_tools@0.0.2/mod.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // GraphQLスキーマとリゾルバーをインポート
-import { typeDefs } from './schema.ts'
 import { resolvers } from './resolvers.ts'
+import { typeDefs } from './schema.ts'
 
 // Supabaseクライアントの初期化
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -19,15 +23,38 @@ const schema = makeExecutableSchema({
   resolvers,
 })
 
+// 認証ヘルパー関数
+const getUser = async (request: Request) => {
+  const authorization = request.headers.get('Authorization')
+  if (!authorization) return null
+
+  const token = authorization.replace('Bearer ', '')
+  
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token)
+    if (error) {
+      console.error('Auth error:', error)
+      return null
+    }
+    return user
+  } catch (error) {
+    console.error('Token verification error:', error)
+    return null
+  }
+}
+
 // GraphQLサーバーの設定
 const graphQLHTTP = GraphQLHTTP<Request>({
   schema,
   graphiql: true,
-  context: (request) => ({
-    supabase,
-    request,
-    user: null, // 認証情報は後で実装
-  }),
+  context: async (request) => {
+    const user = await getUser(request)
+    return {
+      supabase,
+      request,
+      user,
+    }
+  },
 })
 
 // サーバーの起動

@@ -13,26 +13,18 @@ export const typeDefs = `
     MANAGER
   }
 
-  type User {
-    id: ID!
-    email: String!
-    profile: Profile
-    createdAt: DateTime!
-    updatedAt: DateTime!
-  }
-
   type Profile {
     id: ID!
-    userId: ID!
-    user: User!
-    name: String!
-    role: UserRole!
+    email: String!
+    name: String
     avatarUrl: String
-    phone: String
-    birthday: DateTime
-    emergencyContact: String
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    role: String!
+    generation: Int
+    birthday: String
+    bio: String
+    gender: Int
+    createdAt: DateTime
+    updatedAt: DateTime
   }
 
   # イベント関連
@@ -46,17 +38,16 @@ export const typeDefs = `
   type Event {
     id: ID!
     title: String!
-    description: String
-    eventType: EventType!
-    startTime: DateTime!
-    endTime: DateTime!
-    location: String
-    createdBy: ID!
-    creator: Profile!
-    attendances: [Attendance!]!
-    practiceRecords: [PracticeRecord!]!
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    date: String!
+    place: String
+    note: String
+    type: String!
+    is_attendance: Boolean!
+    attendance_status: Int
+    is_competition: Boolean
+    entry_status: Int
+    created_at: DateTime!
+    updated_at: DateTime!
   }
 
   # 出席関連
@@ -69,14 +60,14 @@ export const typeDefs = `
 
   type Attendance {
     id: ID!
-    eventId: ID!
-    event: Event!
-    userId: ID!
-    user: Profile!
-    status: AttendanceStatus!
-    notes: String
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    user_id: ID!
+    attendance_event_id: ID!
+    note: String
+    status: Int!
+    created_at: DateTime!
+    updated_at: DateTime!
+    user: User
+    event: Event
   }
 
   # 練習記録関連
@@ -90,9 +81,9 @@ export const typeDefs = `
 
   type PracticeRecord {
     id: ID!
-    eventId: ID!
+    event_id: ID!
     event: Event!
-    userId: ID!
+    user_id: ID!
     user: Profile!
     stroke: SwimStroke!
     distance: Int!
@@ -101,8 +92,8 @@ export const typeDefs = `
     circleTime: Int
     bestTime: Int
     notes: String
-    createdAt: DateTime!
-    updatedAt: DateTime!
+    created_at: DateTime!
+    updated_at: DateTime!
   }
 
   # クエリ
@@ -148,9 +139,11 @@ export const typeDefs = `
   # 入力型
   input UpdateProfileInput {
     name: String
-    phone: String
-    birthday: DateTime
-    emergencyContact: String
+    avatar_url: String
+    generation: Int
+    birthday: String
+    bio: String
+    gender: Int
   }
 
   input CreateEventInput {

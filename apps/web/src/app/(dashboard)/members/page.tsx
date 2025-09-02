@@ -1,3 +1,7 @@
+'use client'
+
+import MembersList from '@/components/members/MembersList'
+
 export default function MembersPage() {
   return (
     <div className="space-y-6">
@@ -10,13 +14,7 @@ export default function MembersPage() {
         </p>
       </div>
       
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="text-center py-12">
-          <p className="text-gray-500">
-            メンバー管理機能は実装予定です
-          </p>
-        </div>
-      </div>
+      <MembersList />
     </div>
   )
 }
