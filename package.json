@@ -34,7 +34,7 @@
     "turbo": "^2.5.0"
   },
   "engines": {
-    "node": "18.x",
+    "node": "20.x",
     "npm": ">=8.0.0"
   },
   "repository": {

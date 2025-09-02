@@ -81,7 +81,19 @@ export function getSupabaseConfig() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   
+  // 環境変数が設定されていない場合のデフォルト値を使用
   if (!supabaseUrl || !supabaseAnonKey) {
+    // 開発環境またはビルド時にはプレースホルダーを使用
+    if (env === 'development' || process.env.NODE_ENV === 'production') {
+      console.warn(`Supabase環境変数が設定されていません。プレースホルダー値を使用します。(環境: ${env})`)
+      return {
+        url: supabaseUrl || 'https://placeholder.supabase.co',
+        anonKey: supabaseAnonKey || 'placeholder-anon-key',
+        serviceRoleKey: supabaseServiceRoleKey || 'placeholder-service-role-key',
+        project: config.supabaseProject,
+        environment: env,
+      }
+    }
     throw new Error(`Supabase設定が不足しています (環境: ${env})`)
   }
   
