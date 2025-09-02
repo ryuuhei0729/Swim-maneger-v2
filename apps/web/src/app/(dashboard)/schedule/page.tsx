@@ -1,3 +1,5 @@
+'use client'
+
 export default function SchedulePage() {
   return (
     <div className="space-y-6">

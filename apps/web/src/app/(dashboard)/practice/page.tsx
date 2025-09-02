@@ -1,3 +1,5 @@
+'use client'
+
 export default function PracticePage() {
   return (
     <div className="space-y-6">
