@@ -13,11 +13,6 @@
       "NEXT_PUBLIC_ENVIRONMENT": "production"
     }
   },
-  "preview": {
-    "env": {
-      "NEXT_PUBLIC_ENVIRONMENT": "preview"
-    }
-  },
   "git": {
     "deploymentEnabled": {
       "main": true,
