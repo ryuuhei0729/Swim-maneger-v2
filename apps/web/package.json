@@ -1,0 +1,40 @@
+{
+  "name": "@swimmer-management/web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "水泳選手マネジメントシステム - Webアプリケーション",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf .next dist",
+    "docker:dev": "docker-compose up app",
+    "docker:build": "docker-compose build",
+    "docker:down": "docker-compose down"
+  },
+  "dependencies": {
+    "@apollo/client": "^4.0.3",
+    "@heroicons/react": "^2.2.0",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.55.0",
+    "graphql": "^16.11.0",
+    "next": "15.4.6",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.6",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5"
+  }
+}

@@ -1,24 +1,26 @@
 {
+  "deno.enable": false,
+  "deno.enablePaths": ["./apps/supabase/functions"],
+  "typescript.preferences.includePackageJsonAutoImports": "off",
+  "typescript.suggest.autoImports": false,
   "[typescript]": {
-    "editor.defaultFormatter": "denoland.vscode-deno"
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    }
   },
-  "deno.enablePaths": [
-    "supabase/functions"
-  ],
+  "files.associations": {
+    "**/supabase/functions/**/*.ts": "typescript"
+  },
+  "typescript.validate.enable": true,
   "deno.lint": true,
-  "deno.unstable": [
-    "bare-node-builtins",
-    "byonm",
-    "sloppy-imports",
-    "unsafe-proto",
-    "webgpu",
-    "broadcast-channel",
-    "worker-options",
-    "cron",
-    "kv",
-    "ffi",
-    "fs",
-    "http",
-    "net"
-  ]
+  "deno.suggest.imports.hosts": {
+    "https://deno.land": true,
+    "https://esm.sh": true
+  },
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "typescript.preferences.quoteStyle": "single",
+  "typescript.format.semicolons": "remove"
 }
