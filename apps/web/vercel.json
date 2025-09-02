@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "cd ../.. && npm run build:web",
+  "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "installCommand": "cd ../.. && npm install",
+  "installCommand": "npm install --prefix ../.. && npm run graphql:codegen --prefix ../..",
   "framework": "nextjs",
   "ignoreCommand": "git diff --quiet HEAD^ HEAD ./",
   "env": {
