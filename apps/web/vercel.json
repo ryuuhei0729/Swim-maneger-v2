@@ -1,7 +1,6 @@
 {
   "version": 2,
   "buildCommand": "cd ../.. && npm run graphql:codegen && cd apps/web && npm run build",
-  "outputDirectory": ".next",
   "installCommand": "cd ../.. && npm install --frozen-lockfile",
   "rootDirectory": "apps/web",
   "framework": "nextjs",
