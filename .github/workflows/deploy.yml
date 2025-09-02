@@ -1,55 +1,65 @@
-name: Deploy
+name: Deploy to Vercel
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
 
 jobs:
-  deploy-web:
+  deploy:
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: |
-          **/package-lock.json
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Build web app
-      run: npm run build:web
-    
-    # Vercel, Netlify, または他のホスティングサービスへのデプロイ設定
-    # 例: Vercel
-    # - name: Deploy to Vercel
-    #   uses: amondnet/vercel-action@v25
-    #   with:
-    #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
-    #     vercel-org-id: ${{ secrets.ORG_ID }}
-    #     vercel-project-id: ${{ secrets.PROJECT_ID }}
-    #     working-directory: ./apps/web
-  
-  deploy-supabase:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Supabase CLI
-      uses: supabase/setup-cli@v1
-      with:
-        version: latest
-    
-    # Supabase Edge Functionsのデプロイ
-    # - name: Deploy Supabase Functions
-    #   run: |
-    #     supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
-    #   env:
-    #     SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-    #   working-directory: ./apps/supabase
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run type-check --workspace=@swimmer-management/web
+
+      - name: Lint
+        run: npm run lint --workspace=@swimmer-management/web
+
+      - name: Build
+        run: npm run build --workspace=@swimmer-management/web
+
+      - name: Deploy to Vercel (Production)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./apps/web
+          vercel-args: '--prod'
+
+      - name: Deploy to Vercel (Preview)
+        if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./apps/web
+
+      - name: Deploy to Vercel (PR Preview)
+        if: github.event_name == 'pull_request'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./apps/web
+          github-comment: true

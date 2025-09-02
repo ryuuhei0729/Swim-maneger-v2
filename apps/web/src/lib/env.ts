@@ -3,7 +3,7 @@
  * 開発・ステージング・本番環境の切り分けを行う
  */
 
-export type Environment = 'development' | 'staging' | 'production'
+export type Environment = 'development' | 'preview' | 'production'
 
 /**
  * 現在の環境を取得
@@ -14,7 +14,7 @@ export function getEnvironment(): Environment {
     return 'production'
   }
   if (process.env.VERCEL_ENV === 'preview') {
-    return 'staging'
+    return 'preview'
   }
   
   // Next.js環境変数をフォールバック
@@ -23,8 +23,8 @@ export function getEnvironment(): Environment {
   }
   
   // 明示的な環境指定
-  if (process.env.NEXT_PUBLIC_ENVIRONMENT === 'staging') {
-    return 'staging'
+  if (process.env.NEXT_PUBLIC_ENVIRONMENT === 'preview') {
+    return 'preview'
   }
   if (process.env.NEXT_PUBLIC_ENVIRONMENT === 'production') {
     return 'production'
@@ -44,10 +44,10 @@ export const envConfig = {
     appUrl: 'http://localhost:3000',
     debug: true,
   },
-  staging: {
-    name: 'ステージング環境', 
+  preview: {
+    name: 'プレビュー環境', 
     supabaseProject: 'swimmer-dev', // 開発用DBを使用
-    appUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://staging.example.com',
+    appUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://preview.example.com',
     debug: true,
   },
   production: {
@@ -110,10 +110,10 @@ export function isDevelopment() {
 }
 
 /**
- * ステージング環境かどうかを判定
+ * プレビュー環境かどうかを判定
  */
-export function isStaging() {
-  return getEnvironment() === 'staging'
+export function isPreview() {
+  return getEnvironment() === 'preview'
 }
 
 /**
