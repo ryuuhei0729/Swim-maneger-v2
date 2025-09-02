@@ -29,7 +29,7 @@ export const PasswordResetForm: React.FC<PasswordResetFormProps> = ({ onSuccess 
         setMessage('パスワードリセット用のメールを送信しました。メールを確認してください。')
         onSuccess?.()
       }
-    } catch (error) {
+    } catch {
       setError('予期しないエラーが発生しました。')
     } finally {
       setLoading(false)

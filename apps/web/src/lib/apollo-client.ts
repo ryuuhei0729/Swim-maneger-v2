@@ -41,8 +41,8 @@ const authLink = setContext(async (_, { headers }) => {
 
 // エラーハンドリングリンク
 const errorLink = onError((error) => {
-  // @ts-ignore - Apollo Client v4の型定義の問題を回避
-  const { graphQLErrors, networkError, operation, forward } = error
+  // @ts-expect-error - Apollo Client v4の型定義の問題を回避
+  const { graphQLErrors, networkError } = error
   
   if (graphQLErrors) {
     graphQLErrors.forEach(({ message, locations, path }: any) => {

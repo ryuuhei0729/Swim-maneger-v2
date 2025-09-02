@@ -31,6 +31,8 @@ jobs:
 
       - name: Lint
         run: npm run lint --workspace=@swimmer-management/web
+        env:
+          CI: true
 
       - name: Build
         run: npm run build --workspace=@swimmer-management/web

@@ -24,7 +24,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 
   const { signIn, signUp } = useAuth()
 
-  const formatAuthError = (err: unknown, action: 'signin' | 'signup'): string => {
+  const formatAuthError = (err: unknown, _action: 'signin' | 'signup'): string => {
     const e = err as any
     const status = e?.status ? ` [status: ${e.status}]` : ''
     const message = e?.message || e?.error_description || e?.error || '不明なエラーが発生しました。'
@@ -67,7 +67,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           setMessage('確認メールを送信しました。メールを確認してアカウントを有効化してください。')
         }
       }
-    } catch (error) {
+    } catch {
       setError('予期しないエラーが発生しました。')
     } finally {
       setLoading(false)

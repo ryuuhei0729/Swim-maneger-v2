@@ -217,7 +217,7 @@ export function GraphQLAuthProvider({ children }: { children: React.ReactNode })
   // サインイン
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data: _data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
@@ -235,7 +235,7 @@ export function GraphQLAuthProvider({ children }: { children: React.ReactNode })
   // サインアップ
   const signUp = async (email: string, password: string, name?: string) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data: _data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {

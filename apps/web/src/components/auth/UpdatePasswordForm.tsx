@@ -44,7 +44,7 @@ export const UpdatePasswordForm: React.FC<UpdatePasswordFormProps> = ({ onSucces
         setConfirmPassword('')
         onSuccess?.()
       }
-    } catch (error) {
+    } catch {
       setError('予期しないエラーが発生しました。')
     } finally {
       setLoading(false)
