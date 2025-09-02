@@ -135,7 +135,7 @@ npm run graphql:codegen     # GraphQL型生成
    # - Service Role Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
    ```
 
-3. **環境変数の分離**
+3. **環境変数の分離**a
    
    **ローカル開発用 (`.env.local`)**
    ```bash

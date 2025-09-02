@@ -7,7 +7,7 @@
 `apps/web/.env.local` ファイルを作成してください：
 
 ```bash
-# 開発環境用設定 (swimmer-dev プロジェクト)
+# 開発環境用設定 (swimmer-dev プロジェクaト)
 NEXT_PUBLIC_SUPABASE_URL=https://your-dev-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-dev-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-dev-service-role-key
