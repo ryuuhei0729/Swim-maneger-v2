@@ -5,6 +5,18 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/components/providers'
 import { FullScreenLoading } from '@/components/ui/LoadingSpinner'
+import { 
+  UsersIcon, 
+  CalendarDaysIcon, 
+  ChartBarIcon, 
+  TrophyIcon,
+  ClipboardDocumentListIcon,
+  FlagIcon,
+  SpeakerWaveIcon,
+  ShieldCheckIcon,
+  ArrowRightIcon,
+  CheckIcon
+} from '@heroicons/react/24/outline'
 
 export default function Home() {
   const { user, loading } = useAuth()
@@ -26,86 +38,240 @@ export default function Home() {
     return null
   }
 
+  const features = [
+    {
+      icon: UsersIcon,
+      title: '選手管理',
+      description: 'チームメンバーの情報を一元管理し、プロフィールやパフォーマンスを追跡',
+      color: 'text-blue-600'
+    },
+    {
+      icon: CalendarDaysIcon,
+      title: 'スケジュール管理',
+      description: '練習・大会のスケジュールを効率的に管理し、チーム全体で共有',
+      color: 'text-green-600'
+    },
+    {
+      icon: ChartBarIcon,
+      title: '練習記録',
+      description: '日々の練習内容、タイム記録、進捗を詳細に記録・分析',
+      color: 'text-purple-600'
+    },
+    {
+      icon: TrophyIcon,
+      title: '大会管理',
+      description: '大会エントリーから結果管理まで、競技会関連業務を効率化',
+      color: 'text-yellow-600'
+    },
+    {
+      icon: ClipboardDocumentListIcon,
+      title: '出欠管理',
+      description: '練習や大会の出席状況を正確に管理し、統計データを提供',
+      color: 'text-red-600'
+    },
+    {
+      icon: FlagIcon,
+      title: '目標管理',
+      description: '個人・チーム目標を設定し、達成度を可視化してモチベーション向上',
+      color: 'text-indigo-600'
+    }
+  ]
+
+  const benefits = [
+    'チーム運営の効率化',
+    'データに基づく指導',
+    'コミュニケーション向上',
+    'パフォーマンス向上',
+    '管理業務の自動化',
+    'モチベーション向上'
+  ]
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-16">
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
-            水泳選手マネジメントシステム
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            水泳チームの選手、コーチ、監督、マネージャーが効率的にチーム運営を行えるWebアプリケーション
+    <div className="min-h-screen bg-white">
+      {/* ヒーローセクション */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-swim-50 via-blue-50 to-indigo-100">
+        <div className="absolute inset-0 bg-hero-pattern opacity-5"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
+          <div className="text-center">
+            {/* ロゴ */}
+            <div className="flex justify-center mb-8">
+              <div className="w-20 h-20 bg-gradient-to-br from-swim-500 to-swim-600 rounded-2xl flex items-center justify-center shadow-swim">
+                <span className="text-white font-bold text-3xl">🏊</span>
+              </div>
+            </div>
+            
+            <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 mb-6 animate-fade-in">
+              <span className="block">水泳選手</span>
+              <span className="block text-transparent bg-clip-text bg-gradient-swim">
+                マネジメントシステム
+              </span>
+            </h1>
+            
+            <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+              水泳チームの選手、コーチ、監督、マネージャーが効率的にチーム運営を行える
+              <br className="hidden sm:block" />
+              包括的なWebアプリケーション
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+              <Link
+                href="/login"
+                className="btn-primary btn-lg group hover-lift"
+              >
+                ログイン
+                <ArrowRightIcon className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-200" />
+              </Link>
+              <Link
+                href="/signup"
+                className="btn-outline btn-lg hover-lift"
+              >
+                新規登録
+              </Link>
+            </div>
+
+            {/* 統計情報 */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-2xl mx-auto">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-swim-600 mb-2">100+</div>
+                <div className="text-gray-600">チーム導入実績</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-swim-600 mb-2">1000+</div>
+                <div className="text-gray-600">アクティブユーザー</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-swim-600 mb-2">99.9%</div>
+                <div className="text-gray-600">稼働率</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 機能紹介セクション */}
+      <section className="py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              主要機能
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              水泳チーム運営に必要なすべての機能を一つのプラットフォームで提供
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <div
+                key={feature.title}
+                className="card hover-lift hover-glow animate-fade-in"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="card-body">
+                  <div className={`${feature.color} mb-6`}>
+                    <feature.icon className="w-12 h-12" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                    {feature.title}
+                  </h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* メリットセクション */}
+      <section className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-8">
+                なぜ選ばれるのか
+              </h2>
+              <div className="space-y-6">
+                {benefits.map((benefit, index) => (
+                  <div
+                    key={benefit}
+                    className="flex items-center animate-fade-in"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    <div className="flex-shrink-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                      <CheckIcon className="w-4 h-4 text-green-600" />
+                    </div>
+                    <span className="text-lg text-gray-700">{benefit}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="relative">
+              <div className="bg-gradient-to-br from-swim-500 to-swim-600 rounded-2xl p-8 text-white shadow-swim">
+                <SpeakerWaveIcon className="w-12 h-12 mb-6 opacity-80" />
+                <h3 className="text-2xl font-bold mb-4">
+                  チーム運営を次のレベルへ
+                </h3>
+                <p className="text-swim-100 leading-relaxed">
+                  データドリブンなアプローチで選手のパフォーマンス向上を支援し、
+                  チーム全体の成長を促進します。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTAセクション */}
+      <section className="py-24 bg-gradient-to-r from-swim-600 to-swim-700">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <ShieldCheckIcon className="w-16 h-16 text-swim-200 mx-auto mb-8" />
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
+            今すぐ始めませんか？
+          </h2>
+          <p className="text-xl text-swim-100 mb-10 leading-relaxed">
+            無料でアカウントを作成して、チーム運営の効率化を体験してください
           </p>
-          <div className="space-x-4">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/signup"
+              className="bg-white text-swim-600 hover:bg-swim-50 px-8 py-4 rounded-lg text-lg font-semibold transition-colors duration-200 hover-lift"
+            >
+              無料で始める
+            </Link>
             <Link
               href="/login"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg text-lg font-medium inline-block"
+              className="border-2 border-swim-200 text-white hover:bg-swim-200 hover:text-swim-800 px-8 py-4 rounded-lg text-lg font-semibold transition-colors duration-200 hover-lift"
             >
               ログイン
             </Link>
-            <Link
-              href="/signup"
-              className="bg-white hover:bg-gray-50 text-blue-600 px-8 py-3 rounded-lg text-lg font-medium border border-blue-600 inline-block"
-            >
-              新規登録
-            </Link>
           </div>
         </div>
+      </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <div className="bg-white p-8 rounded-xl shadow-lg">
-            <div className="text-blue-600 mb-4">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-              </svg>
+      {/* フッター */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="flex justify-center mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-swim-500 to-swim-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">🏊</span>
+              </div>
             </div>
-            <h2 className="text-2xl font-semibold mb-4 text-gray-900">選手管理</h2>
-            <p className="text-gray-600">選手の情報管理、プロフィール設定、パフォーマンス追跡を行います</p>
-          </div>
-          
-          <div className="bg-white p-8 rounded-xl shadow-lg">
-            <div className="text-blue-600 mb-4">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-semibold mb-4 text-gray-900">スケジュール管理</h2>
-            <p className="text-gray-600">練習・大会のスケジュール管理と出席管理を効率的に行います</p>
-          </div>
-          
-          <div className="bg-white p-8 rounded-xl shadow-lg">
-            <div className="text-blue-600 mb-4">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-semibold mb-4 text-gray-900">練習記録</h2>
-            <p className="text-gray-600">日々の練習内容、タイム記録、進捗管理を詳細に追跡します</p>
-          </div>
-        </div>
-
-        <div className="mt-16 text-center">
-          <h3 className="text-2xl font-bold text-gray-900 mb-8">主な機能</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h4 className="text-lg font-semibold mb-2 text-gray-900">チーム管理</h4>
-              <p className="text-gray-600">選手、コーチ、スタッフの情報を一元管理</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h4 className="text-lg font-semibold mb-2 text-gray-900">パフォーマンス分析</h4>
-              <p className="text-gray-600">タイムの推移やトレーニング効果を可視化</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h4 className="text-lg font-semibold mb-2 text-gray-900">コミュニケーション</h4>
-              <p className="text-gray-600">チーム内のメッセージやお知らせ機能</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h4 className="text-lg font-semibold mb-2 text-gray-900">大会管理</h4>
-              <p className="text-gray-600">大会エントリーや結果管理を効率化</p>
+            <h3 className="text-xl font-semibold mb-4">
+              水泳選手マネジメントシステム
+            </h3>
+            <p className="text-gray-400 mb-8">
+              すべての水泳チームの成功をサポートします
+            </p>
+            <div className="text-sm text-gray-500">
+              © 2025 水泳選手マネジメントシステム. All rights reserved.
             </div>
           </div>
         </div>
-      </div>
-    </main>
+      </footer>
+    </div>
   )
 }

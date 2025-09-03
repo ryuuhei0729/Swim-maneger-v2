@@ -37,13 +37,13 @@ export default function NotFound() {
             ダッシュボードに戻る
           </Link>
           
-          <button
-            onClick={() => window.history.back()}
+          <Link
+            href="/"
             className="btn-outline btn-lg w-full group"
           >
             <ArrowLeftIcon className="w-5 h-5 mr-2" />
-            前のページに戻る
-          </button>
+            ホームに戻る
+          </Link>
         </div>
 
         {/* サポート情報 */}
