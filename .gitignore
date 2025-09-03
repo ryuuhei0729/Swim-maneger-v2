@@ -52,5 +52,5 @@ tmp/
 temp/
 
 # Supabase
-/apps/supabase/.branches
-/apps/supabase/.temp
+/supabase/.branches
+/supabase/.temp
