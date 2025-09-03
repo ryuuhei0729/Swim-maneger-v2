@@ -165,6 +165,9 @@ const config: Config = {
         '90': '90',
         '100': '100',
       },
+      backgroundPosition: {
+        'right-8': 'right 2rem center',
+      },
     },
   },
   plugins: [

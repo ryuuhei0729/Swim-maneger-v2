@@ -9,7 +9,7 @@ interface ErrorProps {
   reset: () => void
 }
 
-export default function Error({ error, reset }: ErrorProps) {
+export default function AppError({ error, reset }: ErrorProps) {
   useEffect(() => {
     // エラーをログに記録
     console.error('Application Error:', error)

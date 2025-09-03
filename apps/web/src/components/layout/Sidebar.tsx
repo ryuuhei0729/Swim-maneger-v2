@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import type { ComponentType, SVGProps } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/providers'
@@ -26,7 +27,7 @@ interface SidebarProps {
 interface NavigationItem {
   name: string
   href: string
-  icon: React.ForwardRefExoticComponent<any>
+  icon: ComponentType<SVGProps<SVGSVGElement>>
   badge?: number
   description?: string
   roles?: string[] // どのロールがアクセスできるか
