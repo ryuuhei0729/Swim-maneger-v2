@@ -1,7 +1,8 @@
-# 水泳選手マネジメントシステム GraphQLスキーマ
+# 水泳選手マネジメントシステム GraphQLスキーマ（個人利用機能対応）
 
 scalar DateTime
 scalar JSON
+scalar Date
 
 # ユーザー関連
 enum UserRole {
@@ -9,6 +10,36 @@ enum UserRole {
   COACH
   DIRECTOR
   MANAGER
+}
+
+# プール種別
+enum PoolType {
+  SHORT_COURSE  # 短水路 (25m)
+  LONG_COURSE   # 長水路 (50m)
+}
+
+# 泳法
+enum SwimStroke {
+  FREESTYLE
+  BACKSTROKE
+  BREASTSTROKE
+  BUTTERFLY
+  INDIVIDUAL_MEDLEY
+}
+
+# 大会カテゴリ
+enum CompetitionCategory {
+  OFFICIAL      # 公式
+  RECORD_MEET   # 記録会
+  TIME_TRIAL    # タイムトライアル
+}
+
+# 目標タイプ
+enum GoalType {
+  TIME              # タイム目標
+  TECHNIQUE         # 技術面目標
+  TRAINING_FREQUENCY # 練習頻度目標
+  TRAINING_DISTANCE  # 練習距離目標
 }
 
 type User {
@@ -52,7 +83,6 @@ type Event {
   createdBy: ID!
   creator: Profile!
   attendances: [Attendance!]!
-  practiceRecords: [PracticeRecord!]!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -77,69 +107,146 @@ type Attendance {
   updatedAt: DateTime!
 }
 
-# 練習記録関連
-enum SwimStroke {
-  FREESTYLE
-  BACKSTROKE
-  BREASTSTROKE
-  BUTTERFLY
-  INDIVIDUAL_MEDLEY
-}
-
-type PracticeRecord {
+# 種目・泳法関連
+type Style {
   id: ID!
-  eventId: ID!
-  event: Event!
-  userId: ID!
-  user: Profile!
-  stroke: SwimStroke!
+  nameJp: String!
+  name: String!
   distance: Int!
-  sets: Int!
-  reps: Int!
-  circleTime: Int
-  bestTime: Int
-  notes: String
+  stroke: SwimStroke!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
 
-# 大会記録関連
-type CompetitionRecord {
+# 練習タグ関連
+type PracticeTag {
   id: ID!
   userId: ID!
-  user: Profile!
-  competitionName: String!
-  eventName: String!
-  stroke: SwimStroke!
+  name: String!
+  color: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# 練習記録関連（個人利用機能対応）
+type PracticeLog {
+  id: ID!
+  userId: ID!
+  practiceDate: Date!
+  location: String
+  tags: [PracticeTag!]!
+  style: String
+  repCount: Int!
+  setCount: Int!
   distance: Int!
-  time: Int!
-  splitTimes: [Int!]
-  rank: Int
-  notes: String
+  circle: Float!
+  note: String
+  times: [PracticeTime!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# 練習タイム記録
+type PracticeTime {
+  id: ID!
+  userId: ID!
+  practiceLogId: ID!
+  repNumber: Int!
+  setNumber: Int!
+  time: Float!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# 大会関連（個人利用機能対応）
+type Competition {
+  id: ID!
+  name: String!
+  competitionDate: Date!
+  location: String
+  poolType: PoolType
+  poolLength: Int
+  competitionCategory: CompetitionCategory
+  userId: ID!
+  records: [Record!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# 記録関連（個人利用機能対応）
+type Record {
+  id: ID!
+  userId: ID!
+  styleId: ID!
+  style: Style!
+  time: Float!
+  recordDate: Date!
+  location: String
+  poolType: PoolType
+  poolLength: Int
+  isRelay: Boolean!
+  rankPosition: Int
+  memo: String
   videoUrl: String
-  date: DateTime!
+  competitionId: ID
+  competition: Competition
+  splitTimes: [SplitTime!]!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
 
-# 目標管理関連
-enum GoalStatus {
-  ACTIVE
-  COMPLETED
-  PAUSED
-  CANCELLED
+# スプリットタイム
+type SplitTime {
+  id: ID!
+  recordId: ID!
+  distance: Int!
+  splitTime: Float!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
-type Goal {
+# 個人目標管理関連
+type PersonalGoal {
   id: ID!
   userId: ID!
-  user: Profile!
+  goalType: GoalType!
+  styleId: ID
+  style: Style
+  poolType: PoolType
+  targetTime: Float
   title: String!
   description: String
-  targetValue: Int
-  currentValue: Int
-  targetDate: DateTime
-  status: GoalStatus!
+  targetDate: Date
+  startDate: Date!
+  isAchieved: Boolean!
+  achievedDate: Date
+  progress: [GoalProgress!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# 目標進捗記録
+type GoalProgress {
+  id: ID!
+  personalGoalId: ID!
+  progressDate: Date!
+  progressValue: Float
+  progressNote: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# ベストタイム管理
+type BestTime {
+  id: ID!
+  userId: ID!
+  styleId: ID!
+  style: Style!
+  poolType: PoolType!
+  bestTime: Float!
+  recordId: ID
+  record: Record
+  achievedDate: Date!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -160,7 +267,6 @@ type Announcement {
   published: Boolean!
   publishedAt: DateTime
   createdBy: ID!
-  creator: Profile!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -172,6 +278,39 @@ type Query {
   users: [Profile!]!
   user(id: ID!): Profile
 
+  # 種目・泳法関連
+  styles: [Style!]!
+  style(id: ID!): Style
+
+  # 練習タグ関連
+  myPracticeTags: [PracticeTag!]!
+  practiceTag(id: ID!): PracticeTag
+
+  # 練習記録関連（個人利用機能対応）
+  myPracticeLogs(startDate: Date, endDate: Date): [PracticeLog!]!
+  practiceLog(id: ID!): PracticeLog
+  practiceLogsByDate(date: Date!): [PracticeLog!]!
+
+  # 大会関連（個人利用機能対応）
+  myCompetitions: [Competition!]!
+  competition(id: ID!): Competition
+  
+  # 記録関連（個人利用機能対応）
+  myRecords(startDate: Date, endDate: Date, styleId: ID, poolType: PoolType): [Record!]!
+  record(id: ID!): Record
+  recordsByDate(date: Date!): [Record!]!
+
+  # ベストタイム関連
+  myBestTimes(poolType: PoolType): [BestTime!]!
+  bestTime(styleId: ID!, poolType: PoolType!): BestTime
+
+  # 個人目標関連
+  myPersonalGoals: [PersonalGoal!]!
+  personalGoal(id: ID!): PersonalGoal
+
+  # カレンダー関連
+  calendarData(year: Int!, month: Int!): CalendarData!
+
   # イベント関連
   events: [Event!]!
   event(id: ID!): Event
@@ -181,27 +320,77 @@ type Query {
   attendances(eventId: ID): [Attendance!]!
   myAttendances: [Attendance!]!
 
-  # 練習記録関連
-  practiceRecords(eventId: ID, userId: ID): [PracticeRecord!]!
-  myPracticeRecords: [PracticeRecord!]!
-
-  # 大会記録関連
-  competitionRecords(userId: ID): [CompetitionRecord!]!
-  myCompetitionRecords: [CompetitionRecord!]!
-
-  # 目標管理関連
-  goals(userId: ID): [Goal!]!
-  myGoals: [Goal!]!
-
   # お知らせ関連
   announcements: [Announcement!]!
   announcement(id: ID!): Announcement
+}
+
+# カレンダーデータ型
+type CalendarData {
+  year: Int!
+  month: Int!
+  days: [CalendarDay!]!
+  summary: CalendarSummary!
+}
+
+type CalendarDay {
+  date: Date!
+  hasPractice: Boolean!
+  hasCompetition: Boolean!
+  practiceCount: Int!
+  recordCount: Int!
+}
+
+type CalendarSummary {
+  totalPractices: Int!
+  totalCompetitions: Int!
+  totalRecords: Int!
 }
 
 # ミューテーション
 type Mutation {
   # ユーザー関連
   updateProfile(input: UpdateProfileInput!): Profile!
+
+  # 練習タグ関連
+  createPracticeTag(input: CreatePracticeTagInput!): PracticeTag!
+  updatePracticeTag(id: ID!, input: UpdatePracticeTagInput!): PracticeTag!
+  deletePracticeTag(id: ID!): Boolean!
+
+  # 練習記録関連（個人利用機能対応）
+  createPracticeLog(input: CreatePracticeLogInput!): PracticeLog!
+  updatePracticeLog(id: ID!, input: UpdatePracticeLogInput!): PracticeLog!
+  deletePracticeLog(id: ID!): Boolean!
+
+  # 練習タイム関連
+  createPracticeTime(input: CreatePracticeTimeInput!): PracticeTime!
+  updatePracticeTime(id: ID!, input: UpdatePracticeTimeInput!): PracticeTime!
+  deletePracticeTime(id: ID!): Boolean!
+
+  # 大会関連（個人利用機能対応）
+  createCompetition(input: CreateCompetitionInput!): Competition!
+  updateCompetition(id: ID!, input: UpdateCompetitionInput!): Competition!
+  deleteCompetition(id: ID!): Boolean!
+
+  # 記録関連（個人利用機能対応）
+  createRecord(input: CreateRecordInput!): Record!
+  updateRecord(id: ID!, input: UpdateRecordInput!): Record!
+  deleteRecord(id: ID!): Boolean!
+
+  # スプリットタイム関連
+  createSplitTime(input: CreateSplitTimeInput!): SplitTime!
+  updateSplitTime(id: ID!, input: UpdateSplitTimeInput!): SplitTime!
+  deleteSplitTime(id: ID!): Boolean!
+
+  # 個人目標関連
+  createPersonalGoal(input: CreatePersonalGoalInput!): PersonalGoal!
+  updatePersonalGoal(id: ID!, input: UpdatePersonalGoalInput!): PersonalGoal!
+  deletePersonalGoal(id: ID!): Boolean!
+
+  # 目標進捗関連
+  createGoalProgress(input: CreateGoalProgressInput!): GoalProgress!
+  updateGoalProgress(id: ID!, input: UpdateGoalProgressInput!): GoalProgress!
+  deleteGoalProgress(id: ID!): Boolean!
 
   # イベント関連
   createEvent(input: CreateEventInput!): Event!
@@ -210,21 +399,6 @@ type Mutation {
 
   # 出席関連
   updateAttendance(input: UpdateAttendanceInput!): Attendance!
-
-  # 練習記録関連
-  createPracticeRecord(input: CreatePracticeRecordInput!): PracticeRecord!
-  updatePracticeRecord(id: ID!, input: UpdatePracticeRecordInput!): PracticeRecord!
-  deletePracticeRecord(id: ID!): Boolean!
-
-  # 大会記録関連
-  createCompetitionRecord(input: CreateCompetitionRecordInput!): CompetitionRecord!
-  updateCompetitionRecord(id: ID!, input: UpdateCompetitionRecordInput!): CompetitionRecord!
-  deleteCompetitionRecord(id: ID!): Boolean!
-
-  # 目標管理関連
-  createGoal(input: CreateGoalInput!): Goal!
-  updateGoal(id: ID!, input: UpdateGoalInput!): Goal!
-  deleteGoal(id: ID!): Boolean!
 
   # お知らせ関連
   createAnnouncement(input: CreateAnnouncementInput!): Announcement!
@@ -238,6 +412,155 @@ input UpdateProfileInput {
   phone: String
   birthday: DateTime
   emergencyContact: String
+}
+
+# 練習タグ入力型
+input CreatePracticeTagInput {
+  name: String!
+  color: String
+}
+
+input UpdatePracticeTagInput {
+  name: String
+  color: String
+}
+
+# 練習記録入力型
+input CreatePracticeLogInput {
+  practiceDate: Date!
+  location: String
+  tagIds: [ID!]
+  style: String
+  repCount: Int!
+  setCount: Int!
+  distance: Int!
+  circle: Float!
+  note: String
+}
+
+input UpdatePracticeLogInput {
+  practiceDate: Date
+  location: String
+  tagIds: [ID!]
+  style: String
+  repCount: Int
+  setCount: Int
+  distance: Int
+  circle: Float
+  note: String
+}
+
+# 練習タイム入力型
+input CreatePracticeTimeInput {
+  practiceLogId: ID!
+  repNumber: Int!
+  setNumber: Int!
+  time: Float!
+}
+
+input UpdatePracticeTimeInput {
+  repNumber: Int
+  setNumber: Int
+  time: Float
+}
+
+# 大会入力型
+input CreateCompetitionInput {
+  name: String!
+  competitionDate: Date!
+  location: String
+  poolType: PoolType
+  poolLength: Int
+  competitionCategory: CompetitionCategory
+}
+
+input UpdateCompetitionInput {
+  name: String
+  competitionDate: Date
+  location: String
+  poolType: PoolType
+  poolLength: Int
+  competitionCategory: CompetitionCategory
+}
+
+# 記録入力型
+input CreateRecordInput {
+  styleId: ID!
+  time: Float!
+  recordDate: Date!
+  location: String
+  poolType: PoolType
+  poolLength: Int
+  isRelay: Boolean
+  rankPosition: Int
+  memo: String
+  videoUrl: String
+  competitionId: ID
+}
+
+input UpdateRecordInput {
+  styleId: ID
+  time: Float
+  recordDate: Date
+  location: String
+  poolType: PoolType
+  poolLength: Int
+  isRelay: Boolean
+  rankPosition: Int
+  memo: String
+  videoUrl: String
+  competitionId: ID
+}
+
+# スプリットタイム入力型
+input CreateSplitTimeInput {
+  recordId: ID!
+  distance: Int!
+  splitTime: Float!
+}
+
+input UpdateSplitTimeInput {
+  distance: Int
+  splitTime: Float
+}
+
+# 個人目標入力型
+input CreatePersonalGoalInput {
+  goalType: GoalType!
+  styleId: ID
+  poolType: PoolType
+  targetTime: Float
+  title: String!
+  description: String
+  targetDate: Date
+  startDate: Date
+}
+
+input UpdatePersonalGoalInput {
+  goalType: GoalType
+  styleId: ID
+  poolType: PoolType
+  targetTime: Float
+  title: String
+  description: String
+  targetDate: Date
+  startDate: Date
+  isAchieved: Boolean
+  achievedDate: Date
+}
+
+# 目標進捗入力型
+input CreateGoalProgressInput {
+  personalGoalId: ID!
+  progressDate: Date!
+  progressValue: Float
+  progressNote: String
+}
+
+input UpdateGoalProgressInput {
+  progressDate: Date
+  progressValue: Float
+  progressNote: String
 }
 
 input CreateEventInput {
@@ -265,71 +588,7 @@ input UpdateAttendanceInput {
   notes: String
 }
 
-input CreatePracticeRecordInput {
-  eventId: ID!
-  userId: ID!
-  stroke: SwimStroke!
-  distance: Int!
-  sets: Int!
-  reps: Int!
-  circleTime: Int
-  bestTime: Int
-  notes: String
-}
 
-input UpdatePracticeRecordInput {
-  stroke: SwimStroke
-  distance: Int
-  sets: Int
-  reps: Int
-  circleTime: Int
-  bestTime: Int
-  notes: String
-}
-
-input CreateCompetitionRecordInput {
-  userId: ID!
-  competitionName: String!
-  eventName: String!
-  stroke: SwimStroke!
-  distance: Int!
-  time: Int!
-  splitTimes: [Int!]
-  rank: Int
-  notes: String
-  videoUrl: String
-  date: DateTime!
-}
-
-input UpdateCompetitionRecordInput {
-  competitionName: String
-  eventName: String
-  stroke: SwimStroke
-  distance: Int
-  time: Int
-  splitTimes: [Int!]
-  rank: Int
-  notes: String
-  videoUrl: String
-  date: DateTime
-}
-
-input CreateGoalInput {
-  userId: ID!
-  title: String!
-  description: String
-  targetValue: Int
-  targetDate: DateTime
-}
-
-input UpdateGoalInput {
-  title: String
-  description: String
-  targetValue: Int
-  currentValue: Int
-  targetDate: DateTime
-  status: GoalStatus
-}
 
 input CreateAnnouncementInput {
   title: String!

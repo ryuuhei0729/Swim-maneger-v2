@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button, Input } from '@/components/ui'
 import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
+import { useMyPracticeTags, useCreatePracticeLog, useUpdatePracticeLog } from '@/hooks/useGraphQL'
 
 interface PracticeSet {
   id: string
@@ -16,17 +17,21 @@ interface PracticeSet {
 interface PracticeLogFormData {
   practiceDate: string
   location: string
-  tags: string[]
-  sets: PracticeSet[]
+  tagIds: string[]
+  style: string
+  repCount: number
+  setCount: number
+  distance: number
+  circle: number
   note: string
 }
 
 interface PracticeLogFormProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: PracticeLogFormData) => Promise<void>
+  onSubmit?: (data: PracticeLogFormData) => Promise<void>
   initialDate?: Date
-  isLoading?: boolean
+  editData?: any // 編集時のデータ
 }
 
 const SWIMMING_STYLES = [

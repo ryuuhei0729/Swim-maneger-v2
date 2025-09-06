@@ -1,16 +1,58 @@
 import { gql } from '@apollo/client'
 
-// 個人利用機能用のmutations
+// 練習タグ関連ミューテーション
+export const CREATE_PRACTICE_TAG = gql`
+  mutation CreatePracticeTag($input: CreatePracticeTagInput!) {
+    createPracticeTag(input: $input) {
+      id
+      userId
+      name
+      color
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const UPDATE_PRACTICE_TAG = gql`
+  mutation UpdatePracticeTag($id: ID!, $input: UpdatePracticeTagInput!) {
+    updatePracticeTag(id: $id, input: $input) {
+      id
+      userId
+      name
+      color
+      updatedAt
+    }
+  }
+`
+
+export const DELETE_PRACTICE_TAG = gql`
+  mutation DeletePracticeTag($id: ID!) {
+    deletePracticeTag(id: $id)
+  }
+`
+
+// 練習記録関連ミューテーション
 export const CREATE_PRACTICE_LOG = gql`
   mutation CreatePracticeLog($input: CreatePracticeLogInput!) {
     createPracticeLog(input: $input) {
       id
-      user_id
-      practice_date
+      userId
+      practiceDate
       location
-      tags
+      tags {
+        id
+        name
+        color
+      }
+      style
+      repCount
+      setCount
+      distance
+      circle
       note
-      created_at
+      createdAt
+      updatedAt
     }
   }
 `
@@ -19,41 +61,135 @@ export const UPDATE_PRACTICE_LOG = gql`
   mutation UpdatePracticeLog($id: ID!, $input: UpdatePracticeLogInput!) {
     updatePracticeLog(id: $id, input: $input) {
       id
-      user_id
-      practice_date
+      userId
+      practiceDate
       location
-      tags
+      tags {
+        id
+        name
+        color
+      }
+      style
+      repCount
+      setCount
+      distance
+      circle
       note
-      updated_at
+      updatedAt
     }
   }
 `
 
 export const DELETE_PRACTICE_LOG = gql`
   mutation DeletePracticeLog($id: ID!) {
-    deletePracticeLog(id: $id) {
-      success
-      message
+    deletePracticeLog(id: $id)
+  }
+`
+
+// 練習タイム関連ミューテーション
+export const CREATE_PRACTICE_TIME = gql`
+  mutation CreatePracticeTime($input: CreatePracticeTimeInput!) {
+    createPracticeTime(input: $input) {
+      id
+      userId
+      practiceLogId
+      repNumber
+      setNumber
+      time
+      createdAt
+      updatedAt
     }
   }
 `
 
+export const UPDATE_PRACTICE_TIME = gql`
+  mutation UpdatePracticeTime($id: ID!, $input: UpdatePracticeTimeInput!) {
+    updatePracticeTime(id: $id, input: $input) {
+      id
+      repNumber
+      setNumber
+      time
+      updatedAt
+    }
+  }
+`
+
+export const DELETE_PRACTICE_TIME = gql`
+  mutation DeletePracticeTime($id: ID!) {
+    deletePracticeTime(id: $id)
+  }
+`
+
+// 大会関連ミューテーション
+export const CREATE_COMPETITION = gql`
+  mutation CreateCompetition($input: CreateCompetitionInput!) {
+    createCompetition(input: $input) {
+      id
+      name
+      competitionDate
+      location
+      poolType
+      poolLength
+      competitionCategory
+      userId
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const UPDATE_COMPETITION = gql`
+  mutation UpdateCompetition($id: ID!, $input: UpdateCompetitionInput!) {
+    updateCompetition(id: $id, input: $input) {
+      id
+      name
+      competitionDate
+      location
+      poolType
+      poolLength
+      competitionCategory
+      updatedAt
+    }
+  }
+`
+
+export const DELETE_COMPETITION = gql`
+  mutation DeleteCompetition($id: ID!) {
+    deleteCompetition(id: $id)
+  }
+`
+
+// 記録関連ミューテーション
 export const CREATE_RECORD = gql`
   mutation CreateRecord($input: CreateRecordInput!) {
     createRecord(input: $input) {
       id
-      user_id
-      style_id
+      userId
+      styleId
+      style {
+        id
+        nameJp
+        name
+        distance
+        stroke
+      }
       time
-      record_date
+      recordDate
       location
-      pool_type
-      is_relaying
-      relay_leg
-      rank_position
-      note
-      video_url
-      created_at
+      poolType
+      poolLength
+      isRelay
+      rankPosition
+      memo
+      videoUrl
+      competitionId
+      competition {
+        id
+        name
+        competitionDate
+      }
+      createdAt
+      updatedAt
     }
   }
 `
@@ -62,56 +198,167 @@ export const UPDATE_RECORD = gql`
   mutation UpdateRecord($id: ID!, $input: UpdateRecordInput!) {
     updateRecord(id: $id, input: $input) {
       id
-      user_id
-      style_id
+      userId
+      styleId
+      style {
+        id
+        nameJp
+        name
+        distance
+        stroke
+      }
       time
-      record_date
+      recordDate
       location
-      pool_type
-      is_relaying
-      relay_leg
-      rank_position
-      note
-      video_url
-      updated_at
+      poolType
+      poolLength
+      isRelay
+      rankPosition
+      memo
+      videoUrl
+      competitionId
+      competition {
+        id
+        name
+        competitionDate
+      }
+      updatedAt
     }
   }
 `
 
 export const DELETE_RECORD = gql`
   mutation DeleteRecord($id: ID!) {
-    deleteRecord(id: $id) {
-      success
-      message
-    }
+    deleteRecord(id: $id)
   }
 `
 
+// スプリットタイム関連ミューテーション
 export const CREATE_SPLIT_TIME = gql`
   mutation CreateSplitTime($input: CreateSplitTimeInput!) {
     createSplitTime(input: $input) {
       id
-      record_id
+      recordId
       distance
-      split_time
-      created_at
+      splitTime
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const UPDATE_BEST_TIME = gql`
-  mutation UpdateBestTime($input: UpdateBestTimeInput!) {
-    updateBestTime(input: $input) {
+export const UPDATE_SPLIT_TIME = gql`
+  mutation UpdateSplitTime($id: ID!, $input: UpdateSplitTimeInput!) {
+    updateSplitTime(id: $id, input: $input) {
       id
-      user_id
-      style_id
-      pool_type
-      best_time
-      achieved_at
-      updated_at
+      distance
+      splitTime
+      updatedAt
     }
   }
 `
+
+export const DELETE_SPLIT_TIME = gql`
+  mutation DeleteSplitTime($id: ID!) {
+    deleteSplitTime(id: $id)
+  }
+`
+
+// 個人目標関連ミューテーション
+export const CREATE_PERSONAL_GOAL = gql`
+  mutation CreatePersonalGoal($input: CreatePersonalGoalInput!) {
+    createPersonalGoal(input: $input) {
+      id
+      userId
+      goalType
+      styleId
+      style {
+        id
+        nameJp
+        name
+        distance
+        stroke
+      }
+      poolType
+      targetTime
+      title
+      description
+      targetDate
+      startDate
+      isAchieved
+      achievedDate
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const UPDATE_PERSONAL_GOAL = gql`
+  mutation UpdatePersonalGoal($id: ID!, $input: UpdatePersonalGoalInput!) {
+    updatePersonalGoal(id: $id, input: $input) {
+      id
+      userId
+      goalType
+      styleId
+      style {
+        id
+        nameJp
+        name
+        distance
+        stroke
+      }
+      poolType
+      targetTime
+      title
+      description
+      targetDate
+      startDate
+      isAchieved
+      achievedDate
+      updatedAt
+    }
+  }
+`
+
+export const DELETE_PERSONAL_GOAL = gql`
+  mutation DeletePersonalGoal($id: ID!) {
+    deletePersonalGoal(id: $id)
+  }
+`
+
+// 目標進捗関連ミューテーション
+export const CREATE_GOAL_PROGRESS = gql`
+  mutation CreateGoalProgress($input: CreateGoalProgressInput!) {
+    createGoalProgress(input: $input) {
+      id
+      personalGoalId
+      progressDate
+      progressValue
+      progressNote
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const UPDATE_GOAL_PROGRESS = gql`
+  mutation UpdateGoalProgress($id: ID!, $input: UpdateGoalProgressInput!) {
+    updateGoalProgress(id: $id, input: $input) {
+      id
+      progressDate
+      progressValue
+      progressNote
+      updatedAt
+    }
+  }
+`
+
+export const DELETE_GOAL_PROGRESS = gql`
+  mutation DeleteGoalProgress($id: ID!) {
+    deleteGoalProgress(id: $id)
+  }
+`
+
 
 // ユーザー関連ミューテーション
 export const UPDATE_PROFILE = gql`
@@ -243,3 +490,4 @@ export const DELETE_PRACTICE_RECORD = gql`
     deletePracticeRecord(id: $id)
   }
 `
+

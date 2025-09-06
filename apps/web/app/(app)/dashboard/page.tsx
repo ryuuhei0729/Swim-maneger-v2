@@ -126,14 +126,18 @@ export default function DashboardPage() {
 
   const handlePracticeSubmit = async (data: any) => {
     console.log('Practice data:', data)
-    // TODO: GraphQL mutationで練習記録を保存
-    alert('練習記録を保存しました（ダミー）')
+    // フォームから直接GraphQL処理が実行されるため、ここでは成功メッセージのみ
+    setShowPracticeForm(false)
+    // カレンダーデータを再取得
+    window.location.reload()
   }
 
   const handleRecordSubmit = async (data: any) => {
     console.log('Record data:', data)
-    // TODO: GraphQL mutationで大会記録を保存
-    alert('大会記録を保存しました（ダミー）')
+    // フォームから直接GraphQL処理が実行されるため、ここでは成功メッセージのみ
+    setShowRecordForm(false)
+    // カレンダーデータを再取得
+    window.location.reload()
   }
 
   const handleEditEntry = (entry: any) => {
@@ -149,7 +153,10 @@ export default function DashboardPage() {
   const handleDeleteEntry = async (entryId: string) => {
     console.log('Delete entry:', entryId)
     // TODO: GraphQL mutationで記録を削除
-    alert('記録を削除しました（ダミー）')
+    if (confirm('この記録を削除しますか？')) {
+      // 実際の削除処理を実装する場合はここに追加
+      alert('削除機能は今後実装予定です')
+    }
   }
 
   return (

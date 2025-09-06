@@ -1,9 +1,6 @@
 // GraphQL queries and mutations
-export * from './queries'
 export * from './mutations'
-
-// GraphQL types
-export * from './types'
+export * from './queries'
 
 // Apollo Client
 export { apolloClient, getApolloClient } from '../lib/apollo-client'

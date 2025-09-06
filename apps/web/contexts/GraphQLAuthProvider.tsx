@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { User } from '@supabase/supabase-js'
 import { createClientComponentClient } from '@/lib/supabase'
 import { useMe, useUpdateProfile } from '@/hooks/useGraphQL'
-import type { Profile } from '@swimmer-management/types'
+import type { Profile } from '@swimmer-management/graphql-schema/types'
 
 // 認証状態の型定義
 interface AuthState {

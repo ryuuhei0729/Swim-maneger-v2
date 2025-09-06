@@ -1,8 +1,8 @@
 import { useQuery } from '@apollo/client/react'
 import { endOfMonth, format, startOfMonth } from 'date-fns'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useAuth } from '../../../../contexts'
-import { GET_CALENDAR_ENTRIES, GET_MONTHLY_SUMMARY } from '../../../../graphql/queries'
+import { GET_CALENDAR_DATA, GET_MY_PRACTICE_LOGS, GET_MY_RECORDS } from '../../../../graphql/queries'
 
 interface CalendarEntry {
   id: string
@@ -31,43 +31,69 @@ export function useCalendarData(currentDate: Date, userId?: string) {
   const startDate = format(monthStart, 'yyyy-MM-dd')
   const endDate = format(monthEnd, 'yyyy-MM-dd')
 
-  // 一時的にGraphQLを無効化してモックデータを使用（CORSエラーのため）
-  const USE_MOCK_DATA = true
+  // 実際のデータベースを使用（デバッグログ付き）
+  const USE_MOCK_DATA = false
 
-  // カレンダーエントリーを取得
+  // カレンダーデータを取得（新しい個人利用機能）
   const { data: calendarData, loading: calendarLoading, error: calendarError, refetch } = useQuery(
-    GET_CALENDAR_ENTRIES,
+    GET_CALENDAR_DATA,
     {
       variables: {
-        startDate,
-        endDate,
-        userId: targetUserId
+        year: currentDate.getFullYear(),
+        month: currentDate.getMonth() + 1
       },
-      skip: !targetUserId || USE_MOCK_DATA,
+      skip: USE_MOCK_DATA,
       fetchPolicy: 'cache-and-network',
       errorPolicy: 'all'
     }
   )
 
-  // 月間サマリーを取得
-  const { data: summaryData, loading: summaryLoading, error: summaryError } = useQuery(
-    GET_MONTHLY_SUMMARY,
+  // 練習記録を取得
+  const { data: practiceLogsData, loading: practiceLoading, error: practiceError } = useQuery(
+    GET_MY_PRACTICE_LOGS,
     {
       variables: {
-        year: currentDate.getFullYear(),
-        month: currentDate.getMonth() + 1,
-        userId: targetUserId
+        startDate,
+        endDate
       },
-      skip: !targetUserId || USE_MOCK_DATA,
+      skip: USE_MOCK_DATA,
       fetchPolicy: 'cache-and-network',
-      errorPolicy: 'all',
-      // onError: (error) => {
-      //   console.error('Monthly summary fetch error:', error)
-      //   console.error('GraphQL errors:', error.graphQLErrors)
-      //   console.error('Network error:', error.networkError)
-      // }
+      errorPolicy: 'all'
     }
   )
+
+  // 記録データを取得
+  const { data: recordsData, loading: recordsLoading, error: recordsError } = useQuery(
+    GET_MY_RECORDS,
+    {
+      variables: {
+        startDate,
+        endDate
+      },
+      skip: USE_MOCK_DATA,
+      fetchPolicy: 'cache-and-network',
+      errorPolicy: 'all'
+    }
+  )
+
+  // エラーログ出力
+  useEffect(() => {
+    if (calendarError) {
+      console.error('Calendar data fetch error:', calendarError)
+      if ((calendarError as any).graphQLErrors) {
+        console.error('GraphQL errors:', (calendarError as any).graphQLErrors)
+      }
+      if ((calendarError as any).networkError) {
+        console.error('Network error:', (calendarError as any).networkError)
+      }
+    }
+    if (practiceError) {
+      console.error('Practice logs fetch error:', practiceError)
+    }
+    if (recordsError) {
+      console.error('Records fetch error:', recordsError)
+    }
+  }, [calendarError, practiceError, recordsError])
 
   // データを統合してカレンダー表示用に変換
   const calendarEntries: CalendarEntry[] = useMemo(() => {
@@ -126,22 +152,20 @@ export function useCalendarData(currentDate: Date, userId?: string) {
     }
 
     // GraphQLデータを使用する場合
-    if (!calendarData) return []
-
     const entries: CalendarEntry[] = []
-    const data = calendarData as any
 
     // 練習記録を追加
-    if (data.practiceLogs) {
-      data.practiceLogs.forEach((log: any) => {
-        const title = log.tags?.length > 0 
-          ? `練習: ${log.tags.slice(0, 2).join(', ')}`
-          : `練習: ${log.location || '場所未記載'}`
+    if (practiceLogsData && (practiceLogsData as any).myPracticeLogs) {
+      (practiceLogsData as any).myPracticeLogs.forEach((log: any) => {
+        const tagNames = log.tags?.map((tag: any) => tag.name) || []
+        const title = tagNames.length > 0 
+          ? `練習: ${tagNames.slice(0, 2).join(', ')}`
+          : `練習: ${log.style || '場所未記載'}`
         
         entries.push({
           id: log.id,
           entry_type: 'practice',
-          entry_date: log.practice_date,
+          entry_date: log.practiceDate,
           title,
           location: log.location
         })
@@ -149,26 +173,26 @@ export function useCalendarData(currentDate: Date, userId?: string) {
     }
 
     // 大会記録を追加
-    if (data.records) {
-      data.records.forEach((record: any) => {
-        const timeString = record.time ? `${(record.time / 100).toFixed(2)}s` : ''
-        const styleInfo = record.style ? `${record.style.name_jp}` : '記録'
+    if (recordsData && (recordsData as any).myRecords) {
+      (recordsData as any).myRecords.forEach((record: any) => {
+        const timeString = record.time ? `${record.time.toFixed(2)}s` : ''
+        const styleInfo = record.style ? `${record.style.nameJp}` : '記録'
         const title = `${styleInfo}: ${timeString}`
         
         entries.push({
           id: record.id,
           entry_type: 'record',
-          entry_date: record.record_date,
+          entry_date: record.recordDate,
           title,
           location: record.location,
-          time_result: record.time,
-          pool_type: record.pool_type
+          time_result: Math.round(record.time * 100), // 秒を百分の一秒に変換
+          pool_type: record.poolType === 'SHORT_COURSE' ? 0 : 1
         })
       })
     }
 
     return entries
-  }, [calendarData, currentDate, USE_MOCK_DATA])
+  }, [practiceLogsData, recordsData, currentDate, USE_MOCK_DATA])
 
   // 月間サマリー
   const monthlySummary: MonthlySummary = useMemo(() => {
@@ -186,9 +210,14 @@ export function useCalendarData(currentDate: Date, userId?: string) {
     }
 
     // GraphQLデータを使用する場合
-    const data = summaryData as any
-    if (data?.monthlySummary) {
-      return data.monthlySummary
+    if (calendarData && (calendarData as any).calendarData?.summary) {
+      const summary = (calendarData as any).calendarData.summary
+      return {
+        practiceCount: summary.totalPractices,
+        recordCount: summary.totalRecords,
+        totalDistance: undefined,
+        averageTime: undefined
+      }
     }
 
     // フォールバック: エントリーから計算
@@ -199,13 +228,13 @@ export function useCalendarData(currentDate: Date, userId?: string) {
       practiceCount,
       recordCount
     }
-  }, [summaryData, calendarEntries, USE_MOCK_DATA])
+  }, [calendarData, calendarEntries, USE_MOCK_DATA])
 
   return {
     calendarEntries,
     monthlySummary,
-    loading: USE_MOCK_DATA ? false : (calendarLoading || summaryLoading),
-    error: USE_MOCK_DATA ? null : (calendarError || summaryError),
+    loading: USE_MOCK_DATA ? false : (calendarLoading || practiceLoading || recordsLoading),
+    error: USE_MOCK_DATA ? null : (calendarError || practiceError || recordsError),
     refetch: () => {
       if (!USE_MOCK_DATA) {
         refetch()
