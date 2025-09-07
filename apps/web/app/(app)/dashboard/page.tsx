@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useAuth } from '@/contexts'
 import DashboardStats, { UpcomingEventsList } from './_components/DashboardStats'
-import { PersonalCalendar } from './_components'
+import { Calendar } from './_components'
 import { PracticeLogForm, RecordForm } from '@/components/forms'
+import { useCalendarData } from './_hooks/useCalendarData'
 import Link from 'next/link'
 import { 
   UsersIcon,
@@ -20,6 +21,10 @@ export default function DashboardPage() {
   const [showPracticeForm, setShowPracticeForm] = useState(false)
   const [showRecordForm, setShowRecordForm] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [currentDate] = useState(new Date())
+  
+  // カレンダーデータを取得
+  const { calendarEntries } = useCalendarData(currentDate)
 
   // 個人利用機能用のカード（role=playerの場合のメイン機能）
   const personalCards = [
@@ -72,29 +77,10 @@ export default function DashboardPage() {
   ]
 
   // ロールに基づいてカードを選択
-  const dashboardCards = profile?.role === 'player' 
+  const dashboardCards = profile?.role === 'PLAYER' 
     ? [...personalCards, ...teamCards] 
     : [...teamCards, ...personalCards]
 
-  // カレンダー用のダミーデータ（後でGraphQLに置き換え）
-  const calendarEntries = [
-    {
-      id: '1',
-      entry_type: 'practice' as const,
-      entry_date: '2024-01-15',
-      title: '練習: 自由形 1500m',
-      location: '市営プール'
-    },
-    {
-      id: '2',
-      entry_type: 'record' as const,
-      entry_date: '2024-01-20',
-      title: '50m自由形: 26.45s',
-      location: '県立水泳場',
-      time_result: 26.45,
-      pool_type: 1
-    }
-  ]
 
   // ダミーの泳法データ（後でGraphQLに置き換え）
   const styles = [
@@ -166,7 +152,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {profile?.role === 'player' ? 'マイホーム' : 'ダッシュボード'}
+              {profile?.role === 'PLAYER' ? 'マイホーム' : 'ダッシュボード'}
             </h1>
             <p className="mt-1 text-sm text-gray-600">
               おかえりなさい、{profile?.name || 'ユーザー'}さん
@@ -181,16 +167,14 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 個人利用機能: カレンダー（playerロールの場合メイン表示） */}
-      {profile?.role === 'player' && (
-        <PersonalCalendar
-          entries={calendarEntries}
-          onDateClick={handleDateClick}
-          onAddEntry={handleAddEntry}
-          onEditEntry={handleEditEntry}
-          onDeleteEntry={handleDeleteEntry}
-        />
-      )}
+      {/* カレンダー（全ロールで表示） */}
+      <Calendar
+        entries={calendarEntries}
+        onDateClick={handleDateClick}
+        onAddEntry={handleAddEntry}
+        onEditEntry={handleEditEntry}
+        onDeleteEntry={handleDeleteEntry}
+      />
 
       {/* GraphQL統計情報 */}
       <DashboardStats />
@@ -221,7 +205,7 @@ export default function DashboardPage() {
       </div>
 
       {/* チーム機能: 今後のイベント（コーチ・マネージャー向け） */}
-      {profile?.role !== 'player' && <UpcomingEventsList />}
+      {profile?.role !== 'PLAYER' && <UpcomingEventsList />}
 
       {/* フォームモーダル */}
       <PracticeLogForm

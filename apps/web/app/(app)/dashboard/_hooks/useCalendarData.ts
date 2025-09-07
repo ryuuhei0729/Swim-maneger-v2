@@ -44,7 +44,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
       },
       skip: USE_MOCK_DATA,
       fetchPolicy: 'cache-and-network',
-      errorPolicy: 'all'
+      errorPolicy: 'ignore' // エラーを無視して処理を続行
     }
   )
 
@@ -58,7 +58,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
       },
       skip: USE_MOCK_DATA,
       fetchPolicy: 'cache-and-network',
-      errorPolicy: 'all'
+      errorPolicy: 'ignore' // エラーを無視して処理を続行
     }
   )
 
@@ -72,7 +72,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
       },
       skip: USE_MOCK_DATA,
       fetchPolicy: 'cache-and-network',
-      errorPolicy: 'all'
+      errorPolicy: 'ignore' // エラーを無視して処理を続行
     }
   )
 
@@ -213,8 +213,8 @@ export function useCalendarData(currentDate: Date, userId?: string) {
     if (calendarData && (calendarData as any).calendarData?.summary) {
       const summary = (calendarData as any).calendarData.summary
       return {
-        practiceCount: summary.totalPractices,
-        recordCount: summary.totalRecords,
+        practiceCount: summary.totalPractices || 0,
+        recordCount: summary.totalRecords || 0,
         totalDistance: undefined,
         averageTime: undefined
       }

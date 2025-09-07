@@ -18,7 +18,7 @@ interface CalendarEntry {
   pool_type?: number
 }
 
-interface PersonalCalendarProps {
+interface CalendarProps {
   entries?: CalendarEntry[]
   onDateClick?: (date: Date) => void
   onAddEntry?: (date: Date, type: 'practice' | 'record') => void
@@ -30,7 +30,7 @@ interface PersonalCalendarProps {
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
 
-export default function PersonalCalendar({ 
+export default function Calendar({ 
   entries: propEntries, 
   onDateClick, 
   onAddEntry,
@@ -38,7 +38,7 @@ export default function PersonalCalendar({
   onDeleteEntry,
   isLoading: propLoading = false,
   userId
-}: PersonalCalendarProps) {
+}: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)

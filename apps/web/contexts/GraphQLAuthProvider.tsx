@@ -42,8 +42,7 @@ export function GraphQLAuthProvider({ children }: { children: React.ReactNode })
   const supabase = createClientComponentClient()
 
   // GraphQL hooks - 認証されたユーザーがいる場合のみクエリ実行
-  // 一時的にGraphQLクエリを無効化してエラーを回避
-  const { data: profileData, loading: profileLoading, error: profileError, refetch: refetchProfile } = useMe(true) // 常にスキップ
+  const { data: profileData, loading: profileLoading, error: profileError, refetch: refetchProfile } = useMe(!authState.user) // ユーザーがいない場合はスキップ
   const [updateProfileMutation] = useUpdateProfile()
 
   // デバッグログ
@@ -70,15 +69,16 @@ export function GraphQLAuthProvider({ children }: { children: React.ReactNode })
         console.warn('GraphQL profile fetch failed, using Supabase metadata:', profileError)
         const fallbackProfile: Profile = {
           id: authState.user.id,
-          user_id: authState.user.id,
+          userId: authState.user.id,
+          user: authState.user as any, // User型の情報を含める
           name: authState.user.user_metadata?.name || authState.user.email?.split('@')[0] || 'ユーザー',
-          role: authState.user.user_metadata?.role || 'player',
-          avatar_url: authState.user.user_metadata?.avatar_url || undefined,
+          role: authState.user.user_metadata?.role || 'PLAYER',
+          avatarUrl: authState.user.user_metadata?.avatar_url || undefined,
           phone: authState.user.user_metadata?.phone || undefined,
           birthday: authState.user.user_metadata?.birthday || undefined,
-          emergency_contact: authState.user.user_metadata?.emergency_contact || undefined,
-          created_at: authState.user.created_at,
-          updated_at: authState.user.updated_at || authState.user.created_at,
+          emergencyContact: authState.user.user_metadata?.emergency_contact || undefined,
+          createdAt: authState.user.created_at,
+          updatedAt: authState.user.updated_at || authState.user.created_at,
         }
         setAuthState(prev => ({
           ...prev,
@@ -90,15 +90,16 @@ export function GraphQLAuthProvider({ children }: { children: React.ReactNode })
         console.log('No profile data available, creating basic profile')
         const basicProfile: Profile = {
           id: authState.user.id,
-          user_id: authState.user.id,
+          userId: authState.user.id,
+          user: authState.user as any, // User型の情報を含める
           name: authState.user.user_metadata?.name || authState.user.email?.split('@')[0] || 'ユーザー',
-          role: authState.user.user_metadata?.role || 'player',
-          avatar_url: authState.user.user_metadata?.avatar_url || undefined,
+          role: authState.user.user_metadata?.role || 'PLAYER',
+          avatarUrl: authState.user.user_metadata?.avatar_url || undefined,
           phone: authState.user.user_metadata?.phone || undefined,
           birthday: authState.user.user_metadata?.birthday || undefined,
-          emergency_contact: authState.user.user_metadata?.emergency_contact || undefined,
-          created_at: authState.user.created_at,
-          updated_at: authState.user.updated_at || authState.user.created_at,
+          emergencyContact: authState.user.user_metadata?.emergency_contact || undefined,
+          createdAt: authState.user.created_at,
+          updatedAt: authState.user.updated_at || authState.user.created_at,
         }
         setAuthState(prev => ({
           ...prev,

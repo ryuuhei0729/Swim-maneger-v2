@@ -1,61 +1,61 @@
 import {
-    CREATE_COMPETITION,
-    CREATE_EVENT,
-    CREATE_GOAL_PROGRESS,
-    CREATE_PERSONAL_GOAL,
-    CREATE_PRACTICE_LOG,
-    CREATE_PRACTICE_RECORD,
-    CREATE_PRACTICE_TAG,
-    CREATE_PRACTICE_TIME,
-    CREATE_RECORD,
-    CREATE_SPLIT_TIME,
-    DELETE_COMPETITION,
-    DELETE_EVENT,
-    DELETE_GOAL_PROGRESS,
-    DELETE_PERSONAL_GOAL,
-    DELETE_PRACTICE_LOG,
-    DELETE_PRACTICE_RECORD,
-    DELETE_PRACTICE_TAG,
-    DELETE_PRACTICE_TIME,
-    DELETE_RECORD,
-    DELETE_SPLIT_TIME,
-    UPDATE_ATTENDANCE,
-    UPDATE_COMPETITION,
-    UPDATE_EVENT,
-    UPDATE_GOAL_PROGRESS,
-    UPDATE_PERSONAL_GOAL,
-    UPDATE_PRACTICE_LOG,
-    UPDATE_PRACTICE_RECORD,
-    UPDATE_PRACTICE_TAG,
-    UPDATE_PRACTICE_TIME,
-    UPDATE_PROFILE,
-    UPDATE_RECORD,
-    UPDATE_SPLIT_TIME
+  CREATE_COMPETITION,
+  CREATE_EVENT,
+  CREATE_GOAL_PROGRESS,
+  CREATE_PERSONAL_GOAL,
+  CREATE_PRACTICE_LOG,
+  CREATE_PRACTICE_RECORD,
+  CREATE_PRACTICE_TAG,
+  CREATE_PRACTICE_TIME,
+  CREATE_RECORD,
+  CREATE_SPLIT_TIME,
+  DELETE_COMPETITION,
+  DELETE_EVENT,
+  DELETE_GOAL_PROGRESS,
+  DELETE_PERSONAL_GOAL,
+  DELETE_PRACTICE_LOG,
+  DELETE_PRACTICE_RECORD,
+  DELETE_PRACTICE_TAG,
+  DELETE_PRACTICE_TIME,
+  DELETE_RECORD,
+  DELETE_SPLIT_TIME,
+  UPDATE_ATTENDANCE,
+  UPDATE_COMPETITION,
+  UPDATE_EVENT,
+  UPDATE_GOAL_PROGRESS,
+  UPDATE_PERSONAL_GOAL,
+  UPDATE_PRACTICE_LOG,
+  UPDATE_PRACTICE_RECORD,
+  UPDATE_PRACTICE_TAG,
+  UPDATE_PRACTICE_TIME,
+  UPDATE_PROFILE,
+  UPDATE_RECORD,
+  UPDATE_SPLIT_TIME
 } from '@/graphql/mutations'
 import {
-    GET_CALENDAR_DATA,
-    GET_EVENTS,
-    GET_ME,
-    GET_MY_ATTENDANCES,
-    GET_MY_BEST_TIMES,
-    GET_MY_COMPETITIONS,
-    GET_MY_PERSONAL_GOALS,
-    GET_MY_PRACTICE_LOGS,
-    GET_MY_PRACTICE_RECORDS,
-    GET_MY_PRACTICE_TAGS,
-    GET_MY_RECORDS,
-    GET_PRACTICE_LOGS_BY_DATE,
-    GET_RECORDS_BY_DATE,
-    GET_STYLES,
-    GET_UPCOMING_EVENTS,
-    GET_USERS
+  GET_CALENDAR_DATA,
+  GET_EVENTS,
+  GET_ME,
+  GET_MY_ATTENDANCES,
+  GET_MY_BEST_TIMES,
+  GET_MY_COMPETITIONS,
+  GET_MY_PERSONAL_GOALS,
+  GET_MY_PRACTICE_LOGS,
+  GET_MY_PRACTICE_RECORDS,
+  GET_MY_PRACTICE_TAGS,
+  GET_MY_RECORDS,
+  GET_PRACTICE_LOGS_BY_DATE,
+  GET_RECORDS_BY_DATE,
+  GET_STYLES,
+  GET_UPCOMING_EVENTS,
+  GET_USERS
 } from '@/graphql/queries'
 import { useApolloClient, useMutation, useQuery } from '@apollo/client/react'
 
 // ユーザー関連フック
 export const useMe = (skip?: boolean) => {
   return useQuery(GET_ME, {
-    errorPolicy: 'all',
+    errorPolicy: 'ignore', // エラーを無視して処理を続行
     notifyOnNetworkStatusChange: true,
     skip: skip,
     fetchPolicy: 'cache-and-network',
@@ -64,7 +64,7 @@ export const useMe = (skip?: boolean) => {
 
 export const useUsers = () => {
   return useQuery(GET_USERS, {
-    errorPolicy: 'all',
+    errorPolicy: 'ignore', // エラーを無視して処理を続行
   })
 }
 
@@ -77,13 +77,13 @@ export const useUpdateProfile = () => {
 // イベント関連フック
 export const useEvents = () => {
   return useQuery(GET_EVENTS, {
-    errorPolicy: 'all',
+    errorPolicy: 'ignore', // エラーを無視して処理を続行
   })
 }
 
 export const useUpcomingEvents = () => {
   return useQuery(GET_UPCOMING_EVENTS, {
-    errorPolicy: 'all',
+    errorPolicy: 'ignore', // エラーを無視して処理を続行
     pollInterval: 300000, // 5分ごとに更新
   })
 }
@@ -118,7 +118,7 @@ export const useDeleteEvent = () => {
 // 出席関連フック
 export const useMyAttendances = () => {
   return useQuery(GET_MY_ATTENDANCES, {
-    errorPolicy: 'all',
+    errorPolicy: 'ignore', // エラーを無視して処理を続行
   })
 }
 
@@ -131,7 +131,7 @@ export const useUpdateAttendance = () => {
 // 練習記録関連フック
 export const useMyPracticeRecords = () => {
   return useQuery(GET_MY_PRACTICE_RECORDS, {
-    errorPolicy: 'all',
+    errorPolicy: 'ignore', // エラーを無視して処理を続行
   })
 }
 
@@ -156,14 +156,14 @@ export const useDeletePracticeRecord = () => {
 // 種目・泳法関連フック
 export const useStyles = () => {
   return useQuery(GET_STYLES, {
-    errorPolicy: 'all',
+    errorPolicy: 'ignore', // エラーを無視して処理を続行
   })
 }
 
 // 練習タグ関連フック
 export const useMyPracticeTags = () => {
   return useQuery(GET_MY_PRACTICE_TAGS, {
-    errorPolicy: 'all',
+    errorPolicy: 'ignore', // エラーを無視して処理を続行
   })
 }
 
@@ -189,14 +189,14 @@ export const useDeletePracticeTag = () => {
 export const useMyPracticeLogs = (variables?: { startDate?: string; endDate?: string }) => {
   return useQuery(GET_MY_PRACTICE_LOGS, {
     variables,
-    errorPolicy: 'all',
+    errorPolicy: 'ignore', // エラーを無視して処理を続行
   })
 }
 
 export const usePracticeLogsByDate = (date: string) => {
   return useQuery(GET_PRACTICE_LOGS_BY_DATE, {
     variables: { date },
-    errorPolicy: 'all',
+    errorPolicy: 'ignore', // エラーを無視して処理を続行
   })
 }
 
@@ -280,7 +280,7 @@ export const useMyRecords = (variables?: {
 }) => {
   return useQuery(GET_MY_RECORDS, {
     variables,
-    errorPolicy: 'all',
+    errorPolicy: 'ignore', // エラーを無視して処理を続行
   })
 }
 

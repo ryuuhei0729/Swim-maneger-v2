@@ -35,6 +35,49 @@ function formatDate(date: Date): string {
 export const resolvers = {
   // クエリリゾルバー
   Query: {
+    // ユーザー関連
+    me: async (_: any, __: any, context: any) => {
+      const userId = getUserId(context)
+      
+      try {
+        console.log('Fetching user profile for:', userId)
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', userId)
+          .single()
+        
+        console.log('Profile query result:', { data, error })
+        
+        if (error) {
+          console.error('Profile query error:', error)
+          throw new Error(error.message)
+        }
+        
+        if (!data) {
+          console.log('No profile found for user:', userId)
+          return null
+        }
+        
+        // データベースのフィールド名をGraphQLスキーマに合わせて変換
+        return {
+          id: data.id,
+          userId: data.user_id,
+          name: data.name,
+          role: data.role,
+          avatarUrl: data.avatar_url,
+          phone: data.phone,
+          birthday: data.birthday,
+          emergencyContact: data.emergency_contact,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at
+        }
+      } catch (err) {
+        console.error('Me resolver error:', err)
+        throw err
+      }
+    },
+
     // 種目・泳法関連
     styles: async () => {
       try {
@@ -891,6 +934,52 @@ export const resolvers = {
       
       if (error) throw new Error(error.message)
       return true
+    },
+
+    // ユーザー関連
+    updateProfile: async (_: any, { input }: { input: any }, context: any) => {
+      const userId = getUserId(context)
+      
+      try {
+        console.log('Updating profile for user:', userId, 'with input:', input)
+        
+        const updateData: any = {}
+        if (input.name !== undefined) updateData.name = input.name
+        if (input.phone !== undefined) updateData.phone = input.phone
+        if (input.birthday !== undefined) updateData.birthday = input.birthday
+        if (input.emergencyContact !== undefined) updateData.emergency_contact = input.emergencyContact
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .update(updateData)
+          .eq('user_id', userId)
+          .select()
+          .single()
+        
+        console.log('Profile update result:', { data, error })
+        
+        if (error) {
+          console.error('Profile update error:', error)
+          throw new Error(error.message)
+        }
+        
+        // データベースのフィールド名をGraphQLスキーマに合わせて変換
+        return {
+          id: data.id,
+          userId: data.user_id,
+          name: data.name,
+          role: data.role,
+          avatarUrl: data.avatar_url,
+          phone: data.phone,
+          birthday: data.birthday,
+          emergencyContact: data.emergency_contact,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at
+        }
+      } catch (err) {
+        console.error('UpdateProfile resolver error:', err)
+        throw err
+      }
     }
   }
 }

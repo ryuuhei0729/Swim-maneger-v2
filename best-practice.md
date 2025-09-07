@@ -789,7 +789,7 @@ export function RealtimeEvents() {
 // 動的インポートでコード分割
 import dynamic from 'next/dynamic'
 
-const CalendarComponent = dynamic(() => import('@/components/calendar/PersonalCalendar'), {
+const CalendarComponent = dynamic(() => import('@/components/calendar/Calendar'), {
   loading: () => <CalendarSkeleton />,
   ssr: false // クライアントサイドでのみレンダリング
 })
