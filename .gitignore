@@ -5,6 +5,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Production builds
+.next/
 /apps/web/.next/
 /apps/web/out/
 /packages/*/dist/
@@ -12,6 +13,7 @@ yarn-error.log*
 
 # Generated files
 /packages/graphql-schema/generated/
+*.tsbuildinfo
 
 # Environment variables
 .env

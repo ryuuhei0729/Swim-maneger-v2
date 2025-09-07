@@ -29,7 +29,8 @@ ADD COLUMN IF NOT EXISTS pool_length INTEGER CHECK (pool_length IN (25, 50)),
 ADD COLUMN IF NOT EXISTS is_relay BOOLEAN DEFAULT false,
 ADD COLUMN IF NOT EXISTS rank_position INTEGER,
 ADD COLUMN IF NOT EXISTS memo TEXT,
-ADD COLUMN IF NOT EXISTS competition_id UUID REFERENCES competitions(id) ON DELETE SET NULL;
+ADD COLUMN IF NOT EXISTS competition_id UUID REFERENCES competitions(id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS style_id UUID REFERENCES styles(id) ON DELETE CASCADE;
 
 -- スプリットタイムテーブルの拡張
 CREATE TABLE IF NOT EXISTS split_times (
@@ -173,20 +174,7 @@ CREATE INDEX IF NOT EXISTS idx_best_times_style_pool ON best_times(style_id, poo
 -- 6. Row Level Security (RLS) ポリシー
 -- =============================================================================
 
--- Competitions table RLS
-ALTER TABLE competitions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own competitions" ON competitions
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own competitions" ON competitions
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own competitions" ON competitions
-  FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own competitions" ON competitions
-  FOR DELETE USING (auth.uid() = user_id);
+-- 新しいテーブルのみRLSを有効化（基本スキーマで既に設定済みのテーブルは除外）
 
 -- Practice tags table RLS
 ALTER TABLE practice_tags ENABLE ROW LEVEL SECURITY;
