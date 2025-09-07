@@ -10,11 +10,11 @@ swimmer-management-system/
 │   └── workflows/              # GitHub Actions CI/CD
 ├── apps/
 │   ├── web/                   # Next.js Webアプリケーション
-│   ├── mobile/                # Flutter/React Native モバイルアプリ（実装予定）
-│   └── supabase/
-│       ├── functions/
-│       │   └── graphql/       # GraphQL Edge Functions
-│       └── migrations/        # データベースマイグレーション
+│   └── mobile/                # Flutter モバイルアプリ
+├── supabase/                  # Supabase設定・Edge Functions
+│   ├── functions/
+│   │   └── graphql/           # GraphQL Edge Functions
+│   └── migrations/            # データベースマイグレーション
 ├── packages/
 │   ├── graphql-schema/        # 共有GraphQLスキーマ・型定義
 │   └── types/                 # 共有TypeScript型定義
@@ -43,8 +43,10 @@ npm run dev:web
 
 ### Apps
 - `apps/web` - Next.js Webアプリケーション
-- `apps/mobile` - モバイルアプリケーション（実装予定）
-- `apps/supabase` - Supabase設定・Edge Functions
+- `apps/mobile` - Flutter モバイルアプリケーション
+
+### Backend
+- `supabase` - Supabase設定・Edge Functions・データベース
 
 ### Packages
 - `packages/types` - 共有型定義
@@ -109,7 +111,7 @@ npm run graphql:codegen     # GraphQL型生成
    **ステップ2: スキーマの移行**
    ```bash
    # 現在のプロジェクトから swimmer-prod に切り替え
-   cd apps/supabase
+   cd supabase
    supabase link --project-ref [swimmer-prod-project-id]
    
    # 既存のマイグレーションファイルを本番環境に適用

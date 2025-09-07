@@ -3,36 +3,22 @@
   "version": "1.0.0",
   "private": true,
   "description": "水泳選手マネジメントシステム - GraphQLスキーマ・型定義",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist",
-    "src/schema.graphql"
-  ],
   "scripts": {
-    "build": "npm run codegen && tsc",
-    "dev": "npm run codegen:watch",
-    "codegen": "graphql-codegen --config codegen.yml",
+    "codegen": "graphql-codegen --config codegen.yml && npm run fix-types",
     "codegen:watch": "graphql-codegen --config codegen.yml --watch",
-    "clean": "rm -rf dist generated",
-    "type-check": "tsc --noEmit"
+    "fix-types": "node scripts/fix-types.js",
+    "clean": "rm -rf generated"
   },
   "dependencies": {
-    "graphql": "^16.8.1"
+    "graphql": "^16.11.0"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.0",
     "@graphql-codegen/typescript": "^4.0.1",
-    "@graphql-codegen/typescript-operations": "^4.0.1",
-    "@graphql-codegen/typescript-resolvers": "^4.0.1",
-    "@types/node": "^20",
-    "typescript": "^5"
+    "@graphql-codegen/typescript-resolvers": "^4.0.1"
   },
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
+    "./types": "./generated/types.ts",
     "./schema": "./src/schema.graphql"
   }
 }

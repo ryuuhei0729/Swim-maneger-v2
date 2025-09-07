@@ -54,4 +54,6 @@ temp/
 # Supabase
 /apps/supabase/.branches
 /apps/supabase/.temp.next/
+/supabase/.branches
+/supabase/.temp
 next-env.d.ts

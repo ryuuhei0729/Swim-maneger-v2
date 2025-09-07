@@ -12,13 +12,11 @@ generates:
       respectSchemaStringTypes: true
       maybeValue: T | null | undefined
       inputMaybeValue: T | null | undefined
-      # 外部型のマッピングを無効化（型競合を避けるため）
-      # mappers:
-      #   User: "@swimmer-management/types#User"
-      #   Profile: "@swimmer-management/types#Profile"
-      #   Event: "@swimmer-management/types#DatabaseEvent"
-      #   Attendance: "@swimmer-management/types#Attendance"
-      #   PracticeRecord: "@swimmer-management/types#PracticeRecord"
-      #   CompetitionRecord: "@swimmer-management/types#CompetitionRecord"
-      #   Goal: "@swimmer-management/types#Goal"
-      #   Announcement: "@swimmer-management/types#Announcement"
+      # 型の競合を避けるための設定
+      avoidOptionals: false
+      skipTypename: false
+      # GraphQLライブラリの型定義を正しく参照
+      scalars:
+        DateTime: string
+        Date: string
+        JSON: any
