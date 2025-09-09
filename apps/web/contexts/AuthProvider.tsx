@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { User, Session, SupabaseClient } from '@supabase/supabase-js'
-import { createClientComponentClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 import type { Database } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -30,7 +30,7 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   const router = useRouter()
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -39,26 +39,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading: true
   })
 
-  // ユーザープロフィールを取得（シンプル化）
+  // ユーザープロフィールを取得（完全オプション化）
   const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
     try {
-      const { data, error } = await supabase
+      
+      // プロフィール取得はタイムアウト付きで実行
+      const profilePromise = supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single()
       
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+      })
+      
+      const { data, error } = await Promise.race([profilePromise, timeoutPromise])
+      
       if (error) {
-        console.error('Profile fetch failed:', error.message)
+        // プロフィールが存在しない場合やエラーの場合は null を返すが、認証には影響しない
         return null
       }
       
       return data
     } catch (error) {
-      console.error('Profile fetch exception:', error)
+      // プロフィール取得失敗は認証状態に影響しない
       return null
     }
   }, [supabase])
+
 
   // ログイン
   const signIn = useCallback(async (email: string, password: string) => {
@@ -184,30 +193,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Profile update error:', error)
       return { error }
     }
-  }, [authState.user, fetchUserProfile, supabase])
+  }, [authState.user, supabase, fetchUserProfile]) // fetchUserProfileを依存配列に追加
 
   useEffect(() => {
-    // 認証状態の変更を監視
+    let isMounted = true
+
+    // 認証状態の変更を監視（初期セッション取得も含む）
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setAuthState(prev => ({
-          ...prev,
+        if (!isMounted) {
+          return
+        }
+
+        let profile = null
+        if (session?.user) {
+          try {
+            profile = await fetchUserProfile(session.user.id)
+          } catch (error) {
+            console.error('Profile fetch error:', error)
+            // プロフィール取得に失敗してもローディングは終了する
+            profile = null
+          }
+        }
+        
+        setAuthState({
           user: session?.user ?? null,
           session,
+          profile,
           loading: false
-        }))
+        })
         
-        // ログイン/ログアウト時にページをリフレッシュして
-        // サーバーコンポーネントの再レンダリングをトリガーする
-        router.refresh()
+        // ログイン/ログアウト時にページをリフレッシュ
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+          const currentPath = window.location.pathname
+          const authPages = ['/login', '/signup', '/reset-password', '/auth/callback']
+          const isAuthPage = authPages.some(page => currentPath.startsWith(page))
+          
+          if (!isAuthPage) {
+            router.refresh()
+          }
+        }
       }
     )
 
     // クリーンアップ関数
     return () => {
+      isMounted = false
       subscription.unsubscribe()
     }
-  }, [router, supabase])
+  }, [router, supabase, fetchUserProfile]) // fetchUserProfileを依存配列に追加
 
   const value: AuthContextType = {
     ...authState,
@@ -221,6 +255,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!authState.user,
     isLoading: authState.loading
   }
+
 
   return (
     <AuthContext.Provider value={value}>

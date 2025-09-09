@@ -49,10 +49,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
     }
   }, [])
 
-  const getRoleDisplayName = () => {
-    // roleカラムが削除されたため、デフォルトで「メンバー」を表示
-    return 'メンバー'
-  }
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
@@ -116,9 +112,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 <div className="text-sm font-medium text-gray-900 truncate max-w-[8rem]">
                   {profile?.name || user?.email?.split('@')[0] || 'ユーザー'}
                 </div>
-                <div className="text-xs text-gray-500">
-                  {profile ? getRoleDisplayName() : 'ロード中...'}
-                </div>
               </div>
               <div className="relative">
                 <UserCircleIcon className="h-8 w-8 text-gray-400" aria-hidden="true" />
@@ -139,9 +132,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   </p>
                   <p className="text-sm text-gray-500 truncate">
                     {user?.email}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {profile ? getRoleDisplayName() : 'ロール未設定'}
                   </p>
                 </div>
                 <div className="py-1">

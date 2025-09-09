@@ -1,3 +1,4 @@
+'use client'
 import { createBrowserClient } from '@supabase/ssr'
 import { type SupabaseClient } from '@supabase/supabase-js'
 import { getCurrentEnvConfig, getSupabaseConfig } from './env'
@@ -217,104 +218,12 @@ declare global {
   }
 }
 
-// クライアント用のSupabaseクライアント（Cookieベースのセッション管理）
+// ブラウザ用のSupabaseクライアント（クライアントコンポーネント用）
 export const createClient = (): SupabaseClient<Database> => {
   return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: {
-        // Cookieベースのセッション管理
-        storage: {
-          getItem: (key: string) => {
-            if (typeof document !== 'undefined') {
-              const cookies = document.cookie.split(';')
-              const cookie = cookies.find(c => c.trim().startsWith(`${key}=`))
-              return cookie ? cookie.split('=')[1] : null
-            }
-            return null
-          },
-          setItem: (key: string, value: string) => {
-            if (typeof document !== 'undefined') {
-              document.cookie = `${key}=${value}; path=/; max-age=31536000; SameSite=Lax`
-            }
-          },
-          removeItem: (key: string) => {
-            if (typeof document !== 'undefined') {
-              document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
-            }
-          }
-        },
-        // URLからセッション検出を有効化（パスワードリセット対応）
-        detectSessionInUrl: true,
-        // 自動トークンリフレッシュを有効化
-        autoRefreshToken: true,
-        // セッション永続化を有効化
-        persistSession: true,
-        // フロー設定（PKCE使用）
-        flowType: 'pkce'
-      }
-    }
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
-}
-
-// ブラウザ用のSupabaseクライアント（Cookieベースのセッション管理）
-export const createClientComponentClient = (): SupabaseClient<Database> => {
-  if (typeof window === 'undefined') {
-    // サーバーサイドでは新しいインスタンスを返す
-    return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
-  }
-  
-  // windowオブジェクトでクライアントを管理してHot Reloadに対応
-  if (!window.__supabase_client__) {
-    window.__supabase_client__ = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        // Cookieベースのセッション管理に変更
-        storage: {
-          getItem: (key: string) => {
-            if (typeof document !== 'undefined') {
-              const cookies = document.cookie.split(';')
-              const cookie = cookies.find(c => c.trim().startsWith(`${key}=`))
-              return cookie ? cookie.split('=')[1] : null
-            }
-            return null
-          },
-          setItem: (key: string, value: string) => {
-            if (typeof document !== 'undefined') {
-              document.cookie = `${key}=${value}; path=/; max-age=31536000; SameSite=Lax`
-            }
-          },
-          removeItem: (key: string) => {
-            if (typeof document !== 'undefined') {
-              document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
-            }
-          }
-        },
-        // URLからセッション検出を有効化（パスワードリセット対応）
-        detectSessionInUrl: true,
-        // 自動トークンリフレッシュを有効化
-        autoRefreshToken: true,
-        // セッション永続化を有効化
-        persistSession: true,
-        // フロー設定（PKCE使用）
-        flowType: 'pkce'
-      },
-      // リアルタイム機能の設定
-      realtime: {
-        params: {
-          eventsPerSecond: 10,
-        },
-      },
-      // グローバル設定
-      global: {
-        headers: {
-          'X-Client-Info': 'swim-manager-web'
-        }
-      }
-    })
-  }
-  
-  return window.__supabase_client__
 }
 
 // グローバルなSupabaseクライアント（必要な場合のみ）

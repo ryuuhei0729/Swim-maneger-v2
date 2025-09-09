@@ -24,7 +24,6 @@ interface NavigationItem {
   icon: ComponentType<SVGProps<SVGSVGElement>>
   badge?: number
   description?: string
-  // rolesカラムが削除されたため、アクセス制御は無効化
 }
 
 const navigation: NavigationItem[] = [
@@ -57,7 +56,6 @@ const navigation: NavigationItem[] = [
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname()
 
-  // roleカラムが削除されたため、全ナビゲーション項目を表示
   const filteredNavigation = navigation
 
   return (

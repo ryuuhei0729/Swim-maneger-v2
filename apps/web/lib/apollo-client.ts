@@ -2,7 +2,7 @@ import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/clien
 import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
 import { getCurrentEnvConfig, getGraphQLEndpoint } from './env'
-import { createClientComponentClient } from './supabase'
+import { createClient } from './supabase'
 
 // 環境別GraphQL エンドポイント
 const httpLink = createHttpLink({
@@ -18,7 +18,7 @@ if (envConfig.debug) {
 // 認証ヘッダーを設定するリンク
 const authLink = setContext(async (_, { headers }) => {
   try {
-    const supabase = createClientComponentClient()
+    const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
     
     return {
