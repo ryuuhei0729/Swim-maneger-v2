@@ -55,11 +55,13 @@ type Profile {
   userId: ID!
   user: User!
   name: String!
+  gender: Int! # 0: male, 1: female
   role: UserRole!
-  avatarUrl: String
+  profileImagePath: String # Supabase Storageのパス
   phone: String
   birthday: DateTime
   emergencyContact: String
+  bio: String
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -132,14 +134,13 @@ type PracticeTag {
 type PracticeLog {
   id: ID!
   userId: ID!
-  practiceDate: Date!
-  location: String
-  tags: [PracticeTag!]!
-  style: String
+  date: Date!
+  tags: JSON
+  style: String!
   repCount: Int!
   setCount: Int!
   distance: Int!
-  circle: Float!
+  circle: Float # NOT NULLからオプションに変更
   note: String
   times: [PracticeTime!]!
   createdAt: DateTime!
@@ -161,13 +162,11 @@ type PracticeTime {
 # 大会関連（個人利用機能対応）
 type Competition {
   id: ID!
-  name: String!
-  competitionDate: Date!
-  location: String
-  poolType: PoolType
-  poolLength: Int
-  competitionCategory: CompetitionCategory
-  userId: ID!
+  title: String!
+  date: Date!
+  place: String! # NOT NULL
+  poolType: Int! # 0: short, 1: long
+  note: String
   records: [Record!]!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -180,14 +179,8 @@ type Record {
   styleId: ID!
   style: Style!
   time: Float!
-  recordDate: Date!
-  location: String
-  poolType: PoolType
-  poolLength: Int
-  isRelay: Boolean!
-  rankPosition: Int
-  memo: String
   videoUrl: String
+  note: String
   competitionId: ID
   competition: Competition
   splitTimes: [SplitTime!]!
@@ -409,9 +402,12 @@ type Mutation {
 # 入力型
 input UpdateProfileInput {
   name: String
+  gender: Int # 0: male, 1: female
   phone: String
   birthday: DateTime
   emergencyContact: String
+  bio: String
+  profileImagePath: String
 }
 
 # 練習タグ入力型
@@ -427,21 +423,19 @@ input UpdatePracticeTagInput {
 
 # 練習記録入力型
 input CreatePracticeLogInput {
-  practiceDate: Date!
-  location: String
-  tagIds: [ID!]
-  style: String
+  date: Date!
+  tags: JSON
+  style: String!
   repCount: Int!
   setCount: Int!
   distance: Int!
-  circle: Float!
+  circle: Float # オプションに変更
   note: String
 }
 
 input UpdatePracticeLogInput {
-  practiceDate: Date
-  location: String
-  tagIds: [ID!]
+  date: Date
+  tags: JSON
   style: String
   repCount: Int
   setCount: Int
@@ -466,49 +460,35 @@ input UpdatePracticeTimeInput {
 
 # 大会入力型
 input CreateCompetitionInput {
-  name: String!
-  competitionDate: Date!
-  location: String
-  poolType: PoolType
-  poolLength: Int
-  competitionCategory: CompetitionCategory
+  title: String!
+  date: Date!
+  place: String! # NOT NULL
+  poolType: Int # 0: short, 1: long (デフォルト: 0)
+  note: String
 }
 
 input UpdateCompetitionInput {
-  name: String
-  competitionDate: Date
-  location: String
-  poolType: PoolType
-  poolLength: Int
-  competitionCategory: CompetitionCategory
+  title: String
+  date: Date
+  place: String
+  poolType: Int
+  note: String
 }
 
 # 記録入力型
 input CreateRecordInput {
   styleId: ID!
   time: Float!
-  recordDate: Date!
-  location: String
-  poolType: PoolType
-  poolLength: Int
-  isRelay: Boolean
-  rankPosition: Int
-  memo: String
   videoUrl: String
+  note: String
   competitionId: ID
 }
 
 input UpdateRecordInput {
   styleId: ID
   time: Float
-  recordDate: Date
-  location: String
-  poolType: PoolType
-  poolLength: Int
-  isRelay: Boolean
-  rankPosition: Int
-  memo: String
   videoUrl: String
+  note: String
   competitionId: ID
 }
 

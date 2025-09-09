@@ -2,7 +2,7 @@ import { useQuery } from '@apollo/client/react'
 import { endOfMonth, format, startOfMonth } from 'date-fns'
 import { useEffect, useMemo } from 'react'
 import { useAuth } from '../../../../contexts'
-import { GET_CALENDAR_DATA, GET_MY_PRACTICE_LOGS, GET_MY_RECORDS } from '../../../../graphql/queries'
+import { GET_CALENDAR_DATA } from '../../../../graphql/queries'
 
 interface CalendarEntry {
   id: string
@@ -50,12 +50,8 @@ export function useCalendarData(currentDate: Date, userId?: string) {
 
   // 練習記録を取得
   const { data: practiceLogsData, loading: practiceLoading, error: practiceError } = useQuery(
-    GET_MY_PRACTICE_LOGS,
+    GET_PRACTICE_LOGS,
     {
-      variables: {
-        startDate,
-        endDate
-      },
       skip: USE_MOCK_DATA,
       fetchPolicy: 'cache-and-network',
       errorPolicy: 'ignore' // エラーを無視して処理を続行
@@ -64,12 +60,8 @@ export function useCalendarData(currentDate: Date, userId?: string) {
 
   // 記録データを取得
   const { data: recordsData, loading: recordsLoading, error: recordsError } = useQuery(
-    GET_MY_RECORDS,
+    GET_RECORDS,
     {
-      variables: {
-        startDate,
-        endDate
-      },
       skip: USE_MOCK_DATA,
       fetchPolicy: 'cache-and-network',
       errorPolicy: 'ignore' // エラーを無視して処理を続行
@@ -155,39 +147,49 @@ export function useCalendarData(currentDate: Date, userId?: string) {
     const entries: CalendarEntry[] = []
 
     // 練習記録を追加
-    if (practiceLogsData && (practiceLogsData as any).myPracticeLogs) {
-      (practiceLogsData as any).myPracticeLogs.forEach((log: any) => {
-        const tagNames = log.tags?.map((tag: any) => tag.name) || []
-        const title = tagNames.length > 0 
-          ? `練習: ${tagNames.slice(0, 2).join(', ')}`
-          : `練習: ${log.style || '場所未記載'}`
-        
-        entries.push({
-          id: log.id,
-          entry_type: 'practice',
-          entry_date: log.practiceDate,
-          title,
-          location: log.location
-        })
+    if (practiceLogsData && (practiceLogsData as any).practice_logs) {
+      (practiceLogsData as any).practice_logs.forEach((log: any) => {
+        // 日付範囲でフィルタリング
+        const logDate = new Date(log.date)
+        if (logDate >= monthStart && logDate <= monthEnd) {
+          const tagNames = Array.isArray(log.tags) ? log.tags : []
+          const title = tagNames.length > 0 
+            ? `練習: ${tagNames.slice(0, 2).join(', ')}`
+            : `練習: ${log.style || '場所未記載'}`
+          
+          entries.push({
+            id: log.id,
+            entry_type: 'practice',
+            entry_date: log.date,
+            title,
+            location: 'プール' // 既存のクエリにはlocationフィールドがないためデフォルト値
+          })
+        }
       })
     }
 
     // 大会記録を追加
-    if (recordsData && (recordsData as any).myRecords) {
-      (recordsData as any).myRecords.forEach((record: any) => {
-        const timeString = record.time ? `${record.time.toFixed(2)}s` : ''
-        const styleInfo = record.style ? `${record.style.nameJp}` : '記録'
-        const title = `${styleInfo}: ${timeString}`
-        
-        entries.push({
-          id: record.id,
-          entry_type: 'record',
-          entry_date: record.recordDate,
-          title,
-          location: record.location,
-          time_result: Math.round(record.time * 100), // 秒を百分の一秒に変換
-          pool_type: record.poolType === 'SHORT_COURSE' ? 0 : 1
-        })
+    if (recordsData && (recordsData as any).records) {
+      (recordsData as any).records.forEach((record: any) => {
+        // 日付範囲でフィルタリング（competitionのdateを使用）
+        if (record.competition && record.competition.date) {
+          const recordDate = new Date(record.competition.date)
+          if (recordDate >= monthStart && recordDate <= monthEnd) {
+            const timeString = record.time ? `${record.time.toFixed(2)}s` : ''
+            const styleInfo = record.style ? `${record.style.name_jp}` : '記録'
+            const title = `${styleInfo}: ${timeString}`
+            
+            entries.push({
+              id: record.id,
+              entry_type: 'record',
+              entry_date: record.competition.date,
+              title,
+              location: record.competition.title || '大会',
+              time_result: Math.round(record.time * 100), // 秒を百分の一秒に変換
+              pool_type: 1 // デフォルト値
+            })
+          }
+        }
       })
     }
 

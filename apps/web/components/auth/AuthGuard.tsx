@@ -9,14 +9,13 @@ interface AuthGuardProps {
   children: React.ReactNode
   requireAuth?: boolean
   redirectTo?: string
-  allowedRoles?: Array<'admin' | 'manager' | 'player' | 'coach' | 'director'>
+  // allowedRolesは削除（roleカラムが削除されたため）
 }
 
 export const AuthGuard: React.FC<AuthGuardProps> = ({
   children,
   requireAuth = true,
-  redirectTo = '/login',
-  allowedRoles
+  redirectTo = '/login'
 }) => {
   const { user, loading, profile } = useAuth()
   const isAuthenticated = !!user
@@ -30,12 +29,9 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
         return
       }
 
-      if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
-        router.push('/unauthorized')
-        return
-      }
+      // roleカラムが削除されたため、ロールベースのアクセス制御は無効化
     }
-  }, [isAuthenticated, isLoading, profile, requireAuth, allowedRoles, router, redirectTo])
+  }, [isAuthenticated, isLoading, requireAuth, router, redirectTo])
 
   if (isLoading) {
     return <FullScreenLoading message="認証情報を確認中..." />
@@ -45,9 +41,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
     return null
   }
 
-  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
-    return null
-  }
+  // roleカラムが削除されたため、ロールベースのアクセス制御は無効化
 
   return <>{children}</>
 }

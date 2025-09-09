@@ -458,15 +458,14 @@
 ```sql
 -- users テーブル
 users (
-  id UUID PRIMARY KEY,
-  email TEXT NOT NULL,
-  name TEXT,
-  role TEXT DEFAULT 'swimmer',
-  generation INTEGER,
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  gender INTEGER NOT NULL DEFAULT 0 CHECK (gender IN (0, 1)), -- 0: male, 1: female
   birthday DATE,
-  gender INTEGER,
+  profile_image_path TEXT, -- Supabase Storageのパスを格納
   bio TEXT,
-  avatar_url TEXT
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- teams テーブル（旧groups）

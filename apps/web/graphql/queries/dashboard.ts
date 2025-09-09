@@ -33,17 +33,3 @@ export const GET_MONTHLY_SUMMARY = gql`
   }
 `
 
-// 種目・泳法関連クエリ
-export const GET_STYLES = gql`
-  query GetStyles {
-    styles {
-      id
-      nameJp
-      name
-      distance
-      stroke
-      createdAt
-      updatedAt
-    }
-  }
-`

@@ -49,14 +49,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
     }
   }, [])
 
-  const getRoleDisplayName = (role: string) => {
-    const roleMap: { [key: string]: string } = {
-      'player': '選手',
-      'coach': 'コーチ',
-      'manager': 'マネージャー',
-      'director': '監督'
-    }
-    return roleMap[role] || role
+  const getRoleDisplayName = () => {
+    // roleカラムが削除されたため、デフォルトで「メンバー」を表示
+    return 'メンバー'
   }
 
   return (
@@ -122,7 +117,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   {profile?.name || user?.email?.split('@')[0] || 'ユーザー'}
                 </div>
                 <div className="text-xs text-gray-500">
-                  {profile?.role ? getRoleDisplayName(profile.role) : 'ロード中...'}
+                  {profile ? getRoleDisplayName() : 'ロード中...'}
                 </div>
               </div>
               <div className="relative">
@@ -146,7 +141,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     {user?.email}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
-                    {profile?.role ? getRoleDisplayName(profile.role) : 'ロール未設定'}
+                    {profile ? getRoleDisplayName() : 'ロール未設定'}
                   </p>
                 </div>
                 <div className="py-1">

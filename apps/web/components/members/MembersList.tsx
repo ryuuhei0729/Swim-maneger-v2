@@ -61,21 +61,9 @@ export default function MembersList() {
 
   const users = (data as any)?.users || []
 
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return { label: '管理者', color: 'bg-red-100 text-red-800' }
-      case 'manager':
-        return { label: 'マネージャー', color: 'bg-purple-100 text-purple-800' }
-      case 'coach':
-        return { label: 'コーチ', color: 'bg-blue-100 text-blue-800' }
-      case 'director':
-        return { label: '監督', color: 'bg-green-100 text-green-800' }
-      case 'player':
-        return { label: '選手', color: 'bg-gray-100 text-gray-800' }
-      default:
-        return { label: role, color: 'bg-gray-100 text-gray-800' }
-    }
+  const getRoleLabel = () => {
+    // roleカラムが削除されたため、デフォルトで「メンバー」を表示
+    return { label: 'メンバー', color: 'bg-gray-100 text-gray-800' }
   }
 
   return (
@@ -99,7 +87,7 @@ export default function MembersList() {
       ) : (
         <div className="space-y-4">
           {users.map((user) => {
-            const roleInfo = getRoleLabel(user.role)
+            const roleInfo = getRoleLabel()
             return (
               <div
                 key={user.id}
@@ -130,12 +118,13 @@ export default function MembersList() {
                   </div>
                   <div className="flex items-center space-x-4 mt-1">
                     <div className="flex items-center text-sm text-gray-500">
-                      <EnvelopeIcon className="h-4 w-4 mr-1" />
-                      {user.email}
-                    </div>
-                    {user.generation && (
                       <span className="text-sm text-gray-500">
-                        {user.generation}期生
+                        {user.gender === 'male' ? '男性' : user.gender === 'female' ? '女性' : 'その他'}
+                      </span>
+                    </div>
+                    {user.birthday && (
+                      <span className="text-sm text-gray-500">
+                        誕生日: {new Date(user.birthday).toLocaleDateString('ja-JP')}
                       </span>
                     )}
                   </div>
@@ -143,12 +132,9 @@ export default function MembersList() {
 
                 <div className="flex-shrink-0">
                   <div className="text-right">
-                    <p className="text-xs text-gray-500">
-                      登録日: {formatDate(user.createdAt, 'short')}
-                    </p>
-                    {user.birthday && (
+                    {user.bio && (
                       <p className="text-xs text-gray-500">
-                        誕生日: {formatDate(user.birthday, 'short')}
+                        {user.bio}
                       </p>
                     )}
                   </div>

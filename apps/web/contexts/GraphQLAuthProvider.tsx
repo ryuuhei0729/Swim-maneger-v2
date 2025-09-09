@@ -72,7 +72,8 @@ export function GraphQLAuthProvider({ children }: { children: React.ReactNode })
           userId: authState.user.id,
           user: authState.user as any, // User型の情報を含める
           name: authState.user.user_metadata?.name || authState.user.email?.split('@')[0] || 'ユーザー',
-          role: authState.user.user_metadata?.role || 'PLAYER',
+          // roleカラムが削除されたため、デフォルトで'PLAYER'を設定
+          role: 'PLAYER',
           avatarUrl: authState.user.user_metadata?.avatar_url || undefined,
           phone: authState.user.user_metadata?.phone || undefined,
           birthday: authState.user.user_metadata?.birthday || undefined,
@@ -93,7 +94,8 @@ export function GraphQLAuthProvider({ children }: { children: React.ReactNode })
           userId: authState.user.id,
           user: authState.user as any, // User型の情報を含める
           name: authState.user.user_metadata?.name || authState.user.email?.split('@')[0] || 'ユーザー',
-          role: authState.user.user_metadata?.role || 'PLAYER',
+          // roleカラムが削除されたため、デフォルトで'PLAYER'を設定
+          role: 'PLAYER',
           avatarUrl: authState.user.user_metadata?.avatar_url || undefined,
           phone: authState.user.user_metadata?.phone || undefined,
           birthday: authState.user.user_metadata?.birthday || undefined,
@@ -242,7 +244,8 @@ export function GraphQLAuthProvider({ children }: { children: React.ReactNode })
         options: {
           data: {
             name: name || '',
-            role: 'player', // デフォルトロール
+            // roleカラムが削除されたため、デフォルトで'player'を設定
+            role: 'player',
           },
         },
       })

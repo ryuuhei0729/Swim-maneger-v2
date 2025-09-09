@@ -1,150 +1,79 @@
 import { gql } from '@apollo/client'
 
-// 練習タグ関連クエリ
-export const GET_MY_PRACTICE_TAGS = gql`
-  query GetMyPracticeTags {
-    myPracticeTags {
-      id
-      userId
-      name
-      color
-      createdAt
-      updatedAt
-    }
-  }
-`
-
-// 練習記録関連クエリ
-export const GET_MY_PRACTICE_LOGS = gql`
-  query GetMyPracticeLogs($startDate: Date, $endDate: Date) {
-    myPracticeLogs(startDate: $startDate, endDate: $endDate) {
-      id
-      userId
-      practiceDate
-      location
-      tags {
-        id
-        name
-        color
-      }
-      style
-      repCount
-      setCount
-      distance
-      circle
-      note
-      times {
-        id
-        repNumber
-        setNumber
-        time
-      }
-      createdAt
-      updatedAt
-    }
-  }
-`
-
-export const GET_PRACTICE_LOGS_BY_DATE = gql`
-  query GetPracticeLogsByDate($date: Date!) {
-    practiceLogsByDate(date: $date) {
-      id
-      userId
-      practiceDate
-      location
-      tags {
-        id
-        name
-        color
-      }
-      style
-      repCount
-      setCount
-      distance
-      circle
-      note
-      times {
-        id
-        repNumber
-        setNumber
-        time
-      }
-      createdAt
-      updatedAt
-    }
-  }
-`
-
-export const GET_PRACTICE_LOGS_BY_DATE_RANGE = gql`
-  query GetPracticeLogsByDateRange($startDate: String!, $endDate: String!, $userId: ID) {
-    practiceLogs(startDate: $startDate, endDate: $endDate, userId: $userId) {
+// 練習関連クエリ
+export const GET_PRACTICE_LOGS = gql`
+  query GetPracticeLogs {
+    practice_logs {
       id
       user_id
-      practice_date
-      location
+      date
       tags
+      style
+      rep_count
+      set_count
+      distance
+      circle
       note
-      created_at
-      updated_at
       user {
         id
         name
-        role
+      }
+      practice_times {
+        id
+        rep_number
+        set_number
+        time
       }
     }
   }
 `
 
-// 練習記録関連クエリ
-export const GET_PRACTICE_RECORDS = gql`
-  query GetPracticeRecords($eventId: ID, $userId: ID) {
-    practiceRecords(eventId: $eventId, userId: $userId) {
+export const GET_PRACTICE_LOG = gql`
+  query GetPracticeLog($id: ID!) {
+    practice_log(id: $id) {
       id
-      event_id
       user_id
-      stroke
+      date
+      tags
+      style
+      rep_count
+      set_count
       distance
-      sets
-      reps
-      circleTime
-      bestTime
-      notes
-      event {
-        id
-        title
-        startTime
-      }
+      circle
+      note
       user {
         id
         name
-        role
       }
-      createdAt
-      updatedAt
+      practice_times {
+        id
+        rep_number
+        set_number
+        time
+      }
     }
   }
 `
 
-export const GET_MY_PRACTICE_RECORDS = gql`
-  query GetMyPracticeRecords {
-    myPracticeRecords {
+export const GET_PRACTICE_LOGS_BY_USER = gql`
+  query GetPracticeLogsByUser($userId: ID!) {
+    practiceLogsByUser(userId: $userId) {
       id
-      event_id
-      stroke
+      user_id
+      date
+      tags
+      style
+      rep_count
+      set_count
       distance
-      sets
-      reps
-      circleTime
-      bestTime
-      notes
-      event {
+      circle
+      note
+      practice_times {
         id
-        title
-        eventType
-        startTime
+        rep_number
+        set_number
+        time
       }
-      createdAt
-      updatedAt
     }
   }
 `

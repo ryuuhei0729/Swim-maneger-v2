@@ -15,7 +15,6 @@ export const CREATE_EVENT = gql`
       creator {
         id
         name
-        role
       }
       createdAt
       updatedAt

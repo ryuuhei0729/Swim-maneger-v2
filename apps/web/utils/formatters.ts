@@ -60,15 +60,9 @@ export const formatStroke = (stroke: string): string => {
   return strokeMap[stroke] || stroke
 }
 
-// 役割の日本語表示
-export const formatRole = (role: string): string => {
-  const roleMap: Record<string, string> = {
-    player: '選手',
-    coach: 'コーチ',
-    director: '監督',
-    manager: 'マネージャー'
-  }
-  return roleMap[role] || role
+// 役割の日本語表示（roleカラムが削除されたため、デフォルトで「メンバー」を返す）
+export const formatRole = (): string => {
+  return 'メンバー'
 }
 
 // 出席状況の日本語表示

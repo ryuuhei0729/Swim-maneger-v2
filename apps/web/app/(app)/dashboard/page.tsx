@@ -76,10 +76,8 @@ export default function DashboardPage() {
     }
   ]
 
-  // ロールに基づいてカードを選択
-  const dashboardCards = profile?.role === 'PLAYER' 
-    ? [...personalCards, ...teamCards] 
-    : [...teamCards, ...personalCards]
+  // roleカラムが削除されたため、全カードを表示
+  const dashboardCards = [...personalCards, ...teamCards]
 
 
   // ダミーの泳法データ（後でGraphQLに置き換え）
@@ -152,7 +150,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {profile?.role === 'PLAYER' ? 'マイホーム' : 'ダッシュボード'}
+              ダッシュボード
             </h1>
             <p className="mt-1 text-sm text-gray-600">
               おかえりなさい、{profile?.name || 'ユーザー'}さん
@@ -161,7 +159,7 @@ export default function DashboardPage() {
           <div className="text-right">
             <p className="text-sm text-gray-500">役割</p>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {profile?.role || 'ロード中...'}
+              メンバー
             </span>
           </div>
         </div>
@@ -205,7 +203,7 @@ export default function DashboardPage() {
       </div>
 
       {/* チーム機能: 今後のイベント（コーチ・マネージャー向け） */}
-      {profile?.role !== 'PLAYER' && <UpcomingEventsList />}
+      <UpcomingEventsList />
 
       {/* フォームモーダル */}
       <PracticeLogForm

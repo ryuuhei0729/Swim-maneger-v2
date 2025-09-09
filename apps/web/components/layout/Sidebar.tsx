@@ -30,7 +30,7 @@ interface NavigationItem {
   icon: ComponentType<SVGProps<SVGSVGElement>>
   badge?: number
   description?: string
-  roles?: string[] // どのロールがアクセスできるか
+  // rolesカラムが削除されたため、アクセス制御は無効化
 }
 
 const navigation: NavigationItem[] = [
@@ -39,56 +39,48 @@ const navigation: NavigationItem[] = [
     href: '/dashboard', 
     icon: HomeIcon, 
     description: 'システム概要と最新情報',
-    roles: ['player', 'coach', 'manager', 'director']
   },
   { 
     name: 'メンバー管理', 
     href: '/members', 
     icon: UsersIcon,
     description: 'チームメンバーの管理',
-    roles: ['coach', 'manager', 'director']
   },
   { 
     name: 'スケジュール', 
     href: '/schedule', 
     icon: CalendarDaysIcon,
     description: '練習・大会の予定管理',
-    roles: ['player', 'coach', 'manager', 'director']
   },
   { 
     name: '出欠管理', 
     href: '/attendance', 
     icon: ClipboardDocumentListIcon,
     description: '練習・大会の出席状況',
-    roles: ['coach', 'manager', 'director']
   },
   { 
     name: '練習記録', 
     href: '/practice', 
     icon: ChartBarIcon,
     description: '練習内容とタイム記録',
-    roles: ['player', 'coach', 'manager', 'director']
   },
   { 
     name: '大会管理', 
     href: '/competitions', 
     icon: TrophyIcon,
     description: '大会結果とエントリー',
-    roles: ['coach', 'manager', 'director']
   },
   { 
     name: '記録管理', 
     href: '/records', 
     icon: TrophyIcon,
     description: '個人の大会記録とベストタイム',
-    roles: ['player']
   },
   { 
     name: '目標管理', 
     href: '/goals', 
     icon: FlagIcon,
     description: '個人・チーム目標の設定',
-    roles: ['player', 'coach', 'manager', 'director']
   },
   { 
     name: 'お知らせ', 
@@ -96,14 +88,12 @@ const navigation: NavigationItem[] = [
     icon: SpeakerWaveIcon, 
     badge: 3,
     description: 'チームからのお知らせ',
-    roles: ['player', 'coach', 'manager', 'director']
   },
   { 
     name: '設定', 
     href: '/settings', 
     icon: Cog6ToothIcon,
     description: 'システム設定とプロフィール',
-    roles: ['player', 'coach', 'manager', 'director']
   },
 ]
 
@@ -111,19 +101,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { profile } = useAuth()
 
-  // ユーザーのロールに基づいてナビゲーションをフィルタリング
-  const filteredNavigation = navigation.filter(item => 
-    !item.roles || item.roles.includes(profile?.role || 'player')
-  )
+  // roleカラムが削除されたため、全ナビゲーション項目を表示
+  const filteredNavigation = navigation
 
-  const getRoleDisplayName = (role: string) => {
-    const roleMap: { [key: string]: string } = {
-      'player': '選手',
-      'coach': 'コーチ',
-      'manager': 'マネージャー',
-      'director': '監督'
-    }
-    return roleMap[role] || role
+  const getRoleDisplayName = () => {
+    // roleカラムが削除されたため、デフォルトで「メンバー」を表示
+    return 'メンバー'
   }
 
   return (
@@ -170,7 +153,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 {profile?.name || 'ユーザー'}
               </p>
               <p className="text-xs text-gray-500">
-                {profile?.role ? getRoleDisplayName(profile.role) : 'ロード中...'}
+                {profile ? getRoleDisplayName() : 'ロード中...'}
               </p>
             </div>
           </div>

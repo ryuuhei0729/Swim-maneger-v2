@@ -352,7 +352,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading: authState.loading,
     isAuthenticated: !!authState.user,
     userId: authState.user?.id,
-    profileRole: authState.profile?.role
+    // profileRole: roleカラムが削除されたため
   })
 
   return (

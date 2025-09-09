@@ -15,7 +15,6 @@ export const GET_EVENTS = gql`
       creator {
         id
         name
-        role
       }
       createdAt
       updatedAt
@@ -37,7 +36,6 @@ export const GET_EVENT = gql`
       creator {
         id
         name
-        role
       }
       attendances {
         id
@@ -83,7 +81,6 @@ export const GET_UPCOMING_EVENTS = gql`
       creator {
         id
         name
-        role
       }
     }
   }
