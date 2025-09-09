@@ -1,7 +1,7 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
-import { User } from '@supabase/supabase-js'
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { User, Session } from '@supabase/supabase-js'
 import { createClientComponentClient } from '@/lib/supabase'
 import type { Database } from '@/lib/supabase'
 
@@ -10,6 +10,7 @@ type UserProfile = Database['public']['Tables']['users']['Row']
 interface AuthState {
   user: User | null
   profile: UserProfile | null
+  session: Session | null
   loading: boolean
 }
 
@@ -26,114 +27,41 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Hot Reload対応のSupabaseクライアント（グローバルスコープで管理）
+// Supabaseクライアントの取得（シングルトンパターン）
 const getSupabaseClient = () => createClientComponentClient()
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     profile: null,
+    session: null,
     loading: true
   })
-  
-  // プロフィール取得の重複実行を防止
-  const fetchingRef = useRef<string | null>(null)
 
-  // ユーザープロフィールを取得（タイムアウト付き + リトライ）
-  const fetchUserProfile = async (userId: string, retryCount = 0): Promise<UserProfile | null> => {
-    console.log('[DEBUG] Fetching profile for user:', userId, retryCount > 0 ? `(retry ${retryCount})` : '')
-    
-    // 同じユーザーIDで既に取得中の場合はスキップ（リトライは除く）
-    if (fetchingRef.current === userId && retryCount === 0) {
-      console.log('[DEBUG] Profile fetch already in progress, skipping...')
-      return null
-    }
-    
-    fetchingRef.current = userId
-    
-    // 20秒でタイムアウト（ネットワーク遅延対応）
-    const timeoutPromise = new Promise<null>((_, reject) => {
-      setTimeout(() => reject(new Error('Profile fetch timeout')), 20000)
-    })
-    
-    const fetchPromise = async (): Promise<UserProfile | null> => {
-      try {
-        const startTime = Date.now()
-        const supabase = getSupabaseClient()
-        console.log('[DEBUG] Starting database query...')
-        
-        // クライアント初期化時間を測定
-        const clientTime = Date.now() - startTime
-        console.log('[DEBUG] Client ready in:', clientTime + 'ms')
-        
-        const queryStart = Date.now()
-        console.log('[DEBUG] Executing profile query...')
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', userId)
-          .single()
-        
-        const queryTime = Date.now() - queryStart
-        console.log('[DEBUG] Query took:', queryTime + 'ms')
-        
-        console.log('[DEBUG] Query completed:', { 
-          hasData: !!data, 
-          hasError: !!error
-        })
-        
-        if (error) {
-          console.error('[ERROR] Profile fetch failed:', {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            userId
-          })
-          return null
-        }
-        
-        console.log('[SUCCESS] Profile fetched:', data.email)
-        return data
-      } catch (error) {
-        console.error('[EXCEPTION] Profile fetch exception:', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
-          userId
-        })
+  // ユーザープロフィールを取得（シンプル化）
+  const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
+    try {
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single()
+      
+      if (error) {
+        console.error('Profile fetch failed:', error.message)
         return null
       }
-    }
-    
-    try {
-      const result = await Promise.race([fetchPromise(), timeoutPromise])
-      return result
+      
+      return data
     } catch (error) {
-      console.error('[TIMEOUT] Profile fetch timed out:', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        userId,
-        retryCount
-      })
-      
-      // リトライ（最大2回）
-      if (retryCount < 2) {
-        fetchingRef.current = null // ロック解除してリトライ
-        console.log('[RETRY] Attempting retry after timeout...')
-        await new Promise(resolve => setTimeout(resolve, 1000)) // 1秒待機
-        return fetchUserProfile(userId, retryCount + 1)
-      }
-      
+      console.error('Profile fetch exception:', error)
       return null
-    } finally {
-      // 処理完了後にロックを解除
-      if (fetchingRef.current === userId) {
-        fetchingRef.current = null
-      }
     }
-  }
+  }, [])
 
   // ログイン
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
       const supabase = getSupabaseClient()
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -141,17 +69,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password
       })
       
-      if (error) throw error
+      if (error) {
+        return { data: null, error }
+      }
       
       return { data, error: null }
     } catch (error) {
       console.error('Sign in error:', error)
       return { data: null, error }
     }
-  }
+  }, [])
 
   // サインアップ
-  const signUp = async (email: string, password: string, name?: string) => {
+  const signUp = useCallback(async (email: string, password: string, name?: string) => {
     try {
       const supabase = getSupabaseClient()
       const { data, error } = await supabase.auth.signUp({
@@ -164,25 +94,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       })
       
-      if (error) throw error
+      if (error) {
+        return { data: null, error }
+      }
       
       return { data, error: null }
     } catch (error) {
       console.error('Sign up error:', error)
       return { data: null, error }
     }
-  }
+  }, [])
 
   // ログアウト
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       const supabase = getSupabaseClient()
       const { error } = await supabase.auth.signOut()
-      if (error) throw error
       
+      if (error) {
+        return { error }
+      }
+      
+      // 状態をクリア
       setAuthState({
         user: null,
         profile: null,
+        session: null,
         loading: false
       })
       
@@ -191,46 +128,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Sign out error:', error)
       return { error }
     }
-  }
+  }, [])
 
   // パスワードリセット
-  const resetPassword = async (email: string) => {
+  const resetPassword = useCallback(async (email: string) => {
     try {
       const supabase = getSupabaseClient()
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: `${window.location.origin}/update-password`
       })
       
-      if (error) throw error
+      if (error) {
+        return { error }
+      }
       
       return { error: null }
     } catch (error) {
       console.error('Password reset error:', error)
       return { error }
     }
-  }
+  }, [])
 
   // パスワード更新
-  const updatePassword = async (newPassword: string) => {
+  const updatePassword = useCallback(async (newPassword: string) => {
     try {
       const supabase = getSupabaseClient()
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       })
       
-      if (error) throw error
+      if (error) {
+        return { error }
+      }
       
       return { error: null }
     } catch (error) {
       console.error('Password update error:', error)
       return { error }
     }
-  }
+  }, [])
 
   // プロフィール更新
-  const updateProfile = async (updates: Partial<UserProfile>) => {
+  const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
     try {
-      if (!authState.user) throw new Error('User not authenticated')
+      if (!authState.user) {
+        return { error: new Error('User not authenticated') }
+      }
       
       const supabase = getSupabaseClient()
       const { error } = await supabase
@@ -238,7 +181,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', authState.user.id)
       
-      if (error) throw error
+      if (error) {
+        return { error }
+      }
       
       // プロフィールを再取得
       const updatedProfile = await fetchUserProfile(authState.user.id)
@@ -251,69 +196,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Profile update error:', error)
       return { error }
     }
-  }
+  }, [authState.user, fetchUserProfile])
 
   useEffect(() => {
     const supabase = getSupabaseClient()
     
     // 認証状態を更新する共通関数
-    const updateAuthState = async (session: any) => {
+    const updateAuthState = async (session: Session | null) => {
       try {
-        if (session) {
-          console.log('[DEBUG] User authenticated, fetching profile...')
+        if (session?.user) {
           const profile = await fetchUserProfile(session.user.id)
-          
-          console.log('[DEBUG] Setting auth state:', {
-            hasUser: true,
-            hasProfile: !!profile,
-            userId: session.user.id
-          })
-          
           setAuthState({
             user: session.user,
             profile,
+            session,
             loading: false
           })
-          
-          if (!profile) {
-            console.warn('[WARNING] Profile fetch failed, but user is authenticated')
-          }
         } else {
-          console.log('[DEBUG] No user session, clearing state')
           setAuthState({
             user: null,
             profile: null,
+            session: null,
             loading: false
           })
         }
       } catch (error) {
-        console.error('[ERROR] updateAuthState failed:', error)
-        // 最悪の場合でもローディング状態を解除
+        console.error('Auth state update failed:', error)
         setAuthState({
           user: session?.user || null,
           profile: null,
+          session,
           loading: false
         })
       }
     }
     
-    // 初期セッションを取得（Supabaseベストプラクティス）
+    // 初期セッションを取得
     const getInitialSession = async () => {
-      console.log('[DEBUG] Getting initial session...')
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
-        console.log('[DEBUG] Initial session result:', { 
-          hasSession: !!session, 
-          hasUser: !!session?.user,
-          error 
-        })
+        if (error) {
+          console.error('Session error:', error)
+        }
         await updateAuthState(session)
       } catch (error) {
-        console.error('[ERROR] Failed to get initial session:', error)
-        // エラーが発生してもローディングを終了
+        console.error('Failed to get initial session:', error)
         setAuthState({
           user: null,
           profile: null,
+          session: null,
           loading: false
         })
       }
@@ -322,7 +253,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // 認証状態の変更を監視
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('[DEBUG] Auth event:', event, { hasSession: !!session })
         await updateAuthState(session)
       }
     )
@@ -331,7 +261,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     getInitialSession()
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [fetchUserProfile])
 
   const value: AuthContextType = {
     ...authState,
@@ -344,16 +274,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!authState.user,
     isLoading: authState.loading
   }
-
-  // デバッグ情報
-  console.log('[DEBUG] AuthProvider state:', {
-    hasUser: !!authState.user,
-    hasProfile: !!authState.profile,
-    isLoading: authState.loading,
-    isAuthenticated: !!authState.user,
-    userId: authState.user?.id,
-    // profileRole: roleカラムが削除されたため
-  })
 
   return (
     <AuthContext.Provider value={value}>

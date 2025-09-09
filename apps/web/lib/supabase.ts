@@ -217,7 +217,7 @@ declare global {
   }
 }
 
-// ブラウザ用のSupabaseクライアント（シングルトン、Hot Reload対応）
+// ブラウザ用のSupabaseクライアント（Supabaseベストプラクティス準拠）
 export const createClientComponentClient = (): SupabaseClient<Database> => {
   if (typeof window === 'undefined') {
     // サーバーサイドでは新しいインスタンスを返す
@@ -228,18 +228,30 @@ export const createClientComponentClient = (): SupabaseClient<Database> => {
   if (!window.__supabase_client__) {
     window.__supabase_client__ = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
       auth: {
-        storageKey: `swim-manager-auth-${environment}`, // 環境別にストレージキーを分離
+        // 環境別にストレージキーを分離（セキュリティ向上）
+        storageKey: `swim-manager-auth-${environment}`,
         storage: window.localStorage,
-        detectSessionInUrl: false, // URLからセッション検出を無効化
+        // URLからセッション検出を有効化（パスワードリセット対応）
+        detectSessionInUrl: true,
+        // 自動トークンリフレッシュを有効化
         autoRefreshToken: true,
+        // セッション永続化を有効化
         persistSession: true,
+        // フロー設定（PKCE使用）
+        flowType: 'pkce'
       },
-      // リアルタイム機能を無効にしてパフォーマンス向上
+      // リアルタイム機能の設定
       realtime: {
         params: {
           eventsPerSecond: 10,
         },
       },
+      // グローバル設定
+      global: {
+        headers: {
+          'X-Client-Info': 'swim-manager-web'
+        }
+      }
     })
   }
   

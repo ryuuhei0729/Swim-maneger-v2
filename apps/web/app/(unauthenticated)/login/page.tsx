@@ -1,26 +1,26 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AuthForm } from '@/components/auth'
 import { useAuth } from '@/contexts'
+import { FullScreenLoading } from '@/components/ui/LoadingSpinner'
 
 export default function LoginPage() {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { user, session, isLoading } = useAuth()
+  const isAuthenticated = !!user && !!session
   const router = useRouter()
+  const [hasRedirected, setHasRedirected] = useState(false)
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
+    if (!isLoading && isAuthenticated && !hasRedirected) {
+      setHasRedirected(true)
       router.push('/dashboard')
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [isAuthenticated, isLoading, router, hasRedirected])
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    )
+    return <FullScreenLoading message="認証情報を確認中..." />
   }
 
   if (isAuthenticated) {

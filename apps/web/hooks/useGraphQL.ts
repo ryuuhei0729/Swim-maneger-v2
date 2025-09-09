@@ -53,12 +53,14 @@ export const useUpdateProfile = () => {
 //   })
 // }
 
-// export const useUpcomingEvents = () => {
-//   return useQuery(GET_UPCOMING_EVENTS, {
-//     errorPolicy: 'ignore',
-//     pollInterval: 300000,
-//   })
-// }
+// 一時的なダミー実装（エラー回避用）
+export const useUpcomingEvents = () => {
+  return {
+    data: { upcomingEvents: [] },
+    loading: false,
+    error: null
+  }
+}
 
 // export const useCreateEvent = () => {
 //   return useMutation(CREATE_EVENT, {
@@ -89,11 +91,14 @@ export const useUpdateProfile = () => {
 
 // 出席関連フック（現在は未実装）
 // TODO: 出席機能が実装されたら有効化
-// export const useMyAttendances = () => {
-//   return useQuery(GET_MY_ATTENDANCES, {
-//     errorPolicy: 'ignore',
-//   })
-// }
+// 一時的なダミー実装（エラー回避用）
+export const useMyAttendances = () => {
+  return {
+    data: { myAttendances: [] },
+    loading: false,
+    error: null
+  }
+}
 
 // export const useUpdateAttendance = () => {
 //   return useMutation(UPDATE_ATTENDANCE, {
@@ -103,11 +108,14 @@ export const useUpdateProfile = () => {
 
 // 練習記録関連フック（現在は未実装）
 // TODO: 練習記録機能が実装されたら有効化
-// export const useMyPracticeRecords = () => {
-//   return useQuery(GET_MY_PRACTICE_RECORDS, {
-//     errorPolicy: 'ignore',
-//   })
-// }
+// 一時的なダミー実装（エラー回避用）
+export const useMyPracticeRecords = () => {
+  return {
+    data: { myPracticeRecords: [] },
+    loading: false,
+    error: null
+  }
+}
 
 // export const useCreatePracticeRecord = () => {
 //   return useMutation(CREATE_PRACTICE_RECORD, {
@@ -162,7 +170,7 @@ export const useStyles = () => {
 
 // 練習記録関連フック（個人利用機能）
 export const useMyPracticeLogs = (variables?: { startDate?: string; endDate?: string }) => {
-  return useQuery(GET_MY_PRACTICE_LOGS, {
+  return useQuery(GET_PRACTICE_LOGS, {
     variables,
     errorPolicy: 'ignore', // エラーを無視して処理を続行
   })
@@ -178,7 +186,7 @@ export const useMyPracticeLogs = (variables?: { startDate?: string; endDate?: st
 export const useCreatePracticeLog = () => {
   return useMutation(CREATE_PRACTICE_LOG, {
     refetchQueries: [
-      { query: GET_MY_PRACTICE_LOGS },
+      { query: GET_PRACTICE_LOGS },
       { query: GET_CALENDAR_DATA }
     ],
   })
@@ -187,7 +195,7 @@ export const useCreatePracticeLog = () => {
 export const useUpdatePracticeLog = () => {
   return useMutation(UPDATE_PRACTICE_LOG, {
     refetchQueries: [
-      { query: GET_MY_PRACTICE_LOGS },
+      { query: GET_PRACTICE_LOGS },
       { query: GET_CALENDAR_DATA }
     ],
   })
@@ -196,7 +204,7 @@ export const useUpdatePracticeLog = () => {
 export const useDeletePracticeLog = () => {
   return useMutation(DELETE_PRACTICE_LOG, {
     refetchQueries: [
-      { query: GET_MY_PRACTICE_LOGS },
+      { query: GET_PRACTICE_LOGS },
       { query: GET_CALENDAR_DATA }
     ],
   })
@@ -205,19 +213,19 @@ export const useDeletePracticeLog = () => {
 // 練習タイム関連フック
 export const useCreatePracticeTime = () => {
   return useMutation(CREATE_PRACTICE_TIME, {
-    refetchQueries: [{ query: GET_MY_PRACTICE_LOGS }],
+    refetchQueries: [{ query: GET_PRACTICE_LOGS }],
   })
 }
 
 export const useUpdatePracticeTime = () => {
   return useMutation(UPDATE_PRACTICE_TIME, {
-    refetchQueries: [{ query: GET_MY_PRACTICE_LOGS }],
+    refetchQueries: [{ query: GET_PRACTICE_LOGS }],
   })
 }
 
 export const useDeletePracticeTime = () => {
   return useMutation(DELETE_PRACTICE_TIME, {
-    refetchQueries: [{ query: GET_MY_PRACTICE_LOGS }],
+    refetchQueries: [{ query: GET_PRACTICE_LOGS }],
   })
 }
 
@@ -254,7 +262,7 @@ export const useMyRecords = (variables?: {
   styleId?: string; 
   poolType?: 'SHORT_COURSE' | 'LONG_COURSE' 
 }) => {
-  return useQuery(GET_MY_RECORDS, {
+  return useQuery(GET_RECORDS, {
     variables,
     errorPolicy: 'ignore', // エラーを無視して処理を続行
   })
@@ -270,8 +278,8 @@ export const useMyRecords = (variables?: {
 export const useCreateRecord = () => {
   return useMutation(CREATE_RECORD, {
     refetchQueries: [
-      { query: GET_MY_RECORDS },
-      { query: GET_MY_BEST_TIMES },
+      { query: GET_RECORDS },
+      
       { query: GET_CALENDAR_DATA }
     ],
   })
@@ -280,8 +288,8 @@ export const useCreateRecord = () => {
 export const useUpdateRecord = () => {
   return useMutation(UPDATE_RECORD, {
     refetchQueries: [
-      { query: GET_MY_RECORDS },
-      { query: GET_MY_BEST_TIMES },
+      { query: GET_RECORDS },
+      
       { query: GET_CALENDAR_DATA }
     ],
   })
@@ -290,8 +298,8 @@ export const useUpdateRecord = () => {
 export const useDeleteRecord = () => {
   return useMutation(DELETE_RECORD, {
     refetchQueries: [
-      { query: GET_MY_RECORDS },
-      { query: GET_MY_BEST_TIMES },
+      { query: GET_RECORDS },
+      
       { query: GET_CALENDAR_DATA }
     ],
   })
@@ -300,19 +308,19 @@ export const useDeleteRecord = () => {
 // スプリットタイム関連フック
 export const useCreateSplitTime = () => {
   return useMutation(CREATE_SPLIT_TIME, {
-    refetchQueries: [{ query: GET_MY_RECORDS }],
+    refetchQueries: [{ query: GET_RECORDS }],
   })
 }
 
 export const useUpdateSplitTime = () => {
   return useMutation(UPDATE_SPLIT_TIME, {
-    refetchQueries: [{ query: GET_MY_RECORDS }],
+    refetchQueries: [{ query: GET_RECORDS }],
   })
 }
 
 export const useDeleteSplitTime = () => {
   return useMutation(DELETE_SPLIT_TIME, {
-    refetchQueries: [{ query: GET_MY_RECORDS }],
+    refetchQueries: [{ query: GET_RECORDS }],
   })
 }
 

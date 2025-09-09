@@ -2,7 +2,7 @@ import { useQuery } from '@apollo/client/react'
 import { endOfMonth, format, startOfMonth } from 'date-fns'
 import { useEffect, useMemo } from 'react'
 import { useAuth } from '../../../../contexts'
-import { GET_CALENDAR_DATA } from '../../../../graphql/queries'
+import { GET_CALENDAR_DATA, GET_PRACTICE_LOGS, GET_RECORDS } from '../../../../graphql/queries'
 
 interface CalendarEntry {
   id: string

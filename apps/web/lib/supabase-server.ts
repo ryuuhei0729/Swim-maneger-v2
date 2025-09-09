@@ -7,7 +7,7 @@ import type { Database } from './supabase'
 // 環境別のSupabase設定を取得
 const { url: supabaseUrl, anonKey: supabaseAnonKey, serviceRoleKey } = getSupabaseConfig()
 
-// サーバーコンポーネント用のSupabaseクライアント
+// サーバーコンポーネント用のSupabaseクライアント（Supabaseベストプラクティス準拠）
 export const createServerComponentClient = async () => {
   const cookieStore = await cookies()
   
@@ -16,6 +16,18 @@ export const createServerComponentClient = async () => {
       get(name: string) {
         return cookieStore.get(name)?.value
       },
+      set(name: string, value: string, options: any) {
+        cookieStore.set({ name, value, ...options })
+      },
+      remove(name: string, options: any) {
+        cookieStore.set({ name, value: '', ...options })
+      },
+    },
+    // サーバーサイド用の設定
+    auth: {
+      detectSessionInUrl: false,
+      persistSession: false,
+      autoRefreshToken: false,
     },
   })
 }

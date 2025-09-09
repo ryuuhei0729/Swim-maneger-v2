@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts'
 import { FullScreenLoading } from '@/components/ui/LoadingSpinner'
@@ -9,39 +9,37 @@ interface AuthGuardProps {
   children: React.ReactNode
   requireAuth?: boolean
   redirectTo?: string
-  // allowedRolesは削除（roleカラムが削除されたため）
+  fallback?: React.ReactNode
 }
 
 export const AuthGuard: React.FC<AuthGuardProps> = ({
   children,
   requireAuth = true,
-  redirectTo = '/login'
+  redirectTo = '/login',
+  fallback
 }) => {
-  const { user, loading, profile } = useAuth()
-  const isAuthenticated = !!user
-  const isLoading = loading
+  const { user, session, isLoading } = useAuth()
+  const isAuthenticated = !!user && !!session
   const router = useRouter()
+  const [hasRedirected, setHasRedirected] = useState(false)
 
   useEffect(() => {
-    if (!isLoading) {
-      if (requireAuth && !isAuthenticated) {
-        router.push(redirectTo)
-        return
-      }
-
-      // roleカラムが削除されたため、ロールベースのアクセス制御は無効化
+    if (!isLoading && requireAuth && !isAuthenticated && !hasRedirected) {
+      setHasRedirected(true)
+      router.push(redirectTo)
     }
-  }, [isAuthenticated, isLoading, requireAuth, router, redirectTo])
+  }, [isAuthenticated, isLoading, requireAuth, router, redirectTo, hasRedirected])
 
+  // ローディング中
   if (isLoading) {
     return <FullScreenLoading message="認証情報を確認中..." />
   }
 
+  // 認証が必要だが認証されていない場合
   if (requireAuth && !isAuthenticated) {
-    return null
+    return fallback || null
   }
 
-  // roleカラムが削除されたため、ロールベースのアクセス制御は無効化
-
+  // 認証が不要な場合、または認証済みの場合
   return <>{children}</>
 }

@@ -5,10 +5,8 @@ import { Button, Input } from '@/components/ui'
 import { XMarkIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
 import { 
-  useMyPracticeTags, 
   useCreatePracticeLog, 
   useUpdatePracticeLog,
-  useCreatePracticeTag 
 } from '@/hooks/useGraphQL'
 
 interface PracticeLogFormData {

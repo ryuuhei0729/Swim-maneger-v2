@@ -7,13 +7,8 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts'
 import { 
   HomeIcon,
-  UsersIcon,
-  CalendarDaysIcon,
-  ClipboardDocumentListIcon,
-  TrophyIcon,
-  FlagIcon,
-  SpeakerWaveIcon,
   ChartBarIcon,
+  TrophyIcon,
   Cog6ToothIcon,
   XMarkIcon,
   ChevronRightIcon
@@ -41,25 +36,7 @@ const navigation: NavigationItem[] = [
     description: 'システム概要と最新情報',
   },
   { 
-    name: 'メンバー管理', 
-    href: '/members', 
-    icon: UsersIcon,
-    description: 'チームメンバーの管理',
-  },
-  { 
-    name: 'スケジュール', 
-    href: '/schedule', 
-    icon: CalendarDaysIcon,
-    description: '練習・大会の予定管理',
-  },
-  { 
-    name: '出欠管理', 
-    href: '/attendance', 
-    icon: ClipboardDocumentListIcon,
-    description: '練習・大会の出席状況',
-  },
-  { 
-    name: '練習記録', 
+    name: '練習管理', 
     href: '/practice', 
     icon: ChartBarIcon,
     description: '練習内容とタイム記録',
@@ -69,25 +46,6 @@ const navigation: NavigationItem[] = [
     href: '/competitions', 
     icon: TrophyIcon,
     description: '大会結果とエントリー',
-  },
-  { 
-    name: '記録管理', 
-    href: '/records', 
-    icon: TrophyIcon,
-    description: '個人の大会記録とベストタイム',
-  },
-  { 
-    name: '目標管理', 
-    href: '/goals', 
-    icon: FlagIcon,
-    description: '個人・チーム目標の設定',
-  },
-  { 
-    name: 'お知らせ', 
-    href: '/announcements', 
-    icon: SpeakerWaveIcon, 
-    badge: 3,
-    description: 'チームからのお知らせ',
   },
   { 
     name: '設定', 
