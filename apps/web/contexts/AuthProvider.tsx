@@ -1,9 +1,10 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { User, Session } from '@supabase/supabase-js'
-import { createClientComponentClient } from '@/lib/supabase'
+import { User, Session, SupabaseClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase'
 import type { Database } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 
 type UserProfile = Database['public']['Tables']['users']['Row']
 
@@ -15,6 +16,7 @@ interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
+  supabase: SupabaseClient<Database>
   signIn: (email: string, password: string) => Promise<{ data: any; error: any }>
   signUp: (email: string, password: string, name?: string) => Promise<{ data: any; error: any }>
   signOut: () => Promise<{ error: any }>
@@ -27,10 +29,9 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Supabaseクライアントの取得（シングルトンパターン）
-const getSupabaseClient = () => createClientComponentClient()
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const supabase = createClient()
+  const router = useRouter()
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     profile: null,
@@ -41,7 +42,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ユーザープロフィールを取得（シンプル化）
   const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
     try {
-      const supabase = getSupabaseClient()
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -58,12 +58,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Profile fetch exception:', error)
       return null
     }
-  }, [])
+  }, [supabase])
 
   // ログイン
   const signIn = useCallback(async (email: string, password: string) => {
     try {
-      const supabase = getSupabaseClient()
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -78,12 +77,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Sign in error:', error)
       return { data: null, error }
     }
-  }, [])
+  }, [supabase])
 
   // サインアップ
   const signUp = useCallback(async (email: string, password: string, name?: string) => {
     try {
-      const supabase = getSupabaseClient()
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -103,37 +101,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Sign up error:', error)
       return { data: null, error }
     }
-  }, [])
+  }, [supabase])
 
   // ログアウト
   const signOut = useCallback(async () => {
     try {
-      const supabase = getSupabaseClient()
       const { error } = await supabase.auth.signOut()
       
       if (error) {
         return { error }
       }
       
-      // 状態をクリア
-      setAuthState({
-        user: null,
-        profile: null,
-        session: null,
-        loading: false
-      })
-      
       return { error: null }
     } catch (error) {
       console.error('Sign out error:', error)
       return { error }
     }
-  }, [])
+  }, [supabase])
 
   // パスワードリセット
   const resetPassword = useCallback(async (email: string) => {
     try {
-      const supabase = getSupabaseClient()
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/update-password`
       })
@@ -147,12 +135,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Password reset error:', error)
       return { error }
     }
-  }, [])
+  }, [supabase])
 
   // パスワード更新
   const updatePassword = useCallback(async (newPassword: string) => {
     try {
-      const supabase = getSupabaseClient()
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       })
@@ -166,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Password update error:', error)
       return { error }
     }
-  }, [])
+  }, [supabase])
 
   // プロフィール更新
   const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
@@ -175,7 +162,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: new Error('User not authenticated') }
       }
       
-      const supabase = getSupabaseClient()
       const { error } = await supabase
         .from('users')
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -196,75 +182,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Profile update error:', error)
       return { error }
     }
-  }, [authState.user, fetchUserProfile])
+  }, [authState.user, fetchUserProfile, supabase])
 
   useEffect(() => {
-    const supabase = getSupabaseClient()
-    
-    // 認証状態を更新する共通関数
-    const updateAuthState = async (session: Session | null) => {
-      try {
-        if (session?.user) {
-          const profile = await fetchUserProfile(session.user.id)
-          setAuthState({
-            user: session.user,
-            profile,
-            session,
-            loading: false
-          })
-        } else {
-          setAuthState({
-            user: null,
-            profile: null,
-            session: null,
-            loading: false
-          })
-        }
-      } catch (error) {
-        console.error('Auth state update failed:', error)
-        setAuthState({
-          user: session?.user || null,
-          profile: null,
-          session,
-          loading: false
-        })
-      }
-    }
-    
-    // 初期セッションを取得
-    const getInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession()
-        if (error) {
-          console.error('Session error:', error)
-        }
-        await updateAuthState(session)
-      } catch (error) {
-        console.error('Failed to get initial session:', error)
-        setAuthState({
-          user: null,
-          profile: null,
-          session: null,
-          loading: false
-        })
-      }
-    }
-    
     // 認証状態の変更を監視
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        await updateAuthState(session)
+        setAuthState(prev => ({
+          ...prev,
+          user: session?.user ?? null,
+          session,
+          loading: false
+        }))
+        
+        // ログイン/ログアウト時にページをリフレッシュして
+        // サーバーコンポーネントの再レンダリングをトリガーする
+        router.refresh()
       }
     )
-    
-    // 初期セッション取得を実行
-    getInitialSession()
 
-    return () => subscription.unsubscribe()
-  }, [fetchUserProfile])
+    // クリーンアップ関数
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [router, supabase])
 
   const value: AuthContextType = {
     ...authState,
+    supabase,
     signIn,
     signUp,
     signOut,

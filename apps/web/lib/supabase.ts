@@ -217,6 +217,14 @@ declare global {
   }
 }
 
+// クライアント用のSupabaseクライアント（シンプル版）
+export const createClient = (): SupabaseClient<Database> => {
+  return createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
+
 // ブラウザ用のSupabaseクライアント（Supabaseベストプラクティス準拠）
 export const createClientComponentClient = (): SupabaseClient<Database> => {
   if (typeof window === 'undefined') {
