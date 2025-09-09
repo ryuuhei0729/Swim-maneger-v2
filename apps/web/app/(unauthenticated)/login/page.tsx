@@ -15,7 +15,10 @@ export default function LoginPage() {
   useEffect(() => {
     if (!isLoading && isAuthenticated && !hasRedirected) {
       setHasRedirected(true)
-      router.push('/dashboard')
+      // URLパラメータからリダイレクト先を取得
+      const urlParams = new URLSearchParams(window.location.search)
+      const redirectTo = urlParams.get('redirect_to') || '/dashboard'
+      router.push(redirectTo)
     }
   }, [isAuthenticated, isLoading, router, hasRedirected])
 
@@ -31,7 +34,12 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-100">
       <AuthForm 
         mode="signin" 
-        onSuccess={() => router.push('/dashboard')}
+        onSuccess={() => {
+          // URLパラメータからリダイレクト先を取得
+          const urlParams = new URLSearchParams(window.location.search)
+          const redirectTo = urlParams.get('redirect_to') || '/dashboard'
+          router.push(redirectTo)
+        }}
       />
     </div>
   )

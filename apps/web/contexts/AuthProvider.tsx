@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { User, Session, SupabaseClient } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase'
+import { createClientComponentClient } from '@/lib/supabase'
 import type { Database } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -30,7 +30,7 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const supabase = createClient()
+  const supabase = createClientComponentClient()
   const router = useRouter()
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -88,7 +88,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           data: {
             name: name || ''
-          }
+          },
+          // メール認証後のリダイレクト先を設定
+          emailRedirectTo: `${window.location.origin}/auth/callback?redirect_to=/dashboard`
         }
       })
       
@@ -123,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetPassword = useCallback(async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`
+        redirectTo: `${window.location.origin}/auth/callback?redirect_to=/update-password`
       })
       
       if (error) {

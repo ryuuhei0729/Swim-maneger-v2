@@ -31,7 +31,10 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-100">
       <AuthForm 
         mode="signup" 
-        onSuccess={() => router.push('/login')}
+        onSuccess={() => {
+          // メール認証の案内メッセージを表示
+          alert('確認メールを送信しました。メール内のリンクをクリックしてアカウントを有効化してください。')
+        }}
       />
     </div>
   )

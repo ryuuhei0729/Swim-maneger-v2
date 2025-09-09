@@ -23,10 +23,17 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   const router = useRouter()
   const [hasRedirected, setHasRedirected] = useState(false)
 
+  // クライアントサイドでの認証状態変更を監視
+  // ミドルウェアがサーバーサイドでの認証チェックを担当するため、
+  // ここでは主にリアルタイムな状態変更（例：別タブでログアウト）を検知
   useEffect(() => {
     if (!isLoading && requireAuth && !isAuthenticated && !hasRedirected) {
       setHasRedirected(true)
-      router.push(redirectTo)
+      // リダイレクト先に現在のパスを追加
+      const currentPath = window.location.pathname
+      const redirectUrl = new URL(redirectTo, window.location.origin)
+      redirectUrl.searchParams.set('redirect_to', currentPath)
+      router.push(redirectUrl.toString())
     }
   }, [isAuthenticated, isLoading, requireAuth, router, redirectTo, hasRedirected])
 
