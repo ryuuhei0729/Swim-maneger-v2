@@ -4,7 +4,6 @@ import React from 'react'
 import type { ComponentType, SVGProps } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useAuth } from '@/contexts'
 import { 
   HomeIcon,
   ChartBarIcon,
@@ -57,15 +56,9 @@ const navigation: NavigationItem[] = [
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname()
-  const { profile } = useAuth()
 
   // roleカラムが削除されたため、全ナビゲーション項目を表示
   const filteredNavigation = navigation
-
-  const getRoleDisplayName = () => {
-    // roleカラムが削除されたため、デフォルトで「メンバー」を表示
-    return 'メンバー'
-  }
 
   return (
     <>
@@ -100,25 +93,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         </div>
 
-        {/* ユーザー情報（デスクトップ用） */}
-        <div className="hidden lg:block p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-lg">🏊</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {profile?.name || 'ユーザー'}
-              </p>
-              <p className="text-xs text-gray-500">
-                {profile ? getRoleDisplayName() : 'ロード中...'}
-              </p>
-            </div>
-          </div>
-        </div>
 
         {/* ナビゲーション */}
-        <nav className="mt-6 lg:mt-4 px-3">
+        <nav className="mt-6 px-3">
           <div className="space-y-2">
             {filteredNavigation.map((item) => {
               const isActive = pathname === item.href
