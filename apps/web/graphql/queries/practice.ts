@@ -1,27 +1,41 @@
 import { gql } from '@apollo/client'
 
+// 練習タグ関連クエリ
+export const GET_MY_PRACTICE_TAGS = gql`
+  query GetMyPracticeTags {
+    myPracticeTags {
+      id
+      name
+      color
+      createdAt
+      updatedAt
+    }
+  }
+`
+
 // 練習関連クエリ
 export const GET_PRACTICE_LOGS = gql`
   query GetPracticeLogs {
-    practice_logs {
+    myPracticeLogs {
       id
-      user_id
+      userId
       date
-      tags
+      place
+      tags {
+        id
+        name
+        color
+      }
       style
-      rep_count
-      set_count
+      repCount
+      setCount
       distance
       circle
       note
-      user {
+      times {
         id
-        name
-      }
-      practice_times {
-        id
-        rep_number
-        set_number
+        repNumber
+        setNumber
         time
       }
     }
@@ -30,25 +44,26 @@ export const GET_PRACTICE_LOGS = gql`
 
 export const GET_PRACTICE_LOG = gql`
   query GetPracticeLog($id: ID!) {
-    practice_log(id: $id) {
+    practiceLog(id: $id) {
       id
-      user_id
+      userId
       date
-      tags
+      place
+      tags {
+        id
+        name
+        color
+      }
       style
-      rep_count
-      set_count
+      repCount
+      setCount
       distance
       circle
       note
-      user {
+      times {
         id
-        name
-      }
-      practice_times {
-        id
-        rep_number
-        set_number
+        repNumber
+        setNumber
         time
       }
     }
@@ -57,21 +72,26 @@ export const GET_PRACTICE_LOG = gql`
 
 export const GET_PRACTICE_LOGS_BY_USER = gql`
   query GetPracticeLogsByUser($userId: ID!) {
-    practiceLogsByUser(userId: $userId) {
+    myPracticeLogs {
       id
-      user_id
+      userId
       date
-      tags
+      place
+      tags {
+        id
+        name
+        color
+      }
       style
-      rep_count
-      set_count
+      repCount
+      setCount
       distance
       circle
       note
-      practice_times {
+      times {
         id
-        rep_number
-        set_number
+        repNumber
+        setNumber
         time
       }
     }

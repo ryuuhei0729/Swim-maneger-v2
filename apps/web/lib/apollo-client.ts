@@ -21,6 +21,12 @@ const authLink = setContext(async (_, { headers }) => {
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
     
+    // デバッグ用ログ
+    if (envConfig.debug) {
+      console.log('🔐 Auth session:', session ? 'Found' : 'Not found')
+      console.log('🔑 Access token:', session?.access_token ? 'Present' : 'Missing')
+    }
+    
     return {
       headers: {
         ...headers,
@@ -54,6 +60,11 @@ const errorLink = onError((error) => {
 
   if (networkError) {
     console.error(`Network error: ${networkError}`)
+    console.error('Network error details:', {
+      message: networkError.message,
+      statusCode: (networkError as any).statusCode,
+      result: (networkError as any).result
+    })
     
     // 401エラーの場合、認証が必要
     if ('statusCode' in networkError && (networkError as any).statusCode === 401) {

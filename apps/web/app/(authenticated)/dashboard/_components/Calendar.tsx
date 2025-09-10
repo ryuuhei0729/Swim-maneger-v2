@@ -599,12 +599,8 @@ export default function Calendar({
           }}
           onAddEntry={(date, type) => {
             setShowDayDetail(false)
-            setSelectedDate(date)
-            if (type === 'practice') {
-              setShowAddModal(true)
-            } else {
-              onAddEntry?.(date, type)
-            }
+            setSelectedDate(null)
+            onAddEntry?.(date, type)
           }}
         />
       )}

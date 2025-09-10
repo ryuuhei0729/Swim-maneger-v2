@@ -135,7 +135,8 @@ type PracticeLog {
   id: ID!
   userId: ID!
   date: Date!
-  tags: JSON
+  place: String
+  tags: [PracticeTag!]!
   style: String!
   repCount: Int!
   setCount: Int!
@@ -424,7 +425,8 @@ input UpdatePracticeTagInput {
 # 練習記録入力型
 input CreatePracticeLogInput {
   date: Date!
-  tags: JSON
+  place: String
+  tagIds: [ID!]
   style: String!
   repCount: Int!
   setCount: Int!
@@ -435,7 +437,8 @@ input CreatePracticeLogInput {
 
 input UpdatePracticeLogInput {
   date: Date
-  tags: JSON
+  place: String
+  tagIds: [ID!]
   style: String
   repCount: Int
   setCount: Int

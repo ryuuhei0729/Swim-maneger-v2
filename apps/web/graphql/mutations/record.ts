@@ -2,30 +2,30 @@ import { gql } from '@apollo/client'
 
 // 記録関連ミューテーション
 export const CREATE_RECORD = gql`
-  mutation CreateRecord($input: RecordInput!) {
+  mutation CreateRecord($input: CreateRecordInput!) {
     createRecord(input: $input) {
       id
-      user_id
-      competition_id
-      style_id
+      userId
+      styleId
       time
-      video_url
+      videoUrl
       note
-      user {
+      competitionId
+      createdAt
+      updatedAt
+      style {
         id
+        nameJp
         name
+        distance
+        stroke
       }
       competition {
         id
         title
         date
-      }
-      style {
-        id
-        name_jp
-        name
-        style
-        distance
+        place
+        poolType
       }
     }
   }

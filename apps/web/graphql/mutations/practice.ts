@@ -1,23 +1,57 @@
 import { gql } from '@apollo/client'
 
+// 練習タグ関連ミューテーション
+export const CREATE_PRACTICE_TAG = gql`
+  mutation CreatePracticeTag($input: CreatePracticeTagInput!) {
+    createPracticeTag(input: $input) {
+      id
+      name
+      color
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const UPDATE_PRACTICE_TAG = gql`
+  mutation UpdatePracticeTag($id: ID!, $input: UpdatePracticeTagInput!) {
+    updatePracticeTag(id: $id, input: $input) {
+      id
+      name
+      color
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const DELETE_PRACTICE_TAG = gql`
+  mutation DeletePracticeTag($id: ID!) {
+    deletePracticeTag(id: $id)
+  }
+`
+
 // 練習関連ミューテーション
 export const CREATE_PRACTICE_LOG = gql`
-  mutation CreatePracticeLog($input: PracticeLogInput!) {
+  mutation CreatePracticeLog($input: CreatePracticeLogInput!) {
     createPracticeLog(input: $input) {
       id
-      user_id
+      userId
       date
-      tags
+      place
+      tags {
+        id
+        name
+        color
+      }
       style
-      rep_count
-      set_count
+      repCount
+      setCount
       distance
       circle
       note
-      user {
-        id
-        name
-      }
+      createdAt
+      updatedAt
     }
   }
 `

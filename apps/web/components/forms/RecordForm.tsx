@@ -32,6 +32,7 @@ interface RecordFormProps {
   onClose: () => void
   onSubmit: (data: RecordFormData) => Promise<void>
   initialDate?: Date
+  editData?: any
   isLoading?: boolean
   styles?: Array<{ id: string; name_jp: string; distance: number }>
 }
@@ -59,6 +60,7 @@ export default function RecordForm({
   onClose,
   onSubmit,
   initialDate,
+  editData,
   isLoading = false,
   styles = []
 }: RecordFormProps) {

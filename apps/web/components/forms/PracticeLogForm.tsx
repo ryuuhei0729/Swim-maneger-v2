@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Button, Input } from '@/components/ui'
 import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
-import { useMyPracticeTags, useCreatePracticeLog, useUpdatePracticeLog } from '@/hooks/useGraphQL'
+import TimeInputModal from './TimeInputModal'
 
 interface PracticeSet {
   id: string
@@ -12,17 +12,18 @@ interface PracticeSet {
   distance: number
   circleTime: number
   style: string
+  times?: Array<{
+    setNumber: number
+    repNumber: number
+    time: number
+  }>
 }
 
 interface PracticeLogFormData {
   practiceDate: string
   location: string
-  tagIds: string[]
-  style: string
-  repCount: number
-  setCount: number
-  distance: number
-  circle: number
+  tags: string[]
+  sets: PracticeSet[]
   note: string
 }
 
@@ -32,6 +33,7 @@ interface PracticeLogFormProps {
   onSubmit?: (data: PracticeLogFormData) => Promise<void>
   initialDate?: Date
   editData?: any // 編集時のデータ
+  isLoading?: boolean
 }
 
 const SWIMMING_STYLES = [
@@ -77,6 +79,8 @@ export default function PracticeLogForm({
   })
 
   const [newTag, setNewTag] = useState('')
+  const [showTimeModal, setShowTimeModal] = useState(false)
+  const [selectedSetForTime, setSelectedSetForTime] = useState<PracticeSet | null>(null)
 
   if (!isOpen) return null
 
@@ -135,6 +139,27 @@ export default function PracticeLogForm({
         set.id === id ? { ...set, [field]: value } : set
       )
     }))
+  }
+
+  const handleTimeInput = (set: PracticeSet) => {
+    setSelectedSetForTime(set)
+    setShowTimeModal(true)
+  }
+
+  const handleTimeSubmit = (times: Array<{ setNumber: number; repNumber: number; time: number }>) => {
+    if (!selectedSetForTime) return
+
+    setFormData(prev => ({
+      ...prev,
+      sets: prev.sets.map(set => 
+        set.id === selectedSetForTime.id 
+          ? { ...set, times } 
+          : set
+      )
+    }))
+    
+    setShowTimeModal(false)
+    setSelectedSetForTime(null)
   }
 
   const addTag = (tag: string) => {
@@ -289,15 +314,25 @@ export default function PracticeLogForm({
                       <h4 className="text-sm font-medium text-gray-900">
                         セット {index + 1}
                       </h4>
-                      {formData.sets.length > 1 && (
-                        <button
+                      <div className="flex items-center space-x-2">
+                        <Button
                           type="button"
-                          onClick={() => removeSet(set.id)}
-                          className="text-red-600 hover:text-red-800"
+                          onClick={() => handleTimeInput(set)}
+                          variant="outline"
+                          size="sm"
                         >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      )}
+                          ⏱️ タイム入力
+                        </Button>
+                        {formData.sets.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeSet(set.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -323,7 +358,17 @@ export default function PracticeLogForm({
                           type="number"
                           min="1"
                           value={set.reps}
-                          onChange={(e) => updateSet(set.id, 'reps', parseInt(e.target.value) || 1)}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '') {
+                              updateSet(set.id, 'reps', 1)
+                            } else {
+                              const numValue = parseInt(value)
+                              if (!isNaN(numValue) && numValue > 0) {
+                                updateSet(set.id, 'reps', numValue)
+                              }
+                            }
+                          }}
                           className="text-sm"
                         />
                       </div>
@@ -335,7 +380,17 @@ export default function PracticeLogForm({
                           type="number"
                           min="1"
                           value={set.distance}
-                          onChange={(e) => updateSet(set.id, 'distance', parseInt(e.target.value) || 100)}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '') {
+                              updateSet(set.id, 'distance', 100)
+                            } else {
+                              const numValue = parseInt(value)
+                              if (!isNaN(numValue) && numValue > 0) {
+                                updateSet(set.id, 'distance', numValue)
+                              }
+                            }
+                          }}
                           className="text-sm"
                         />
                       </div>
@@ -347,7 +402,17 @@ export default function PracticeLogForm({
                           type="number"
                           min="1"
                           value={set.circleTime}
-                          onChange={(e) => updateSet(set.id, 'circleTime', parseInt(e.target.value) || 90)}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '') {
+                              updateSet(set.id, 'circleTime', 90)
+                            } else {
+                              const numValue = parseInt(value)
+                              if (!isNaN(numValue) && numValue > 0) {
+                                updateSet(set.id, 'circleTime', numValue)
+                              }
+                            }
+                          }}
                           className="text-sm"
                         />
                       </div>
@@ -400,6 +465,26 @@ export default function PracticeLogForm({
           </form>
         </div>
       </div>
+
+      {/* タイム入力モーダル */}
+      {showTimeModal && selectedSetForTime && (
+        <TimeInputModal
+          isOpen={showTimeModal}
+          onClose={() => {
+            setShowTimeModal(false)
+            setSelectedSetForTime(null)
+          }}
+          onSubmit={handleTimeSubmit}
+          setCount={1} // 1セットのみ
+          repCount={selectedSetForTime.reps}
+          initialTimes={selectedSetForTime.times?.map(t => ({
+            id: `${t.setNumber}-${t.repNumber}`,
+            setNumber: t.setNumber,
+            repNumber: t.repNumber,
+            time: t.time
+          }))}
+        />
+      )}
     </div>
   )
 }

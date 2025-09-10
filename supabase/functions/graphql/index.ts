@@ -15,8 +15,10 @@ const schema = buildSchema(schemaText)
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-requested-with',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+  'Access-Control-Max-Age': '86400',
+  'Access-Control-Allow-Credentials': 'true',
 }
 
 // JWT検証とユーザー情報取得
@@ -53,7 +55,10 @@ async function getUser(authHeader: string | null) {
 serve(async (req) => {
   // CORS対応
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('OK', { 
+      status: 200,
+      headers: corsHeaders 
+    })
   }
 
   if (req.method !== 'POST') {

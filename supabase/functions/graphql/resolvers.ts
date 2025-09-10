@@ -177,25 +177,33 @@ export const resolvers = {
         .from('practice_logs')
         .select(`
           *,
-          practice_log_tags!inner(
+          practice_times(*),
+          practice_log_tags(
+            practice_tag_id,
             practice_tags(*)
-          ),
-          practice_times(*)
+          )
         `)
         .eq('user_id', userId)
-        .order('practice_date', { ascending: false })
+        .order('date', { ascending: false })
       
       if (startDate) {
-        query = query.gte('practice_date', startDate)
+        query = query.gte('date', startDate)
       }
       if (endDate) {
-        query = query.lte('practice_date', endDate)
+        query = query.lte('date', endDate)
       }
       
       const { data, error } = await query
       
       if (error) throw new Error(error.message)
-      return data || []
+      
+      // タグの構造を変換
+      const transformedData = data?.map(log => ({
+        ...log,
+        tags: log.practice_log_tags?.map((relation: any) => relation.practice_tags) || []
+      })) || []
+      
+      return transformedData
     },
 
     practiceLog: async (_: any, { id }: { id: string }, context: any) => {
@@ -205,17 +213,25 @@ export const resolvers = {
         .from('practice_logs')
         .select(`
           *,
-          practice_log_tags!inner(
+          practice_times(*),
+          practice_log_tags(
+            practice_tag_id,
             practice_tags(*)
-          ),
-          practice_times(*)
+          )
         `)
         .eq('id', id)
         .eq('user_id', userId)
         .single()
       
       if (error) throw new Error(error.message)
-      return data
+      
+      // タグの構造を変換
+      const transformedData = {
+        ...data,
+        tags: data.practice_log_tags?.map((relation: any) => relation.practice_tags) || []
+      }
+      
+      return transformedData
     },
 
     practiceLogsByDate: async (_: any, { date }: { date: string }, context: any) => {
@@ -225,17 +241,25 @@ export const resolvers = {
         .from('practice_logs')
         .select(`
           *,
-          practice_log_tags!inner(
+          practice_times(*),
+          practice_log_tags(
+            practice_tag_id,
             practice_tags(*)
-          ),
-          practice_times(*)
+          )
         `)
         .eq('user_id', userId)
-        .eq('practice_date', date)
+        .eq('date', date)
         .order('created_at')
       
       if (error) throw new Error(error.message)
-      return data || []
+      
+      // タグの構造を変換
+      const transformedData = data?.map(log => ({
+        ...log,
+        tags: log.practice_log_tags?.map((relation: any) => relation.practice_tags) || []
+      })) || []
+      
+      return transformedData
     },
 
     // 大会関連
@@ -561,12 +585,13 @@ export const resolvers = {
     createPracticeLog: async (_: any, { input }: { input: any }, context: any) => {
       const userId = getUserId(context)
       
-      const { data, error } = await supabase
+      // 練習記録を作成
+      const { data: practiceLog, error: practiceLogError } = await supabase
         .from('practice_logs')
         .insert({
           user_id: userId,
-          practice_date: input.practiceDate,
-          location: input.location,
+          date: input.date,
+          place: input.place,
           style: input.style,
           rep_count: input.repCount,
           set_count: input.setCount,
@@ -577,29 +602,31 @@ export const resolvers = {
         .select()
         .single()
       
-      if (error) throw new Error(error.message)
+      if (practiceLogError) throw new Error(practiceLogError.message)
       
       // タグの関連付け
       if (input.tagIds && input.tagIds.length > 0) {
         const tagRelations = input.tagIds.map((tagId: string) => ({
-          practice_log_id: data.id,
+          practice_log_id: practiceLog.id,
           practice_tag_id: tagId
         }))
         
-        await supabase
+        const { error: tagError } = await supabase
           .from('practice_log_tags')
           .insert(tagRelations)
+        
+        if (tagError) throw new Error(tagError.message)
       }
       
-      return data
+      return practiceLog
     },
 
     updatePracticeLog: async (_: any, { id, input }: { id: string, input: any }, context: any) => {
       const userId = getUserId(context)
       
       const updateData: any = {}
-      if (input.practiceDate) updateData.practice_date = input.practiceDate
-      if (input.location !== undefined) updateData.location = input.location
+      if (input.date) updateData.date = input.date
+      if (input.place !== undefined) updateData.place = input.place
       if (input.style !== undefined) updateData.style = input.style
       if (input.repCount) updateData.rep_count = input.repCount
       if (input.setCount) updateData.set_count = input.setCount

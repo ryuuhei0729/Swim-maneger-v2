@@ -104,27 +104,52 @@ CREATE TABLE split_times (
   split_time DECIMAL(10,2) NOT NULL
 );
 
--- 5. PracticeLogテーブル
+-- 5. PracticeTagテーブル
+CREATE TABLE practice_tags (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  color TEXT DEFAULT '#3B82F6', -- デフォルトカラー
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, name)
+);
+
+-- 6. PracticeLogテーブル
 CREATE TABLE practice_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   date DATE NOT NULL,
-  tags JSON,
+  place TEXT,
   style TEXT NOT NULL,
   rep_count INTEGER NOT NULL,
   set_count INTEGER NOT NULL,
   distance INTEGER NOT NULL,
   circle DECIMAL(10,2),
-  note TEXT
+  note TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 6. PracticeTimeテーブル
+-- 7. PracticeLogTags関連テーブル
+CREATE TABLE practice_log_tags (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  practice_log_id UUID NOT NULL REFERENCES practice_logs(id) ON DELETE CASCADE,
+  practice_tag_id UUID NOT NULL REFERENCES practice_tags(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(practice_log_id, practice_tag_id)
+);
+
+-- 8. PracticeTimeテーブル
 CREATE TABLE practice_times (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   practice_log_id UUID NOT NULL REFERENCES practice_logs(id) ON DELETE CASCADE,
   rep_number INTEGER NOT NULL,
   set_number INTEGER NOT NULL,
-  time DECIMAL(10,2) NOT NULL
+  time DECIMAL(10,2) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- =============================================================================
@@ -149,10 +174,18 @@ CREATE INDEX idx_records_time ON records(time);
 CREATE INDEX idx_split_times_record_id ON split_times(record_id);
 CREATE INDEX idx_split_times_distance ON split_times(distance);
 
+-- Practice tags table indexes
+CREATE INDEX idx_practice_tags_user_id ON practice_tags(user_id);
+CREATE INDEX idx_practice_tags_name ON practice_tags(name);
+
 -- Practice logs table indexes
 CREATE INDEX idx_practice_logs_user_id ON practice_logs(user_id);
 CREATE INDEX idx_practice_logs_date ON practice_logs(date);
 CREATE INDEX idx_practice_logs_style ON practice_logs(style);
+
+-- Practice log tags table indexes
+CREATE INDEX idx_practice_log_tags_practice_log_id ON practice_log_tags(practice_log_id);
+CREATE INDEX idx_practice_log_tags_practice_tag_id ON practice_log_tags(practice_tag_id);
 
 -- Practice times table indexes
 CREATE INDEX idx_practice_times_practice_log_id ON practice_times(practice_log_id);
@@ -167,7 +200,9 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE competitions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE split_times ENABLE ROW LEVEL SECURITY;
+ALTER TABLE practice_tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE practice_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE practice_log_tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE practice_times ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================================
@@ -198,11 +233,23 @@ CREATE POLICY "Everyone can insert split_times" ON split_times FOR INSERT WITH C
 CREATE POLICY "Everyone can update split_times" ON split_times FOR UPDATE USING (true);
 CREATE POLICY "Everyone can delete split_times" ON split_times FOR DELETE USING (true);
 
+-- Practice tags table policies
+CREATE POLICY "Everyone can view practice_tags" ON practice_tags FOR SELECT USING (true);
+CREATE POLICY "Everyone can insert practice_tags" ON practice_tags FOR INSERT WITH CHECK (true);
+CREATE POLICY "Everyone can update practice_tags" ON practice_tags FOR UPDATE USING (true);
+CREATE POLICY "Everyone can delete practice_tags" ON practice_tags FOR DELETE USING (true);
+
 -- Practice logs table policies
 CREATE POLICY "Everyone can view practice_logs" ON practice_logs FOR SELECT USING (true);
 CREATE POLICY "Everyone can insert practice_logs" ON practice_logs FOR INSERT WITH CHECK (true);
 CREATE POLICY "Everyone can update practice_logs" ON practice_logs FOR UPDATE USING (true);
 CREATE POLICY "Everyone can delete practice_logs" ON practice_logs FOR DELETE USING (true);
+
+-- Practice log tags table policies
+CREATE POLICY "Everyone can view practice_log_tags" ON practice_log_tags FOR SELECT USING (true);
+CREATE POLICY "Everyone can insert practice_log_tags" ON practice_log_tags FOR INSERT WITH CHECK (true);
+CREATE POLICY "Everyone can update practice_log_tags" ON practice_log_tags FOR UPDATE USING (true);
+CREATE POLICY "Everyone can delete practice_log_tags" ON practice_log_tags FOR DELETE USING (true);
 
 -- Practice times table policies
 CREATE POLICY "Everyone can view practice_times" ON practice_times FOR SELECT USING (true);
