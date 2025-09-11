@@ -1,7 +1,7 @@
 import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/client/core'
 import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
-import { getCurrentEnvConfig, getGraphQLEndpoint } from './env'
+import { getGraphQLEndpoint } from './env'
 import { createClient } from './supabase'
 
 // 環境別GraphQL エンドポイント
@@ -9,11 +9,6 @@ const httpLink = createHttpLink({
   uri: getGraphQLEndpoint(),
 })
 
-// 環境情報をログ出力（開発・ステージング環境のみ）
-const envConfig = getCurrentEnvConfig()
-if (envConfig.debug) {
-  console.log(`🚀 GraphQL Endpoint: ${getGraphQLEndpoint()}`)
-}
 
 // 認証ヘッダーを設定するリンク
 const authLink = setContext(async (_, { headers }) => {
@@ -21,11 +16,6 @@ const authLink = setContext(async (_, { headers }) => {
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
     
-    // デバッグ用ログ
-    if (envConfig.debug) {
-      console.log('🔐 Auth session:', session ? 'Found' : 'Not found')
-      console.log('🔑 Access token:', session?.access_token ? 'Present' : 'Missing')
-    }
     
     return {
       headers: {

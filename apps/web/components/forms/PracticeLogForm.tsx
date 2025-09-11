@@ -22,7 +22,6 @@ interface PracticeSet {
 interface PracticeLogFormData {
   practiceDate: string
   location: string
-  tags: string[]
   sets: PracticeSet[]
   note: string
 }
@@ -46,16 +45,6 @@ const SWIMMING_STYLES = [
   'プル'
 ]
 
-const COMMON_TAGS = [
-  'AN2',
-  'EN3', 
-  '耐乳酸',
-  'ショートサークル',
-  '長水路',
-  'テクニック',
-  'スピード',
-  'エンデュランス'
-]
 
 export default function PracticeLogForm({
   isOpen,
@@ -67,7 +56,6 @@ export default function PracticeLogForm({
   const [formData, setFormData] = useState<PracticeLogFormData>({
     practiceDate: initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     location: '',
-    tags: [],
     sets: [{
       id: '1',
       reps: 1,
@@ -77,8 +65,6 @@ export default function PracticeLogForm({
     }],
     note: ''
   })
-
-  const [newTag, setNewTag] = useState('')
   const [showTimeModal, setShowTimeModal] = useState(false)
   const [selectedSetForTime, setSelectedSetForTime] = useState<PracticeSet | null>(null)
 
@@ -92,7 +78,6 @@ export default function PracticeLogForm({
       setFormData({
         practiceDate: format(new Date(), 'yyyy-MM-dd'),
         location: '',
-        tags: [],
         sets: [{
           id: '1',
           reps: 1,
@@ -102,7 +87,6 @@ export default function PracticeLogForm({
         }],
         note: ''
       })
-      setNewTag('')
       onClose()
     } catch (error) {
       console.error('練習記録の保存に失敗しました:', error)
@@ -162,22 +146,6 @@ export default function PracticeLogForm({
     setSelectedSetForTime(null)
   }
 
-  const addTag = (tag: string) => {
-    if (tag && !formData.tags.includes(tag)) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, tag]
-      }))
-    }
-    setNewTag('')
-  }
-
-  const removeTag = (tag: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(t => t !== tag)
-    }))
-  }
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -229,66 +197,6 @@ export default function PracticeLogForm({
               </div>
             </div>
 
-            {/* タグ */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                練習タグ
-              </label>
-              <div className="space-y-3">
-                {/* 選択済みタグ */}
-                <div className="flex flex-wrap gap-2">
-                  {formData.tags.map(tag => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
-                    >
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className="ml-2 text-blue-600 hover:text-blue-800"
-                      >
-                        <XMarkIcon className="h-4 w-4" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-
-                {/* よく使うタグ */}
-                <div className="flex flex-wrap gap-2">
-                  {COMMON_TAGS.map(tag => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => addTag(tag)}
-                      disabled={formData.tags.includes(tag)}
-                      className="px-3 py-1 text-sm border border-gray-300 rounded-full hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-
-                {/* カスタムタグ追加 */}
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    placeholder="カスタムタグを追加"
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    onClick={() => addTag(newTag)}
-                    variant="outline"
-                    disabled={!newTag || formData.tags.includes(newTag)}
-                  >
-                    追加
-                  </Button>
-                </div>
-              </div>
-            </div>
 
             {/* セット詳細 */}
             <div>

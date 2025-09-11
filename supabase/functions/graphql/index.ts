@@ -31,7 +31,6 @@ try {
   // TypeScriptファイルからスキーマをインポート
   const { typeDefs } = await import('./schema.ts')
   schemaText = typeDefs
-  console.log('✅ Schema loaded successfully from TypeScript file')
 } catch (error) {
   console.error('Failed to import schema from TypeScript file:', error)
   // フォールバック: 基本的なスキーマを直接定義
@@ -48,7 +47,6 @@ try {
       test: String
     }
   `
-  console.log('⚠️ Using fallback schema')
 }
 
 const schema = buildSchema(schemaText)
@@ -141,6 +139,19 @@ serve(async (req) => {
       operationName,
       contextValue: context,
       rootValue: resolvers,
+      fieldResolver: (source, args, context, info) => {
+        const fieldName = info.fieldName
+        const parentType = info.parentType.name
+        
+        // リゾルバーが存在する場合は使用
+        const resolver = resolvers?.[parentType]?.[fieldName]
+        if (resolver) {
+          return resolver(source, args, context, info)
+        }
+        
+        // デフォルトの動作：sourceからフィールドを取得
+        return source?.[fieldName]
+      }
     })
 
     return new Response(
@@ -183,4 +194,3 @@ serve(async (req) => {
   }
 })
 
-console.log('🚀 GraphQL server is running!')

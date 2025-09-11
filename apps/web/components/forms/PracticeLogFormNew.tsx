@@ -12,7 +12,6 @@ import {
 interface PracticeLogFormData {
   practiceDate: string
   location: string
-  tagIds: string[]
   style: string
   repCount: number
   setCount: number
@@ -49,7 +48,6 @@ export default function PracticeLogForm({
   const [formData, setFormData] = useState<PracticeLogFormData>({
     practiceDate: initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     location: '',
-    tagIds: [],
     style: 'フリー',
     repCount: 1,
     setCount: 1,
@@ -58,17 +56,11 @@ export default function PracticeLogForm({
     note: ''
   })
 
-  const [newTagName, setNewTagName] = useState('')
-  const [newTagColor, setNewTagColor] = useState('#3B82F6')
-
   // GraphQLフック
-  const { data: tagsData, loading: tagsLoading } = useMyPracticeTags()
   const [createPracticeLog, { loading: createLoading }] = useCreatePracticeLog()
   const [updatePracticeLog, { loading: updateLoading }] = useUpdatePracticeLog()
-  const [createPracticeTag] = useCreatePracticeTag()
 
   const isLoading = createLoading || updateLoading
-  const practiceTags = tagsData?.myPracticeTags || []
 
   // 編集データがある場合、フォームを初期化
   useEffect(() => {
@@ -76,7 +68,6 @@ export default function PracticeLogForm({
       setFormData({
         practiceDate: editData.practiceDate || format(new Date(), 'yyyy-MM-dd'),
         location: editData.location || '',
-        tagIds: editData.tags?.map((tag: any) => tag.id) || [],
         style: editData.style || 'フリー',
         repCount: editData.repCount || 1,
         setCount: editData.setCount || 1,
@@ -93,9 +84,8 @@ export default function PracticeLogForm({
     e.preventDefault()
     try {
       const input = {
-        practiceDate: formData.practiceDate,
-        location: formData.location,
-        tagIds: formData.tagIds,
+        date: formData.practiceDate, // データベースのフィールド名に合わせる
+        place: formData.location, // データベースのフィールド名に合わせる
         style: formData.style,
         repCount: formData.repCount,
         setCount: formData.setCount,
@@ -126,7 +116,6 @@ export default function PracticeLogForm({
       setFormData({
         practiceDate: format(new Date(), 'yyyy-MM-dd'),
         location: '',
-        tagIds: [],
         style: 'フリー',
         repCount: 1,
         setCount: 1,
@@ -141,34 +130,6 @@ export default function PracticeLogForm({
     }
   }
 
-  const handleCreateTag = async () => {
-    if (!newTagName.trim()) return
-    
-    try {
-      await createPracticeTag({
-        variables: {
-          input: {
-            name: newTagName.trim(),
-            color: newTagColor
-          }
-        }
-      })
-      setNewTagName('')
-      setNewTagColor('#3B82F6')
-    } catch (error) {
-      console.error('タグの作成に失敗しました:', error)
-      alert('タグの作成に失敗しました。もう一度お試しください。')
-    }
-  }
-
-  const toggleTag = (tagId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tagIds: prev.tagIds.includes(tagId)
-        ? prev.tagIds.filter(id => id !== tagId)
-        : [...prev.tagIds, tagId]
-    }))
-  }
 
   const totalDistance = formData.repCount * formData.setCount * formData.distance
 
@@ -222,68 +183,6 @@ export default function PracticeLogForm({
               </div>
             </div>
 
-            {/* 練習タグ */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                練習タグ
-              </label>
-              <div className="space-y-3">
-                {/* 既存タグ選択 */}
-                {!tagsLoading && practiceTags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {practiceTags.map((tag: any) => (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => toggleTag(tag.id)}
-                        className={`px-3 py-1 text-sm rounded-full transition-colors ${
-                          formData.tagIds.includes(tag.id)
-                            ? 'text-white'
-                            : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                        }`}
-                        style={{
-                          backgroundColor: formData.tagIds.includes(tag.id) ? tag.color : 'transparent'
-                        }}
-                      >
-                        {tag.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* 新しいタグ作成 */}
-                <div className="border-t pt-3">
-                  <p className="text-sm text-gray-600 mb-2">新しいタグを作成</p>
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <Input
-                        type="text"
-                        placeholder="タグ名"
-                        value={newTagName}
-                        onChange={(e) => setNewTagName(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <input
-                        type="color"
-                        value={newTagColor}
-                        onChange={(e) => setNewTagColor(e.target.value)}
-                        className="w-10 h-10 rounded border border-gray-300 cursor-pointer"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={handleCreateTag}
-                      variant="outline"
-                      disabled={!newTagName.trim()}
-                    >
-                      <PlusIcon className="h-4 w-4 mr-1" />
-                      作成
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* 練習内容 */}
             <div className="border border-gray-200 rounded-lg p-4">

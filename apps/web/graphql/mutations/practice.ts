@@ -39,11 +39,6 @@ export const CREATE_PRACTICE_LOG = gql`
       userId
       date
       place
-      tags {
-        id
-        name
-        color
-      }
       style
       repCount
       setCount
@@ -57,22 +52,20 @@ export const CREATE_PRACTICE_LOG = gql`
 `
 
 export const UPDATE_PRACTICE_LOG = gql`
-  mutation UpdatePracticeLog($id: ID!, $input: PracticeLogInput!) {
+  mutation UpdatePracticeLog($id: ID!, $input: UpdatePracticeLogInput!) {
     updatePracticeLog(id: $id, input: $input) {
       id
-      user_id
+      userId
       date
-      tags
+      place
       style
-      rep_count
-      set_count
+      repCount
+      setCount
       distance
       circle
       note
-      user {
-        id
-        name
-      }
+      createdAt
+      updatedAt
     }
   }
 `

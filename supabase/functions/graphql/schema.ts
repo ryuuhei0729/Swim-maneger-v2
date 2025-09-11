@@ -14,11 +14,7 @@ enum UserRole {
   MANAGER
 }
 
-# プール種別
-enum PoolType {
-  SHORT_COURSE  # 短水路 (25m)
-  LONG_COURSE   # 長水路 (50m)
-}
+# プール種別は Integer で管理 (0: 短水路, 1: 長水路)
 
 # 泳法
 enum SwimStroke {
@@ -58,11 +54,8 @@ type Profile {
   user: User!
   name: String!
   gender: Int! # 0: male, 1: female
-  role: UserRole!
   profileImagePath: String # Supabase Storageのパス
-  phone: String
-  birthday: DateTime
-  emergencyContact: String
+  birthday: Date
   bio: String
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -132,18 +125,17 @@ type PracticeTag {
   updatedAt: DateTime!
 }
 
-# 練習記録関連（個人利用機能対応）
+# 練習記録関連（remote_migration.sqlと同じ構造）
 type PracticeLog {
   id: ID!
   userId: ID!
   date: Date!
   place: String
-  tags: [PracticeTag!]!
   style: String!
   repCount: Int!
   setCount: Int!
   distance: Int!
-  circle: Float # NOT NULLからオプションに変更
+  circle: Float
   note: String
   times: [PracticeTime!]!
   createdAt: DateTime!
@@ -162,53 +154,47 @@ type PracticeTime {
   updatedAt: DateTime!
 }
 
-# 大会関連（個人利用機能対応）
+# 大会関連（remote_migration.sqlと同じ構造）
 type Competition {
   id: ID!
   title: String!
   date: Date!
-  place: String! # NOT NULL
-  poolType: Int! # 0: short, 1: long
+  place: String!
+  poolType: Int # 0: short, 1: long (デフォルト: 0)
   note: String
   records: [Record!]!
-  createdAt: DateTime!
-  updatedAt: DateTime!
 }
 
-# 記録関連（個人利用機能対応）
+# 記録関連（remote_migration.sqlと同じ構造）
 type Record {
   id: ID!
   userId: ID!
-  styleId: ID!
+  competitionId: ID
+  competition: Competition
+  styleId: Int! # INTEGERに対応
   style: Style!
   time: Float!
   videoUrl: String
   note: String
-  competitionId: ID
-  competition: Competition
   splitTimes: [SplitTime!]!
-  createdAt: DateTime!
-  updatedAt: DateTime!
 }
 
-# スプリットタイム
+# スプリットタイム（remote_migration.sqlと同じ構造）
 type SplitTime {
   id: ID!
   recordId: ID!
   distance: Int!
   splitTime: Float!
-  createdAt: DateTime!
-  updatedAt: DateTime!
 }
 
-# 個人目標管理関連
+# 個人目標管理関連（individual_features_migration.sqlと同じ構造）
 type PersonalGoal {
   id: ID!
   userId: ID!
   goalType: GoalType!
-  styleId: ID
+  styleId: Int # INTEGERに対応
   style: Style
-  poolType: PoolType
+  poolType: Int # 0: short, 1: long
   targetTime: Float
   title: String!
   description: String
@@ -232,13 +218,13 @@ type GoalProgress {
   updatedAt: DateTime!
 }
 
-# ベストタイム管理
+# ベストタイム管理（individual_features_migration.sqlと同じ構造）
 type BestTime {
   id: ID!
   userId: ID!
-  styleId: ID!
+  styleId: Int! # INTEGERに対応
   style: Style!
-  poolType: PoolType!
+  poolType: Int! # 0: short, 1: long
   bestTime: Float!
   recordId: ID
   record: Record
@@ -292,13 +278,13 @@ type Query {
   competition(id: ID!): Competition
   
   # 記録関連（個人利用機能対応）
-  myRecords(startDate: Date, endDate: Date, styleId: ID, poolType: PoolType): [Record!]!
+  myRecords(startDate: Date, endDate: Date, styleId: Int, poolType: Int): [Record!]!
   record(id: ID!): Record
   recordsByDate(date: Date!): [Record!]!
 
   # ベストタイム関連
-  myBestTimes(poolType: PoolType): [BestTime!]!
-  bestTime(styleId: ID!, poolType: PoolType!): BestTime
+  myBestTimes(poolType: Int): [BestTime!]!
+  bestTime(styleId: Int!, poolType: Int!): BestTime
 
   # 個人目標関連
   myPersonalGoals: [PersonalGoal!]!
@@ -406,9 +392,7 @@ type Mutation {
 input UpdateProfileInput {
   name: String
   gender: Int # 0: male, 1: female
-  phone: String
-  birthday: DateTime
-  emergencyContact: String
+  birthday: Date
   bio: String
   profileImagePath: String
 }
@@ -426,9 +410,10 @@ input UpdatePracticeTagInput {
 
 # 練習記録入力型
 input CreatePracticeLogInput {
-  date: Date!
+  date: Date
+  practiceDate: Date
   place: String
-  tagIds: [ID!]
+  location: String
   style: String!
   repCount: Int!
   setCount: Int!
@@ -440,7 +425,6 @@ input CreatePracticeLogInput {
 input UpdatePracticeLogInput {
   date: Date
   place: String
-  tagIds: [ID!]
   style: String
   repCount: Int
   setCount: Int
@@ -482,7 +466,7 @@ input UpdateCompetitionInput {
 
 # 記録入力型
 input CreateRecordInput {
-  styleId: ID!
+  styleId: Int!
   time: Float!
   videoUrl: String
   note: String
@@ -490,7 +474,7 @@ input CreateRecordInput {
 }
 
 input UpdateRecordInput {
-  styleId: ID
+  styleId: Int
   time: Float
   videoUrl: String
   note: String
@@ -512,8 +496,8 @@ input UpdateSplitTimeInput {
 # 個人目標入力型
 input CreatePersonalGoalInput {
   goalType: GoalType!
-  styleId: ID
-  poolType: PoolType
+  styleId: Int
+  poolType: Int
   targetTime: Float
   title: String!
   description: String
@@ -523,8 +507,8 @@ input CreatePersonalGoalInput {
 
 input UpdatePersonalGoalInput {
   goalType: GoalType
-  styleId: ID
-  poolType: PoolType
+  styleId: Int
+  poolType: Int
   targetTime: Float
   title: String
   description: String

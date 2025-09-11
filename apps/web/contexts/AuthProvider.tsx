@@ -175,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const { error } = await supabase
         .from('users')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(updates)
         .eq('id', authState.user.id)
       
       if (error) {

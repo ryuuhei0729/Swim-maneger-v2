@@ -66,7 +66,6 @@ export default function DashboardPage() {
           input: {
             date: formData.practiceDate,
             place: formData.location,
-            tagIds: formData.tags || [], 
             style: formData.sets[0]?.style || 'フリー',
             repCount: formData.sets.reduce((sum: number, set: any) => sum + set.reps, 0),
             setCount: formData.sets.length,
@@ -78,6 +77,7 @@ export default function DashboardPage() {
       })
     } catch (error) {
       console.error('練習記録の保存に失敗しました:', error)
+      alert('練習記録の保存に失敗しました。エラー内容をコンソールで確認してください。')
     } finally {
       setIsLoading(false)
     }
