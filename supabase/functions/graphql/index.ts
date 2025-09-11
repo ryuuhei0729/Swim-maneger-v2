@@ -4,13 +4,53 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // @ts-ignore
 import { buildSchema, graphql } from 'https://esm.sh/graphql@16.6.0'
-import { resolvers } from './resolvers.ts'
+// resolversを安全に読み込み
+let resolvers: any
+try {
+  const { resolvers: importedResolvers } = await import('./resolvers.ts')
+  resolvers = importedResolvers
+} catch (error) {
+  console.error('Failed to import resolvers:', error)
+  // フォールバック: 基本的なリゾルバー
+  resolvers = {
+    Query: {
+      me: () => 'Hello from GraphQL!'
+    },
+    Mutation: {
+      test: () => 'Test mutation works!'
+    }
+  }
+}
 
 // Deno型定義
 declare const Deno: any
 
 // メインスキーマを読み込み
-const schemaText = await Deno.readTextFile('../../packages/graphql-schema/src/schema.graphql')
+let schemaText: string
+try {
+  // TypeScriptファイルからスキーマをインポート
+  const { typeDefs } = await import('./schema.ts')
+  schemaText = typeDefs
+  console.log('✅ Schema loaded successfully from TypeScript file')
+} catch (error) {
+  console.error('Failed to import schema from TypeScript file:', error)
+  // フォールバック: 基本的なスキーマを直接定義
+  schemaText = `
+    scalar DateTime
+    scalar JSON
+    scalar Date
+    
+    type Query {
+      me: String
+    }
+    
+    type Mutation {
+      test: String
+    }
+  `
+  console.log('⚠️ Using fallback schema')
+}
+
 const schema = buildSchema(schemaText)
 
 const corsHeaders = {
@@ -53,13 +93,14 @@ async function getUser(authHeader: string | null) {
 }
 
 serve(async (req) => {
-  // CORS対応
-  if (req.method === 'OPTIONS') {
-    return new Response('OK', { 
-      status: 200,
-      headers: corsHeaders 
-    })
-  }
+  try {
+    // CORS対応
+    if (req.method === 'OPTIONS') {
+      return new Response('OK', { 
+        status: 200,
+        headers: corsHeaders 
+      })
+    }
 
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { 
@@ -120,6 +161,19 @@ serve(async (req) => {
             code: 'INTERNAL_ERROR'
           }
         }]
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    )
+  }
+  } catch (error) {
+    console.error('Server error:', error)
+    return new Response(
+      JSON.stringify({
+        error: 'Server initialization error',
+        message: error.message
       }),
       {
         status: 500,

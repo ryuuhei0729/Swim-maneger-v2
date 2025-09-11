@@ -1,3 +1,5 @@
+// GraphQLスキーマ定義（TypeScript）
+export const typeDefs = `
 # 水泳選手マネジメントシステム GraphQLスキーマ（個人利用機能対応）
 
 scalar DateTime
@@ -571,8 +573,6 @@ input UpdateAttendanceInput {
   notes: String
 }
 
-
-
 input CreateAnnouncementInput {
   title: String!
   content: String!
@@ -588,3 +588,4 @@ input UpdateAnnouncementInput {
   published: Boolean
   publishedAt: DateTime
 }
+`;
