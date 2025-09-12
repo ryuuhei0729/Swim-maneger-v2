@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { XMarkIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
+import { formatTime } from '@/utils/formatters'
 
 interface CalendarEntry {
   id: string
@@ -62,9 +63,6 @@ export default function DayDetailModal({
     }
   }
 
-  const formatTime = (time: number) => {
-    return (time / 100).toFixed(2) + 's'
-  }
 
   const getPoolTypeText = (poolType: number) => {
     return poolType === 1 ? '長水路(50m)' : '短水路(25m)'
@@ -212,7 +210,7 @@ export default function DayDetailModal({
                               ⏱️ {formatTime(entry.time_result)}
                             </p>
                           )}
-                          {entry.pool_type && (
+                          {entry.pool_type != null && (
                             <p className="text-sm text-gray-600 mb-1">
                               🏊‍♀️ {getPoolTypeText(entry.pool_type)}
                             </p>

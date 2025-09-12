@@ -8,7 +8,7 @@ export const GET_ME = gql`
       name
       gender
       birthday
-      profile_image_url
+      avatarUrl
       bio
     }
   }
@@ -21,7 +21,7 @@ export const GET_USERS = gql`
       name
       gender
       birthday
-      profile_image_url
+      avatarUrl
       bio
     }
   }
@@ -34,7 +34,7 @@ export const GET_USER = gql`
       name
       gender
       birthday
-      profile_image_url
+      avatarUrl
       bio
     }
   }

@@ -107,9 +107,9 @@ export const UPDATE_PRACTICE_TIME = gql`
   mutation UpdatePracticeTime($id: ID!, $input: PracticeTimeInput!) {
     updatePracticeTime(id: $id, input: $input) {
       id
-      practice_log_id
-      rep_number
-      set_number
+      practiceLogId
+      repNumber
+      setNumber
       time
     }
   }

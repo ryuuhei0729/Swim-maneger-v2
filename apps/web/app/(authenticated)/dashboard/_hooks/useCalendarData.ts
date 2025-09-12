@@ -215,15 +215,25 @@ export function useCalendarData(currentDate: Date, userId?: string) {
             const styleInfo = record.style ? `${record.style.nameJp}` : '記録'
             const title = `${styleInfo}: ${timeString}`
             
-            entries.push({
+            const entry: any = {
               id: record.id,
               entry_type: 'record',
               entry_date: record.competition.date,
               title,
-              location: record.competition.title || '大会',
-              time_result: Math.round(record.time * 100), // 秒を百分の一秒に変換
-              pool_type: 1 // デフォルト値
-            })
+              location: record.competition.title || '大会'
+            }
+
+            // record.timeが有限数値の場合のみtime_resultを設定
+            if (Number.isFinite(Number(record.time))) {
+              entry.time_result = Math.round(Number(record.time) * 100) // 秒を百分の一秒に変換
+            }
+
+            // pool_typeは不明な場合は設定しない
+            if (record.competition?.poolType !== undefined) {
+              entry.pool_type = record.competition.poolType
+            }
+
+            entries.push(entry)
           }
         }
       })

@@ -31,11 +31,11 @@ export const GET_RECORD = gql`
   query GetRecord($id: ID!) {
     record(id: $id) {
       id
-      user_id
-      competition_id
-      style_id
+      userId: user_id
+      competitionId: competition_id
+      styleId: style_id
       time
-      video_url
+      videoUrl: video_url
       note
       user {
         id
@@ -53,10 +53,11 @@ export const GET_RECORD = gql`
         stroke
         distance
       }
-      split_times {
+      splitTimes {
         id
+        recordId
         distance
-        split_time
+        splitTime
       }
     }
   }
@@ -66,11 +67,11 @@ export const GET_RECORDS_BY_USER = gql`
   query GetRecordsByUser($userId: ID!) {
     recordsByUser(userId: $userId) {
       id
-      user_id
-      competition_id
-      style_id
+      userId: user_id
+      competitionId: competition_id
+      styleId: style_id
       time
-      video_url
+      videoUrl: video_url
       note
       competition {
         id

@@ -392,6 +392,12 @@ export const resolvers = {
           }[record.styles.style] || 'FREESTYLE',
           distance: record.styles.distance
         } : null,
+        splitTimes: record.split_times?.map((split: any) => ({
+          id: split.id,
+          recordId: split.record_id,
+          distance: split.distance,
+          splitTime: split.split_time
+        })) || []
       })) || []
       
       return transformedData
@@ -413,7 +419,41 @@ export const resolvers = {
         .single()
       
       if (error) throw new Error(error.message)
-      return data
+      
+      // snake_caseからcamelCaseにマッピング
+      return {
+        id: data.id,
+        userId: data.user_id,
+        competitionId: data.competition_id,
+        styleId: data.style_id,
+        time: data.time,
+        videoUrl: data.video_url,
+        note: data.note,
+        competition: data.competitions ? {
+          id: data.competitions.id,
+          title: data.competitions.title,
+          date: data.competitions.date
+        } : null,
+        style: data.styles ? {
+          id: data.styles.id,
+          nameJp: data.styles.name_jp,
+          name: data.styles.name,
+          stroke: {
+            'fr': 'FREESTYLE',
+            'br': 'BREASTSTROKE', 
+            'ba': 'BACKSTROKE',
+            'fly': 'BUTTERFLY',
+            'im': 'INDIVIDUAL_MEDLEY'
+          }[data.styles.style] || 'FREESTYLE',
+          distance: data.styles.distance
+        } : null,
+        splitTimes: data.split_times?.map((split: any) => ({
+          id: split.id,
+          recordId: split.record_id,
+          distance: split.distance,
+          splitTime: split.split_time
+        })) || []
+      }
     },
 
     recordsByDate: async (_: any, { date }: { date: string }, context: any) => {
@@ -431,7 +471,43 @@ export const resolvers = {
         .order('id')
       
       if (error) throw new Error(error.message)
-      return data || []
+      
+      // GraphQLスキーマに合わせてフィールド名を変換
+      const transformedData = data?.map(record => ({
+        id: record.id,
+        userId: record.user_id,
+        competitionId: record.competition_id,
+        styleId: record.style_id,
+        time: record.time,
+        videoUrl: record.video_url,
+        note: record.note,
+        competition: record.competitions ? {
+          id: record.competitions.id,
+          title: record.competitions.title,
+          date: record.competitions.date
+        } : null,
+        style: record.styles ? {
+          id: record.styles.id,
+          nameJp: record.styles.name_jp,
+          name: record.styles.name,
+          stroke: {
+            'fr': 'FREESTYLE',
+            'br': 'BREASTSTROKE', 
+            'ba': 'BACKSTROKE',
+            'fly': 'BUTTERFLY',
+            'im': 'INDIVIDUAL_MEDLEY'
+          }[record.styles.style] || 'FREESTYLE',
+          distance: record.styles.distance
+        } : null,
+        splitTimes: record.split_times?.map((split: any) => ({
+          id: split.id,
+          recordId: split.record_id,
+          distance: split.distance,
+          splitTime: split.split_time
+        })) || []
+      })) || []
+      
+      return transformedData
     },
 
     // ベストタイム関連
@@ -990,7 +1066,14 @@ export const resolvers = {
         .single()
       
       if (error) throw new Error(error.message)
-      return data
+      
+      // snake_caseからcamelCaseにマッピング
+      return {
+        id: data.id,
+        recordId: data.record_id,
+        distance: data.distance,
+        splitTime: data.split_time
+      }
     },
 
     updateSplitTime: async (_: any, { id, input }: { id: string, input: any }) => {
@@ -1002,7 +1085,14 @@ export const resolvers = {
         .single()
       
       if (error) throw new Error(error.message)
-      return data
+      
+      // snake_caseからcamelCaseにマッピング
+      return {
+        id: data.id,
+        recordId: data.record_id,
+        distance: data.distance,
+        splitTime: data.split_time
+      }
     },
 
     deleteSplitTime: async (_: any, { id }: { id: string }) => {

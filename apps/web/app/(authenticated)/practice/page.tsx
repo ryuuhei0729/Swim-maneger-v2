@@ -26,7 +26,17 @@ export default function PracticePage() {
     endDate: format(endOfMonth, 'yyyy-MM-dd')
   })
 
-  const practiceLogs = practiceLogsData?.myPracticeLogs || []
+  // TODO: GraphQLクエリを拡張して ($startDate: String, $endDate: String) 変数を受け取るようにする
+  // 現在はサーバー側でフィルタリングされないため、クライアント側でフィルタリングを実行
+  const allPracticeLogs = (practiceLogsData as any)?.myPracticeLogs || []
+  const startDateStr = format(startOfMonth, 'yyyy-MM-dd')
+  const endDateStr = format(endOfMonth, 'yyyy-MM-dd')
+  
+  const practiceLogs = allPracticeLogs.filter((log: any) => {
+    if (!log.date) return false
+    const logDateStr = format(new Date(log.date), 'yyyy-MM-dd')
+    return logDateStr >= startDateStr && logDateStr <= endDateStr
+  })
 
   const handleCreateLog = () => {
     setEditingLog(null)
@@ -196,11 +206,11 @@ export default function PracticePage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
                           <p className="text-sm font-medium text-gray-900">
-                            {format(new Date(log.practiceDate), 'yyyy年MM月dd日', { locale: ja })}
+                            {log.date ? format(new Date(log.date), 'yyyy年MM月dd日', { locale: ja }) : '日付未設定'}
                           </p>
-                          {log.location && (
+                          {log.place && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              {log.location}
+                              {log.place}
                             </span>
                           )}
                         </div>

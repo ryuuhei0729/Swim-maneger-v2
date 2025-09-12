@@ -66,8 +66,8 @@ export default function PracticeLogForm({
   useEffect(() => {
     if (editData) {
       setFormData({
-        practiceDate: editData.practiceDate || format(new Date(), 'yyyy-MM-dd'),
-        location: editData.location || '',
+        practiceDate: editData.date || format(new Date(), 'yyyy-MM-dd'),
+        location: editData.place || '',
         style: editData.style || 'フリー',
         repCount: editData.repCount || 1,
         setCount: editData.setCount || 1,
@@ -246,9 +246,13 @@ export default function PracticeLogForm({
                   </label>
                   <Input
                     type="number"
-                    min="1"
+                    min="0.1"
+                    step="0.1"
                     value={formData.circle}
-                    onChange={(e) => setFormData(prev => ({ ...prev, circle: parseInt(e.target.value) || 90 }))}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      setFormData(prev => ({ ...prev, circle: isNaN(v) ? 90 : v }));
+                    }}
                     required
                   />
                 </div>

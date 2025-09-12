@@ -105,8 +105,8 @@ export default function RecordForm({
         memo: editData.memo || '',
         videoUrl: editData.videoUrl
       })
-    } else if (styles.length > 0 && !formData.styleId) {
-      setFormData(prev => ({ ...prev, styleId: styles[0].id }))
+    } else if (styles.length > 0) {
+      setFormData(prev => prev.styleId ? prev : { ...prev, styleId: styles[0].id })
     }
   }, [editData, styles])
 
@@ -163,7 +163,7 @@ export default function RecordForm({
         competitionId
       }
 
-      let recordId: string
+      let recordId: string | undefined
 
       if (editData) {
         const { data: recordResult } = await updateRecord({
@@ -180,19 +180,25 @@ export default function RecordForm({
         recordId = recordResult?.createRecord?.id
       }
 
-      // スプリットタイムを作成
+      if (!recordId) {
+        throw new Error('記録の保存に失敗しました')
+      }
+
+      // スプリットタイムを作成（並列実行）
       if (recordId && formData.splitTimes.length > 0) {
-        for (const splitTime of formData.splitTimes) {
-          await createSplitTime({
-            variables: {
-              input: {
-                recordId,
-                distance: splitTime.distance,
-                splitTime: splitTime.splitTime
-              }
-            }
-          })
-        }
+        await Promise.all(
+          formData.splitTimes.map((st) =>
+            createSplitTime({
+              variables: {
+                input: {
+                  recordId,
+                  distance: st.distance,
+                  splitTime: st.splitTime,
+                },
+              },
+            })
+          )
+        )
       }
 
       // フォームリセット

@@ -1,7 +1,9 @@
 {
     "name": "swim_manager_mobile",
     "short_name": "swim_manager_mobile",
+    "id": ".",
     "start_url": ".",
+    "scope": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",

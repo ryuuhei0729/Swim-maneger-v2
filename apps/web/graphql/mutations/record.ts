@@ -65,9 +65,9 @@ export const CREATE_SPLIT_TIME = gql`
   mutation CreateSplitTime($input: SplitTimeInput!) {
     createSplitTime(input: $input) {
       id
-      record_id
+      recordId
       distance
-      split_time
+      splitTime
     }
   }
 `
@@ -76,9 +76,9 @@ export const UPDATE_SPLIT_TIME = gql`
   mutation UpdateSplitTime($id: ID!, $input: SplitTimeInput!) {
     updateSplitTime(id: $id, input: $input) {
       id
-      record_id
+      recordId
       distance
-      split_time
+      splitTime
     }
   }
 `

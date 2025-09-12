@@ -15,6 +15,7 @@
     "build:web": "npm run build --workspace=apps/web",
     "build:mobile:android": "cd apps/mobile && flutter build apk",
     "build:mobile:ios": "cd apps/mobile && flutter build ios",
+    "build:mobile:web": "cd apps/mobile && flutter build web --base-href $FLUTTER_BASE_HREF",
     "start": "npm run start --workspace=apps/web",
     "start:web": "npm run start --workspace=apps/web",
     "lint": "npm run lint --workspaces --if-present",

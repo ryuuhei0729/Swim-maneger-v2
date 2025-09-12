@@ -7,7 +7,7 @@ import PracticeLogForm from '@/components/forms/PracticeLogForm'
 import RecordForm from '@/components/forms/RecordForm'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { gql } from '@apollo/client'
-import { CREATE_PRACTICE_LOG, CREATE_RECORD, DELETE_PRACTICE_LOG, DELETE_RECORD, UPDATE_PRACTICE_LOG, UPDATE_RECORD, CREATE_PRACTICE_TIME, CREATE_COMPETITION } from '@/graphql/mutations'
+import { CREATE_PRACTICE_LOG, CREATE_RECORD, DELETE_PRACTICE_LOG, DELETE_RECORD, UPDATE_PRACTICE_LOG, UPDATE_RECORD, CREATE_PRACTICE_TIME, UPDATE_PRACTICE_TIME, DELETE_PRACTICE_TIME, CREATE_COMPETITION } from '@/graphql/mutations'
 import { GET_CALENDAR_DATA, GET_STYLES, GET_PRACTICE_LOG, GET_RECORD, GET_PRACTICE_LOGS, GET_RECORDS } from '@/graphql/queries'
 
 export default function DashboardPage() {
@@ -74,43 +74,13 @@ export default function DashboardPage() {
         updatedAt: new Date().toISOString(),
       }
     }),
+    refetchQueries: [{
+      query: GET_CALENDAR_DATA,
+      variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
+    }],
+    awaitRefetchQueries: true,
     update: (cache, { data }) => {
       if (data?.createPracticeLog) {
-        // GET_CALENDAR_DATAクエリのキャッシュを更新
-        try {
-          const existingData = cache.readQuery({
-            query: GET_CALENDAR_DATA,
-            variables: { 
-              year: new Date().getFullYear(), 
-              month: new Date().getMonth() + 1 
-            }
-          }) as any
-          
-          if (existingData) {
-            cache.writeQuery({
-              query: GET_CALENDAR_DATA,
-              variables: { 
-                year: new Date().getFullYear(), 
-                month: new Date().getMonth() + 1 
-              },
-              data: {
-                ...existingData,
-                calendarData: {
-                  ...existingData.calendarData,
-                  entries: [...(existingData.calendarData?.entries || []), {
-                    id: data.createPracticeLog.id,
-                    entry_type: 'practice',
-                    entry_date: data.createPracticeLog.date,
-                    title: `練習: ${data.createPracticeLog.style}`,
-                    location: data.createPracticeLog.place
-                  }]
-                }
-              }
-            })
-          }
-        } catch (error) {
-          console.log('Cache update failed, will refetch:', error)
-        }
 
         // GET_PRACTICE_LOGSクエリのキャッシュも更新
         try {
@@ -164,44 +134,15 @@ export default function DashboardPage() {
     optimisticResponse: (variables) => ({
       deletePracticeLog: true
     }),
+    refetchQueries: [{
+      query: GET_CALENDAR_DATA,
+      variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
+    }],
+    awaitRefetchQueries: true,
     update: (cache, { data }, { variables }) => {
       if (data?.deletePracticeLog) {
         // キャッシュから削除されたエントリーを除去
         cache.evict({ id: `PracticeLog:${variables?.id}` })
-        
-        // GET_CALENDAR_DATAクエリのキャッシュからも削除
-        try {
-          const existingData = cache.readQuery({
-            query: GET_CALENDAR_DATA,
-            variables: { 
-              year: new Date().getFullYear(), 
-              month: new Date().getMonth() + 1 
-            }
-          }) as any
-          
-          if (existingData && existingData.calendarData?.entries) {
-            const filteredEntries = existingData.calendarData.entries.filter(
-              (entry: any) => entry.id !== variables?.id
-            )
-            
-            cache.writeQuery({
-              query: GET_CALENDAR_DATA,
-              variables: { 
-                year: new Date().getFullYear(), 
-                month: new Date().getMonth() + 1 
-              },
-              data: {
-                ...existingData,
-                calendarData: {
-                  ...existingData.calendarData,
-                  entries: filteredEntries
-                }
-              }
-            })
-          }
-        } catch (error) {
-          console.log('Calendar cache update failed:', error)
-        }
 
         // GET_PRACTICE_LOGSクエリのキャッシュからも削除
         try {
@@ -235,44 +176,15 @@ export default function DashboardPage() {
     optimisticResponse: (variables) => ({
       deleteRecord: true
     }),
+    refetchQueries: [{
+      query: GET_CALENDAR_DATA,
+      variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
+    }],
+    awaitRefetchQueries: true,
     update: (cache, { data }, { variables }) => {
       if (data?.deleteRecord) {
         // キャッシュから削除されたエントリーを除去
         cache.evict({ id: `Record:${variables?.id}` })
-        
-        // GET_CALENDAR_DATAクエリのキャッシュからも削除
-        try {
-          const existingData = cache.readQuery({
-            query: GET_CALENDAR_DATA,
-            variables: { 
-              year: new Date().getFullYear(), 
-              month: new Date().getMonth() + 1 
-            }
-          }) as any
-          
-          if (existingData && existingData.calendarData?.entries) {
-            const filteredEntries = existingData.calendarData.entries.filter(
-              (entry: any) => entry.id !== variables?.id
-            )
-            
-            cache.writeQuery({
-              query: GET_CALENDAR_DATA,
-              variables: { 
-                year: new Date().getFullYear(), 
-                month: new Date().getMonth() + 1 
-              },
-              data: {
-                ...existingData,
-                calendarData: {
-                  ...existingData.calendarData,
-                  entries: filteredEntries
-                }
-              }
-            })
-          }
-        } catch (error) {
-          console.log('Calendar cache update failed:', error)
-        }
 
         // GET_RECORDSクエリのキャッシュからも削除
         try {
@@ -321,49 +233,13 @@ export default function DashboardPage() {
         updatedAt: new Date().toISOString(),
       }
     }),
+    refetchQueries: [{
+      query: GET_CALENDAR_DATA,
+      variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
+    }],
+    awaitRefetchQueries: true,
     update: (cache, { data }) => {
       if (data?.updatePracticeLog) {
-        // GET_CALENDAR_DATAクエリのキャッシュを更新
-        try {
-          const existingData = cache.readQuery({
-            query: GET_CALENDAR_DATA,
-            variables: { 
-              year: new Date().getFullYear(), 
-              month: new Date().getMonth() + 1 
-            }
-          }) as any
-          
-          if (existingData && existingData.calendarData?.entries) {
-            const updatedEntries = existingData.calendarData.entries.map((entry: any) => {
-              if (entry.id === data.updatePracticeLog.id) {
-                return {
-                  ...entry,
-                  entry_date: data.updatePracticeLog.date,
-                  title: `練習: ${data.updatePracticeLog.style}`,
-                  location: data.updatePracticeLog.place
-                }
-              }
-              return entry
-            })
-            
-            cache.writeQuery({
-              query: GET_CALENDAR_DATA,
-              variables: { 
-                year: new Date().getFullYear(), 
-                month: new Date().getMonth() + 1 
-              },
-              data: {
-                ...existingData,
-                calendarData: {
-                  ...existingData.calendarData,
-                  entries: updatedEntries
-                }
-              }
-            })
-          }
-        } catch (error) {
-          console.log('Calendar cache update failed:', error)
-        }
 
         // GET_PRACTICE_LOGSクエリのキャッシュも更新
         try {
@@ -421,6 +297,8 @@ export default function DashboardPage() {
   })
 
   const [createPracticeTime] = useMutation(CREATE_PRACTICE_TIME)
+  const [updatePracticeTime] = useMutation(UPDATE_PRACTICE_TIME)
+  const [deletePracticeTime] = useMutation(DELETE_PRACTICE_TIME)
   const [createCompetition] = useMutation(CREATE_COMPETITION)
 
   const [updateRecord] = useMutation(UPDATE_RECORD, {
@@ -438,52 +316,13 @@ export default function DashboardPage() {
         competition: null
       }
     }),
+    refetchQueries: [{
+      query: GET_CALENDAR_DATA,
+      variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
+    }],
+    awaitRefetchQueries: true,
     update: (cache, { data }) => {
       if (data?.updateRecord) {
-        // GET_CALENDAR_DATAクエリのキャッシュを更新
-        try {
-          const existingData = cache.readQuery({
-            query: GET_CALENDAR_DATA,
-            variables: { 
-              year: new Date().getFullYear(), 
-              month: new Date().getMonth() + 1 
-            }
-          }) as any
-          
-          if (existingData && existingData.calendarData?.entries) {
-            const updatedEntries = existingData.calendarData.entries.map((entry: any) => {
-              if (entry.id === data.updateRecord.id) {
-                const style = data.updateRecord.style
-                const timeString = data.updateRecord.time ? `${data.updateRecord.time.toFixed(2)}s` : ''
-                const styleInfo = style ? `${style.nameJp}` : '記録'
-                
-                return {
-                  ...entry,
-                  title: `${styleInfo}: ${timeString}`,
-                  location: entry.location || '大会'
-                }
-              }
-              return entry
-            })
-            
-            cache.writeQuery({
-              query: GET_CALENDAR_DATA,
-              variables: { 
-                year: new Date().getFullYear(), 
-                month: new Date().getMonth() + 1 
-              },
-              data: {
-                ...existingData,
-                calendarData: {
-                  ...existingData.calendarData,
-                  entries: updatedEntries
-                }
-              }
-            })
-          }
-        } catch (error) {
-          console.log('Calendar cache update failed:', error)
-        }
 
         // GET_RECORDSクエリのキャッシュも更新
         try {
@@ -652,8 +491,22 @@ export default function DashboardPage() {
         practiceLogId = (result.data as any)?.createPracticeLog?.id
       }
 
-      // タイムデータがある場合は、Practice_timeレコードを作成
+      // タイムデータの管理
       if (practiceLogId && formData.sets) {
+        // 編集時は既存のタイムデータを削除
+        if (editingEntry && editingEntry.times && editingEntry.times.length > 0) {
+          for (const existingTime of editingEntry.times) {
+            try {
+              await deletePracticeTime({
+                variables: { id: existingTime.id }
+              })
+            } catch (deleteError) {
+              console.error('既存タイム記録の削除でエラーが発生しました:', deleteError)
+            }
+          }
+        }
+
+        // 新しいタイムデータを作成
         for (const set of formData.sets) {
           if (set.times && set.times.length > 0) {
             for (const timeRecord of set.times) {

@@ -76,19 +76,20 @@ export default function PracticeTimeForm({
     setIsLoading(true)
 
     try {
-      // 既存のタイムを削除
-      for (const time of existingTimes) {
-        if (time.id) {
-          await deletePracticeTime({
-            variables: { id: time.id }
+      // 既存のタイムを並列削除
+      const deletePromises = existingTimes
+        .filter(time => time.id)
+        .map(time => 
+          deletePracticeTime({
+            variables: { id: time.id! }
           })
-        }
-      }
+        )
 
-      // 新しいタイムを作成
-      for (const time of times) {
-        if (time.time > 0) {
-          await createPracticeTime({
+      // 新しいタイムを並列作成
+      const createPromises = times
+        .filter(time => time.time > 0)
+        .map(time =>
+          createPracticeTime({
             variables: {
               input: {
                 practiceLogId,
@@ -98,8 +99,10 @@ export default function PracticeTimeForm({
               }
             }
           })
-        }
-      }
+        )
+
+      // 削除と作成を並列実行
+      await Promise.all([...deletePromises, ...createPromises])
 
       if (onTimesUpdated) {
         onTimesUpdated(times.filter(t => t.time > 0))

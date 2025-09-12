@@ -61,7 +61,7 @@ export const GET_PRACTICE_LOG = gql`
 `
 
 export const GET_PRACTICE_LOGS_BY_USER = gql`
-  query GetPracticeLogsByUser($userId: ID!) {
+  query GetPracticeLogsByUser {
     myPracticeLogs {
       id
       userId

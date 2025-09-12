@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui'
 import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 
@@ -38,15 +38,17 @@ export default function TimeInputModal({
       : `${remainingSeconds.toFixed(2)}`
   }
 
-  const [times, setTimes] = useState<TimeEntry[]>(() => {
-    // 全てのセット・レップの組み合わせを生成
+  const [times, setTimes] = useState<TimeEntry[]>([])
+
+  // 全てのセット・レップの組み合わせを生成する関数
+  const generateTimeCombinations = (): TimeEntry[] => {
     const allCombinations: TimeEntry[] = []
     for (let set = 1; set <= setCount; set++) {
       for (let rep = 1; rep <= repCount; rep++) {
         const uniqueId = `${set}-${rep}-${Date.now()}-${Math.random()}`
         
         // 既存のタイムデータから該当するものを検索
-        const existingTime = initialTimes.find(t => 
+        const existingTime = initialTimes?.find(t => 
           t.setNumber === set && t.repNumber === rep
         )
         
@@ -60,7 +62,14 @@ export default function TimeInputModal({
       }
     }
     return allCombinations
-  })
+  }
+
+  // 依存する値が変更されたときに組み合わせを再生成
+  useEffect(() => {
+    if (isOpen) {
+      setTimes(generateTimeCombinations())
+    }
+  }, [setCount, repCount, initialTimes, isOpen])
 
   if (!isOpen) return null
 

@@ -38,6 +38,7 @@ export async function middleware(request: NextRequest) {
             name,
             value: '',
             ...options,
+            expires: new Date(0),
           })
           response = NextResponse.next({
             request: {
@@ -48,6 +49,7 @@ export async function middleware(request: NextRequest) {
             name,
             value: '',
             ...options,
+            expires: new Date(0),
           })
         },
       },

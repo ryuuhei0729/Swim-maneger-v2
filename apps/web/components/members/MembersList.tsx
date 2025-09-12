@@ -3,6 +3,7 @@
 import React from 'react'
 import { useUsers } from '@/hooks/useGraphQL'
 import { formatDate } from '@/utils'
+import { parseISO, format } from 'date-fns'
 import { 
   UserIcon,
   EnvelopeIcon,
@@ -66,6 +67,20 @@ export default function MembersList() {
     return { label: 'メンバー', color: 'bg-gray-100 text-gray-800' }
   }
 
+  // 性別を正規化して表示ラベルを取得する関数
+  const getGenderLabel = (gender: any): string => {
+    if (typeof gender === 'number') {
+      // 数値の場合: 0 = 男性, 1 = 女性
+      return gender === 0 ? '男性' : gender === 1 ? '女性' : 'その他'
+    } else if (typeof gender === 'string') {
+      // 文字列の場合: male = 男性, female = 女性
+      const normalizedGender = gender.toLowerCase()
+      return normalizedGender === 'male' ? '男性' : normalizedGender === 'female' ? '女性' : 'その他'
+    }
+    // 予期しない値の場合はフォールバック
+    return 'その他'
+  }
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center justify-between mb-6">
@@ -119,12 +134,12 @@ export default function MembersList() {
                   <div className="flex items-center space-x-4 mt-1">
                     <div className="flex items-center text-sm text-gray-500">
                       <span className="text-sm text-gray-500">
-                        {user.gender === 'male' ? '男性' : user.gender === 'female' ? '女性' : 'その他'}
+                        {getGenderLabel(user.gender)}
                       </span>
                     </div>
                     {user.birthday && (
                       <span className="text-sm text-gray-500">
-                        誕生日: {new Date(user.birthday).toLocaleDateString('ja-JP')}
+                        誕生日: {format(parseISO(user.birthday), 'yyyy年M月d日')}
                       </span>
                     )}
                   </div>
