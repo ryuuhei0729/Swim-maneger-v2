@@ -173,7 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: new Error('User not authenticated') }
       }
       
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('users')
         .update(updates)
         .eq('id', authState.user.id)

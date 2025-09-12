@@ -705,7 +705,7 @@ export default function DashboardPage() {
           variables: { input: competitionInput }
         })
         
-        competitionId = competitionResult.data?.createCompetition?.id
+        competitionId = (competitionResult.data as any)?.createCompetition?.id
       }
 
       const recordInput = {
