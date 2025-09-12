@@ -121,7 +121,7 @@ export default function DayDetailModal({
               <div className="mb-6">
                 <h4 className="text-md font-semibold text-green-700 mb-3 flex items-center">
                   <span className="mr-2">💪</span>
-                  練習記録 ({practiceEntries.length}件)
+                  練習記録
                 </h4>
                 <div className="space-y-3">
                   {practiceEntries.map((entry) => (
@@ -184,7 +184,7 @@ export default function DayDetailModal({
               <div className="mb-6">
                 <h4 className="text-md font-semibold text-blue-700 mb-3 flex items-center">
                   <span className="mr-2">🏊‍♂️</span>
-                  大会記録 ({recordEntries.length}件)
+                  大会記録
                 </h4>
                 <div className="space-y-3">
                   {recordEntries.map((entry) => (

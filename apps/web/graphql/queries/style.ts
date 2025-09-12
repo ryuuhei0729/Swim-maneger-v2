@@ -5,9 +5,9 @@ export const GET_STYLES = gql`
   query GetStyles {
     styles {
       id
-      name_jp
+      nameJp
       name
-      style
+      stroke
       distance
     }
   }
@@ -17,9 +17,9 @@ export const GET_STYLE = gql`
   query GetStyle($id: ID!) {
     style(id: $id) {
       id
-      name_jp
+      nameJp
       name
-      style
+      stroke
       distance
     }
   }

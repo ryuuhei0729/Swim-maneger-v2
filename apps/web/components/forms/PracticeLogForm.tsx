@@ -69,6 +69,16 @@ export default function PracticeLogForm({
   const [showTimeModal, setShowTimeModal] = useState(false)
   const [selectedSetForTime, setSelectedSetForTime] = useState<PracticeSet | null>(null)
 
+  // タイム表示のフォーマット関数
+  const formatTimeDisplay = (seconds: number): string => {
+    if (seconds === 0) return '0.00'
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return minutes > 0 
+      ? `${minutes}:${remainingSeconds.toFixed(2).padStart(5, '0')}`
+      : `${remainingSeconds.toFixed(2)}`
+  }
+
   // 編集データが渡された時にフォームデータを初期化
   useEffect(() => {
     if (editData && isOpen) {
@@ -76,19 +86,26 @@ export default function PracticeLogForm({
       console.log('PracticeLogForm: Times data:', editData.times)
       
       // 編集データをフォーム形式に変換
-      // setCountが複数の場合でも、現在のフォームは1つのセットとして扱う
-      const totalReps = editData.repCount || 1
+      // 実際のセット数に基づいて複数のセットを生成
+      const actualSetCount = editData.setCount || 1
+      const repsPerSet = editData.repCount || 1
       const totalDistance = editData.distance || 100
-      const averageDistance = editData.setCount ? Math.round(totalDistance / editData.setCount) : totalDistance
+      const distancePerSet = actualSetCount > 1 ? Math.round(totalDistance / actualSetCount) : totalDistance
       
-      const setsData = [{
-        id: '1',
-        reps: totalReps,
-        distance: averageDistance,
-        circleTime: editData.circle || 90,
-        style: editData.style || 'フリー',
-        times: editData.times || []
-      }]
+      const setsData = []
+      for (let setIndex = 1; setIndex <= actualSetCount; setIndex++) {
+        // 各セットのタイムデータを抽出
+        const setTimes = (editData.times || []).filter((time: any) => time.setNumber === setIndex)
+        
+        setsData.push({
+          id: setIndex.toString(),
+          reps: repsPerSet,
+          distance: distancePerSet,
+          circleTime: editData.circle || 90,
+          style: editData.style || 'フリー',
+          times: setTimes
+        })
+      }
 
       console.log('PracticeLogForm: Generated sets data:', setsData)
 
@@ -118,18 +135,8 @@ export default function PracticeLogForm({
       })
     }
     
-    // デバッグ: どの条件にも該当しない場合
-    if (isOpen && !editData) {
-      console.log('PracticeLogForm: No editData, isOpen:', isOpen)
-    }
   }, [editData, isOpen, initialDate])
 
-  // デバッグ: 現在のフォームデータをログ出力
-  useEffect(() => {
-    if (isOpen) {
-      console.log('PracticeLogForm: Current form data:', formData)
-    }
-  }, [formData, isOpen])
 
   if (!isOpen) return null
 
@@ -193,14 +200,27 @@ export default function PracticeLogForm({
     setShowTimeModal(true)
   }
 
-  const handleTimeSubmit = (times: Array<{ setNumber: number; repNumber: number; time: number }>) => {
+  const handleTimeSubmit = (times: Array<{ id: string; setNumber: number; repNumber: number; time: number }>) => {
     if (!selectedSetForTime) return
+
+    // TimeInputModalから返されたタイムデータを、現在のセット用に変換
+    const setIndex = formData.sets.findIndex(set => set.id === selectedSetForTime.id)
+    const actualSetNumber = setIndex + 1 // 実際のセット番号
+
+    const convertedTimes = times
+      .filter(t => t.time > 0) // タイムが入力されているもののみ
+      .map(t => ({
+        id: `${actualSetNumber}-${t.repNumber}`, // 実際のセット番号を使用
+        setNumber: actualSetNumber,
+        repNumber: t.repNumber,
+        time: t.time
+      }))
 
     setFormData(prev => ({
       ...prev,
       sets: prev.sets.map(set => 
         set.id === selectedSetForTime.id 
-          ? { ...set, times } 
+          ? { ...set, times: convertedTimes } 
           : set
       )
     }))
@@ -402,6 +422,33 @@ export default function PracticeLogForm({
                         </div>
                       </div>
                     </div>
+
+                    {/* タイム表示セクション */}
+                    {set.times && set.times.length > 0 && (
+                      <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <h5 className="text-xs font-medium text-blue-800 mb-2">記録されたタイム</h5>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                          {set.times
+                            .filter((time: any) => time.time > 0)
+                            .sort((a: any, b: any) => {
+                              if (a.setNumber !== b.setNumber) {
+                                return a.setNumber - b.setNumber
+                              }
+                              return a.repNumber - b.repNumber
+                            })
+                            .map((time: any, timeIndex: number) => (
+                              <div key={`${time.setNumber}-${time.repNumber}-${timeIndex}`} className="text-center">
+                                <div className="text-xs text-blue-600 font-medium">
+                                  {time.setNumber}セット{time.repNumber}本目
+                                </div>
+                                <div className="text-sm font-mono text-blue-800 bg-white px-2 py-1 rounded border">
+                                  {formatTimeDisplay(time.time)}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -452,14 +499,21 @@ export default function PracticeLogForm({
             setSelectedSetForTime(null)
           }}
           onSubmit={handleTimeSubmit}
-          setCount={1} // 1セットのみ
+          setCount={1} // 1セットのみ（現在選択されたセット）
           repCount={selectedSetForTime.reps}
-          initialTimes={selectedSetForTime.times?.map(t => ({
-            id: `${t.setNumber}-${t.repNumber}`,
-            setNumber: t.setNumber,
-            repNumber: t.repNumber,
-            time: t.time
-          }))}
+          initialTimes={(() => {
+            const setIndex = formData.sets.findIndex(set => set.id === selectedSetForTime.id)
+            const actualSetNumber = setIndex + 1
+            
+            return selectedSetForTime.times?.filter(t => 
+              t.setNumber === actualSetNumber // 実際のセット番号でフィルタ
+            ).map(t => ({
+              id: `1-${t.repNumber}`, // TimeInputModalでは常にセット1として扱う
+              setNumber: 1,
+              repNumber: t.repNumber,
+              time: t.time
+            })) || []
+          })()}
         />
       )}
     </div>

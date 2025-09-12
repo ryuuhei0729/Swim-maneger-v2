@@ -11,8 +11,6 @@ export const CREATE_RECORD = gql`
       videoUrl
       note
       competitionId
-      createdAt
-      updatedAt
       style {
         id
         nameJp

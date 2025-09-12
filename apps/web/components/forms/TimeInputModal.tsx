@@ -35,31 +35,31 @@ export default function TimeInputModal({
     const remainingSeconds = seconds % 60
     return minutes > 0 
       ? `${minutes}:${remainingSeconds.toFixed(2).padStart(5, '0')}`
-      : `${remainingSeconds}s`
+      : `${remainingSeconds.toFixed(2)}`
   }
 
   const [times, setTimes] = useState<TimeEntry[]>(() => {
-    if (initialTimes.length > 0) {
-      return initialTimes.map(t => ({
-        ...t,
-        displayValue: t.time > 0 ? formatTime(t.time) : ''
-      }))
-    }
-    
-    // 初期データを生成
-    const initialData: TimeEntry[] = []
+    // 全てのセット・レップの組み合わせを生成
+    const allCombinations: TimeEntry[] = []
     for (let set = 1; set <= setCount; set++) {
       for (let rep = 1; rep <= repCount; rep++) {
-        initialData.push({
-          id: `${set}-${rep}`,
+        const uniqueId = `${set}-${rep}-${Date.now()}-${Math.random()}`
+        
+        // 既存のタイムデータから該当するものを検索
+        const existingTime = initialTimes.find(t => 
+          t.setNumber === set && t.repNumber === rep
+        )
+        
+        allCombinations.push({
+          id: uniqueId,
           setNumber: set,
           repNumber: rep,
-          time: 0,
-          displayValue: ''
+          time: existingTime?.time || 0,
+          displayValue: existingTime && existingTime.time > 0 ? formatTime(existingTime.time) : ''
         })
       }
     }
-    return initialData
+    return allCombinations
   })
 
   if (!isOpen) return null

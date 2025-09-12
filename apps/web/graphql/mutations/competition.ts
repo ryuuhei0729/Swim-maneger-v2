@@ -2,24 +2,26 @@ import { gql } from '@apollo/client'
 
 // 大会関連ミューテーション
 export const CREATE_COMPETITION = gql`
-  mutation CreateCompetition($input: CompetitionInput!) {
+  mutation CreateCompetition($input: CreateCompetitionInput!) {
     createCompetition(input: $input) {
       id
       title
       date
       place
+      poolType
       note
     }
   }
 `
 
 export const UPDATE_COMPETITION = gql`
-  mutation UpdateCompetition($id: ID!, $input: CompetitionInput!) {
+  mutation UpdateCompetition($id: ID!, $input: UpdateCompetitionInput!) {
     updateCompetition(id: $id, input: $input) {
       id
       title
       date
       place
+      poolType
       note
     }
   }

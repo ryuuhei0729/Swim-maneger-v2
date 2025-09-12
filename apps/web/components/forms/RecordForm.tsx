@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button, Input } from '@/components/ui'
 import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
@@ -34,7 +34,7 @@ interface RecordFormProps {
   initialDate?: Date
   editData?: any
   isLoading?: boolean
-  styles?: Array<{ id: string; name_jp: string; distance: number }>
+  styles?: Array<{ id: string; nameJp: string; distance: number }>
 }
 
 const POOL_TYPES = [
@@ -74,8 +74,19 @@ export default function RecordForm({
     time: 0,
     isRelaying: false,
     splitTimes: [],
-    note: ''
+    note: '',
+    videoUrl: ''
   })
+
+  // initialDateが変更された時にフォームデータを更新
+  useEffect(() => {
+    if (isOpen && initialDate) {
+      setFormData(prev => ({
+        ...prev,
+        recordDate: format(initialDate, 'yyyy-MM-dd')
+      }))
+    }
+  }, [isOpen, initialDate])
 
   if (!isOpen) return null
 
@@ -94,7 +105,8 @@ export default function RecordForm({
         time: 0,
         isRelaying: false,
         splitTimes: [],
-        note: ''
+        note: '',
+        videoUrl: ''
       })
       onClose()
     } catch (error) {
@@ -266,9 +278,10 @@ export default function RecordForm({
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
+                    <option value="" disabled>種目を選択してください</option>
                     {styles.map(style => (
                       <option key={style.id} value={style.id}>
-                        {style.name_jp}
+                        {style.nameJp}
                       </option>
                     ))}
                   </select>

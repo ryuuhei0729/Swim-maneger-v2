@@ -7,7 +7,7 @@ import PracticeLogForm from '@/components/forms/PracticeLogForm'
 import RecordForm from '@/components/forms/RecordForm'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { gql } from '@apollo/client'
-import { CREATE_PRACTICE_LOG, CREATE_RECORD, DELETE_PRACTICE_LOG, DELETE_RECORD, UPDATE_PRACTICE_LOG, UPDATE_RECORD, CREATE_PRACTICE_TIME } from '@/graphql/mutations'
+import { CREATE_PRACTICE_LOG, CREATE_RECORD, DELETE_PRACTICE_LOG, DELETE_RECORD, UPDATE_PRACTICE_LOG, UPDATE_RECORD, CREATE_PRACTICE_TIME, CREATE_COMPETITION } from '@/graphql/mutations'
 import { GET_CALENDAR_DATA, GET_STYLES, GET_PRACTICE_LOG, GET_RECORD, GET_PRACTICE_LOGS, GET_RECORDS } from '@/graphql/queries'
 
 export default function DashboardPage() {
@@ -139,80 +139,17 @@ export default function DashboardPage() {
   })
 
   const [createRecord] = useMutation(CREATE_RECORD, {
-    optimisticResponse: (variables) => ({
-      createRecord: {
-        __typename: 'Record',
-        id: `temp-${Date.now()}`,
-        userId: profile?.id,
-        competitionId: null,
-        styleId: variables.input.styleId,
-        time: variables.input.time,
-        videoUrl: variables.input.videoUrl,
-        note: variables.input.note,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        style: styles.find(s => s.id === variables.input.styleId) || null,
-        competition: null
-      }
-    }),
-    update: (cache, { data }) => {
-      if (data?.createRecord) {
-        // GET_CALENDAR_DATAクエリのキャッシュを更新
-        try {
-          const existingData = cache.readQuery({
-            query: GET_CALENDAR_DATA,
-            variables: { 
-              year: new Date().getFullYear(), 
-              month: new Date().getMonth() + 1 
-            }
-          }) as any
-          
-          if (existingData) {
-            const style = data.createRecord.style
-            const timeString = data.createRecord.time ? `${data.createRecord.time.toFixed(2)}s` : ''
-            const styleInfo = style ? `${style.nameJp}` : '記録'
-            
-            cache.writeQuery({
-              query: GET_CALENDAR_DATA,
-              variables: { 
-                year: new Date().getFullYear(), 
-                month: new Date().getMonth() + 1 
-              },
-              data: {
-                ...existingData,
-                calendarData: {
-                  ...existingData.calendarData,
-                  entries: [...(existingData.calendarData?.entries || []), {
-                    id: data.createRecord.id,
-                    entry_type: 'record',
-                    entry_date: selectedDate?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
-                    title: `${styleInfo}: ${timeString}`,
-                    location: '大会'
-                  }]
-                }
-              }
-            })
-          }
-        } catch (error) {
-          console.log('Cache update failed, will refetch:', error)
-        }
-
-        // GET_RECORDSクエリのキャッシュも更新
-        try {
-          const recordsData = cache.readQuery({ query: GET_RECORDS }) as any
-          if (recordsData) {
-            cache.writeQuery({
-              query: GET_RECORDS,
-              data: {
-                myRecords: [...(recordsData.myRecords || []), data.createRecord]
-              }
-            })
-          }
-        } catch (error) {
-          console.log('Records cache update failed:', error)
+    refetchQueries: [
+      { query: GET_RECORDS },
+      { 
+        query: GET_CALENDAR_DATA,
+        variables: { 
+          year: new Date().getFullYear(), 
+          month: new Date().getMonth() + 1 
         }
       }
-    },
+    ],
+    awaitRefetchQueries: true,
     onCompleted: () => {
       setShowRecordForm(false)
       setSelectedDate(null)
@@ -484,6 +421,7 @@ export default function DashboardPage() {
   })
 
   const [createPracticeTime] = useMutation(CREATE_PRACTICE_TIME)
+  const [createCompetition] = useMutation(CREATE_COMPETITION)
 
   const [updateRecord] = useMutation(UPDATE_RECORD, {
     optimisticResponse: (variables) => ({
@@ -652,6 +590,10 @@ export default function DashboardPage() {
     }
   }, [showPracticeForm, editingData])
 
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date)
+  }
+
   const handleAddEntry = (date: Date, type: 'practice' | 'record') => {
     setSelectedDate(date)
     setEditingEntry(null)
@@ -747,11 +689,31 @@ export default function DashboardPage() {
   const handleRecordSubmit = async (formData: any) => {
     setIsLoading(true)
     try {
-      const input = {
-        styleId: formData.styleId,
+      let competitionId = null
+
+      // 大会情報が入力されている場合、先に大会を作成
+      if (formData.competitionName && formData.location) {
+        const competitionInput = {
+          title: formData.competitionName,
+          date: formData.recordDate,
+          place: formData.location,
+          poolType: formData.poolType,
+          note: ''
+        }
+
+        const competitionResult = await createCompetition({
+          variables: { input: competitionInput }
+        })
+        
+        competitionId = competitionResult.data?.createCompetition?.id
+      }
+
+      const recordInput = {
+        styleId: parseInt(formData.styleId),
         time: formData.time,
         videoUrl: formData.videoUrl,
-        note: formData.note
+        note: formData.note,
+        competitionId: competitionId
       }
 
       if (editingData && editingEntry?.entry_type === 'record') {
@@ -759,13 +721,13 @@ export default function DashboardPage() {
         await updateRecord({
           variables: {
             id: editingEntry.id,
-            input
+            input: recordInput
           }
         })
       } else {
         // 作成処理
         await createRecord({
-          variables: { input }
+          variables: { input: recordInput }
         })
       }
     } catch (error) {
@@ -815,6 +777,7 @@ export default function DashboardPage() {
         
         {/* カレンダーコンポーネント */}
         <Calendar 
+          onDateClick={handleDateClick}
           onAddEntry={handleAddEntry} 
           onEditEntry={handleEditEntry}
           onDeleteEntry={handleDeleteEntry}

@@ -74,13 +74,10 @@ export const resolvers = {
     // 種目・泳法関連
     styles: async () => {
       try {
-        console.log('Fetching styles...')
         const { data, error } = await supabase
           .from('styles')
-          .select('id, name_jp, name, distance, style, created_at, updated_at')
-          .order('distance')
-        
-        console.log('Styles query result:', { data, error })
+          .select('id, name_jp, name, distance, style')
+          .order('id')
         
         if (error) {
           console.error('Styles query error:', error)
@@ -88,24 +85,26 @@ export const resolvers = {
         }
         
         if (!data) {
-          console.log('No styles data returned')
           return []
         }
         
-        console.log('Raw styles data:', data)
-        
         // データベースのフィールド名をGraphQLスキーマに合わせて変換
+        const strokeMapping: { [key: string]: string } = {
+          'fr': 'FREESTYLE',
+          'br': 'BREASTSTROKE', 
+          'ba': 'BACKSTROKE',
+          'fly': 'BUTTERFLY',
+          'im': 'INDIVIDUAL_MEDLEY'
+        }
+        
         const transformedData = data.map((style: any) => ({
           id: style.id,
           nameJp: style.name_jp,
           name: style.name,
           distance: style.distance,
-          stroke: ['FREESTYLE', 'BACKSTROKE', 'BREASTSTROKE', 'BUTTERFLY', 'INDIVIDUAL_MEDLEY'][style.style] || 'FREESTYLE',
-          createdAt: style.created_at,
-          updatedAt: style.updated_at
+          stroke: strokeMapping[style.style] || 'FREESTYLE'
         }))
         
-        console.log('Transformed styles data:', transformedData)
         return transformedData
       } catch (err) {
         console.error('Styles resolver error:', err)
@@ -116,21 +115,27 @@ export const resolvers = {
     style: async (_: any, { id }: { id: string }) => {
       const { data, error } = await supabase
         .from('styles')
-        .select('id, name_jp, name, distance, style, created_at, updated_at')
+        .select('id, name_jp, name, distance, style')
         .eq('id', id)
         .single()
       
       if (error) throw new Error(error.message)
       
       // データベースのフィールド名をGraphQLスキーマに合わせて変換
+      const strokeMapping: { [key: string]: string } = {
+        'fr': 'FREESTYLE',
+        'br': 'BREASTSTROKE', 
+        'ba': 'BACKSTROKE',
+        'fly': 'BUTTERFLY',
+        'im': 'INDIVIDUAL_MEDLEY'
+      }
+      
       return {
         id: data.id,
         nameJp: data.name_jp,
         name: data.name,
         distance: data.distance,
-        stroke: ['FREESTYLE', 'BACKSTROKE', 'BREASTSTROKE', 'BUTTERFLY', 'INDIVIDUAL_MEDLEY'][data.style] || 'FREESTYLE',
-        createdAt: data.created_at,
-        updatedAt: data.updated_at
+        stroke: strokeMapping[data.style] || 'FREESTYLE'
       }
     },
 
@@ -378,7 +383,13 @@ export const resolvers = {
           id: record.styles.id,
           nameJp: record.styles.name_jp,
           name: record.styles.name,
-          stroke: ['FREESTYLE', 'BACKSTROKE', 'BREASTSTROKE', 'BUTTERFLY', 'INDIVIDUAL_MEDLEY'][record.styles.style] || 'FREESTYLE',
+          stroke: {
+            'fr': 'FREESTYLE',
+            'br': 'BREASTSTROKE', 
+            'ba': 'BACKSTROKE',
+            'fly': 'BUTTERFLY',
+            'im': 'INDIVIDUAL_MEDLEY'
+          }[record.styles.style] || 'FREESTYLE',
           distance: record.styles.distance
         } : null,
       })) || []
@@ -838,8 +849,19 @@ export const resolvers = {
         .select()
         .single()
       
-      if (error) throw new Error(error.message)
-      return data
+      if (error) {
+        throw new Error(error.message)
+      }
+      
+      // データベースのフィールド名をGraphQLスキーマに合わせて変換
+      return {
+        id: data.id,
+        title: data.title,
+        date: data.date,
+        place: data.place,
+        poolType: data.pool_type,
+        note: data.note
+      }
     },
 
     updateCompetition: async (_: any, { id, input }: { id: string, input: any }, context: any) => {
@@ -884,11 +906,47 @@ export const resolvers = {
           video_url: input.videoUrl,
           note: input.note
         })
-        .select()
+        .select(`
+          *,
+          styles(*),
+          competitions(*)
+        `)
         .single()
       
       if (error) throw new Error(error.message)
-      return data
+      
+      // データベースのフィールド名をGraphQLスキーマに合わせて変換
+      const strokeMapping: { [key: string]: string } = {
+        'fr': 'FREESTYLE',
+        'br': 'BREASTSTROKE', 
+        'ba': 'BACKSTROKE',
+        'fly': 'BUTTERFLY',
+        'im': 'INDIVIDUAL_MEDLEY'
+      }
+      
+      return {
+        id: data.id,
+        userId: data.user_id,
+        competitionId: data.competition_id,
+        styleId: data.style_id,
+        time: data.time,
+        videoUrl: data.video_url,
+        note: data.note,
+        style: data.styles ? {
+          id: data.styles.id,
+          nameJp: data.styles.name_jp,
+          name: data.styles.name,
+          stroke: strokeMapping[data.styles.style] || 'FREESTYLE',
+          distance: data.styles.distance
+        } : null,
+        competition: data.competitions ? {
+          id: data.competitions.id,
+          title: data.competitions.title,
+          date: data.competitions.date,
+          place: data.competitions.place,
+          poolType: data.competitions.pool_type
+        } : null
+      }
     },
 
     updateRecord: async (_: any, { id, input }: { id: string, input: any }, context: any) => {

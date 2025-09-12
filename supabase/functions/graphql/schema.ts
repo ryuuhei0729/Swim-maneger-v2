@@ -111,8 +111,6 @@ type Style {
   name: String!
   distance: Int!
   stroke: SwimStroke!
-  createdAt: DateTime!
-  updatedAt: DateTime!
 }
 
 # 練習タグ関連
