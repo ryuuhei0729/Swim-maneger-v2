@@ -21,11 +21,6 @@ export const GET_PRACTICE_LOGS = gql`
       userId
       date
       place
-      tags {
-        id
-        name
-        color
-      }
       style
       repCount
       setCount
@@ -49,11 +44,6 @@ export const GET_PRACTICE_LOG = gql`
       userId
       date
       place
-      tags {
-        id
-        name
-        color
-      }
       style
       repCount
       setCount
@@ -77,11 +67,6 @@ export const GET_PRACTICE_LOGS_BY_USER = gql`
       userId
       date
       place
-      tags {
-        id
-        name
-        color
-      }
       style
       repCount
       setCount

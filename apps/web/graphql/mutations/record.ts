@@ -35,16 +35,12 @@ export const UPDATE_RECORD = gql`
   mutation UpdateRecord($id: ID!, $input: RecordInput!) {
     updateRecord(id: $id, input: $input) {
       id
-      user_id
-      competition_id
-      style_id
+      userId
+      competitionId
+      styleId
       time
-      video_url
+      videoUrl
       note
-      user {
-        id
-        name
-      }
       competition {
         id
         title
@@ -52,9 +48,9 @@ export const UPDATE_RECORD = gql`
       }
       style {
         id
-        name_jp
+        nameJp
         name
-        style
+        stroke
         distance
       }
     }
@@ -63,9 +59,7 @@ export const UPDATE_RECORD = gql`
 
 export const DELETE_RECORD = gql`
   mutation DeleteRecord($id: ID!) {
-    deleteRecord(id: $id) {
-      success
-    }
+    deleteRecord(id: $id)
   }
 `
 

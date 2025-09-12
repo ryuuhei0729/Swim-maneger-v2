@@ -3,18 +3,14 @@ import { gql } from '@apollo/client'
 // 記録関連クエリ
 export const GET_RECORDS = gql`
   query GetRecords {
-    records {
+    myRecords {
       id
-      user_id
-      competition_id
-      style_id
+      userId
+      competitionId
+      styleId
       time
-      video_url
+      videoUrl
       note
-      user {
-        id
-        name
-      }
       competition {
         id
         title
@@ -22,9 +18,9 @@ export const GET_RECORDS = gql`
       }
       style {
         id
-        name_jp
+        nameJp
         name
-        style
+        stroke
         distance
       }
     }
@@ -52,9 +48,9 @@ export const GET_RECORD = gql`
       }
       style {
         id
-        name_jp
+        nameJp
         name
-        style
+        stroke
         distance
       }
       split_times {
@@ -83,9 +79,9 @@ export const GET_RECORDS_BY_USER = gql`
       }
       style {
         id
-        name_jp
+        nameJp
         name
-        style
+        stroke
         distance
       }
     }

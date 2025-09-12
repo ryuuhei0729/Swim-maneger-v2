@@ -170,11 +170,7 @@ export const resolvers = {
         .from('practice_logs')
         .select(`
           *,
-          practice_times(*),
-          practice_log_tags(
-            practice_tag_id,
-            practice_tags(*)
-          )
+          practice_times(*)
         `)
         .eq('user_id', userId)
         .order('date', { ascending: false })
@@ -193,7 +189,7 @@ export const resolvers = {
       // タグの構造を変換し、GraphQLスキーマに合わせてフィールド名を変換
       const transformedData = data?.map(log => ({
         id: log.id,
-        userId: log.user_id,
+        userId: log.user_id || userId, // フォールバック
         date: log.date,
         place: log.place,
         style: log.style,
@@ -202,8 +198,16 @@ export const resolvers = {
         distance: log.distance,
         circle: log.circle,
         note: log.note,
-        tags: log.practice_log_tags?.map((relation: any) => relation.practice_tags) || [],
-        times: log.practice_times || [],
+        times: (log.practice_times || []).map((time: any) => ({
+          id: time.id,
+          userId: time.user_id || userId, // フォールバック
+          practiceLogId: time.practice_log_id,
+          repNumber: time.rep_number,
+          setNumber: time.set_number,
+          time: time.time,
+          createdAt: time.created_at,
+          updatedAt: time.updated_at
+        })),
         createdAt: log.created_at,
         updatedAt: log.updated_at
       })) || []
@@ -243,7 +247,16 @@ export const resolvers = {
         circle: data.circle,
         note: data.note,
         tags: data.practice_log_tags?.map((relation: any) => relation.practice_tags) || [],
-        times: data.practice_times || [],
+        times: (data.practice_times || []).map((time: any) => ({
+          id: time.id,
+          userId: time.user_id || userId,
+          practiceLogId: time.practice_log_id,
+          repNumber: time.rep_number,
+          setNumber: time.set_number,
+          time: time.time,
+          createdAt: time.created_at,
+          updatedAt: time.updated_at
+        })),
         createdAt: data.created_at,
         updatedAt: data.updated_at
       }
@@ -273,7 +286,7 @@ export const resolvers = {
       // タグの構造を変換し、GraphQLスキーマに合わせてフィールド名を変換
       const transformedData = data?.map(log => ({
         id: log.id,
-        userId: log.user_id,
+        userId: log.user_id || userId, // フォールバック
         date: log.date,
         place: log.place,
         style: log.style,
@@ -282,7 +295,6 @@ export const resolvers = {
         distance: log.distance,
         circle: log.circle,
         note: log.note,
-        tags: log.practice_log_tags?.map((relation: any) => relation.practice_tags) || [],
         times: log.practice_times || [],
         createdAt: log.created_at,
         updatedAt: log.updated_at
@@ -337,7 +349,7 @@ export const resolvers = {
           split_times(*)
         `)
         .eq('user_id', userId)
-        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
       
       // 基本的なrecordsテーブルの構造に合わせる（remote_migration.sqlの構造）
       if (styleId) {
@@ -347,7 +359,31 @@ export const resolvers = {
       const { data, error } = await query
       
       if (error) throw new Error(error.message)
-      return data || []
+      
+      // GraphQLスキーマに合わせてフィールド名を変換
+      const transformedData = data?.map(record => ({
+        id: record.id,
+        userId: record.user_id,
+        competitionId: record.competition_id,
+        styleId: record.style_id,
+        time: record.time,
+        videoUrl: record.video_url,
+        note: record.note,
+        competition: record.competitions ? {
+          id: record.competitions.id,
+          title: record.competitions.title,
+          date: record.competitions.date
+        } : null,
+        style: record.styles ? {
+          id: record.styles.id,
+          nameJp: record.styles.name_jp,
+          name: record.styles.name,
+          stroke: ['FREESTYLE', 'BACKSTROKE', 'BREASTSTROKE', 'BUTTERFLY', 'INDIVIDUAL_MEDLEY'][record.styles.style] || 'FREESTYLE',
+          distance: record.styles.distance
+        } : null,
+      })) || []
+      
+      return transformedData
     },
 
     record: async (_: any, { id }: { id: string }, context: any) => {
@@ -381,7 +417,7 @@ export const resolvers = {
           split_times(*)
         `)
         .eq('user_id', userId)
-        .order('created_at')
+        .order('id')
       
       if (error) throw new Error(error.message)
       return data || []
@@ -615,7 +651,10 @@ export const resolvers = {
         const { data: practiceLog, error: practiceLogError } = await supabase
           .from('practice_logs')
           .insert(insertData)
-          .select()
+          .select(`
+            *,
+            practice_times(*)
+          `)
           .single()
         
         if (practiceLogError) {
@@ -625,11 +664,12 @@ export const resolvers = {
         if (!practiceLog) {
           throw new Error('Failed to create practice log: returned null')
         }
+ 
         
         // 基本データをGraphQLスキーマに合わせて変換して返す
         const transformedLog = {
           id: practiceLog.id,
-          userId: practiceLog.user_id,
+          userId: practiceLog.user_id || userId, // フォールバック
           date: practiceLog.date,
           place: practiceLog.place,
           style: practiceLog.style,
@@ -638,7 +678,16 @@ export const resolvers = {
           distance: practiceLog.distance,
           circle: practiceLog.circle,
           note: practiceLog.note,
-          times: [], // 練習タイム機能未実装のため空配列
+          times: (practiceLog.practice_times || []).map((time: any) => ({
+            id: time.id,
+            userId: time.user_id || userId, // フォールバック
+            practiceLogId: time.practice_log_id,
+            repNumber: time.rep_number,
+            setNumber: time.set_number,
+            time: time.time,
+            createdAt: time.created_at,
+            updatedAt: time.updated_at
+          })),
           createdAt: practiceLog.created_at,
           updatedAt: practiceLog.updated_at
         }
@@ -668,33 +717,39 @@ export const resolvers = {
         .update(updateData)
         .eq('id', id)
         .eq('user_id', userId)
-        .select()
+        .select(`
+          *,
+          practice_times(*)
+        `)
         .single()
       
       if (error) throw new Error(error.message)
       
-      // タグの更新
-      if (input.tagIds !== undefined) {
-        // 既存のタグ関連を削除
-        await supabase
-          .from('practice_log_tags')
-          .delete()
-          .eq('practice_log_id', id)
-        
-        // 新しいタグ関連を追加
-        if (input.tagIds.length > 0) {
-          const tagRelations = input.tagIds.map((tagId: string) => ({
-            practice_log_id: id,
-            practice_tag_id: tagId
-          }))
-          
-          await supabase
-            .from('practice_log_tags')
-            .insert(tagRelations)
-        }
+      // GraphQLスキーマに合わせてフィールド名を変換
+      return {
+        id: data.id,
+        userId: data.user_id || userId, // フォールバック
+        date: data.date,
+        place: data.place,
+        style: data.style,
+        repCount: data.rep_count,
+        setCount: data.set_count,
+        distance: data.distance,
+        circle: data.circle,
+        note: data.note,
+        times: (data.practice_times || []).map((time: any) => ({
+          id: time.id,
+          userId: time.user_id || userId, // フォールバック
+          practiceLogId: time.practice_log_id,
+          repNumber: time.rep_number,
+          setNumber: time.set_number,
+          time: time.time,
+          createdAt: time.created_at,
+          updatedAt: time.updated_at
+        })),
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
       }
-      
-      return data
     },
 
     deletePracticeLog: async (_: any, { id }: { id: string }, context: any) => {
@@ -727,7 +782,18 @@ export const resolvers = {
         .single()
       
       if (error) throw new Error(error.message)
-      return data
+      
+      // GraphQLスキーマに合わせてフィールド名を変換
+      return {
+        id: data.id,
+        userId: data.user_id,
+        practiceLogId: data.practice_log_id,
+        repNumber: data.rep_number,
+        setNumber: data.set_number,
+        time: data.time,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
     },
 
     updatePracticeTime: async (_: any, { id, input }: { id: string, input: any }, context: any) => {

@@ -31,7 +31,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
   const startDate = format(monthStart, 'yyyy-MM-dd')
   const endDate = format(monthEnd, 'yyyy-MM-dd')
 
-  // 実際のデータベースを使用（デバッグログ付き）
+  // 実際のデータベースを使用
   const USE_MOCK_DATA = false
 
   // カレンダーデータを取得（新しい個人利用機能）
@@ -43,33 +43,60 @@ export function useCalendarData(currentDate: Date, userId?: string) {
         month: currentDate.getMonth() + 1
       },
       skip: USE_MOCK_DATA,
-      fetchPolicy: 'cache-and-network',
+      fetchPolicy: 'cache-first', // キャッシュ優先でリアルタイム更新に対応
+      nextFetchPolicy: 'cache-first', // 次回以降もキャッシュ優先
+      notifyOnNetworkStatusChange: true, // ネットワーク状態の変更を通知
       errorPolicy: 'ignore' // エラーを無視して処理を続行
     }
   )
 
   // 練習記録を取得
-  const { data: practiceLogsData, loading: practiceLoading, error: practiceError } = useQuery(
+  const { data: practiceLogsData, loading: practiceLoading, error: practiceError, refetch: refetchPracticeLogs } = useQuery(
     GET_PRACTICE_LOGS,
     {
       skip: USE_MOCK_DATA,
-      fetchPolicy: 'cache-and-network',
-      errorPolicy: 'ignore' // エラーを無視して処理を続行
+      fetchPolicy: 'cache-first', // キャッシュ優先でリアルタイム更新に対応
+      nextFetchPolicy: 'cache-first',
+      notifyOnNetworkStatusChange: true,
+      errorPolicy: 'all' // エラーも含めて全てのデータを取得
     }
   )
 
   // 記録データを取得
-  const { data: recordsData, loading: recordsLoading, error: recordsError } = useQuery(
+  const { data: recordsData, loading: recordsLoading, error: recordsError, refetch: refetchRecords } = useQuery(
     GET_RECORDS,
     {
       skip: USE_MOCK_DATA,
-      fetchPolicy: 'cache-and-network',
-      errorPolicy: 'ignore' // エラーを無視して処理を続行
+      fetchPolicy: 'cache-first', // キャッシュ優先でリアルタイム更新に対応
+      nextFetchPolicy: 'cache-first',
+      notifyOnNetworkStatusChange: true,
+      errorPolicy: 'all' // エラーも含めて全てのデータを取得
     }
   )
 
-  // エラーログ出力
+  // エラーログ出力とデバッグ情報
   useEffect(() => {
+    console.log('Calendar data fetch status:', {
+      practiceLogsData: !!practiceLogsData,
+      recordsData: !!recordsData,
+      practiceLoading,
+      recordsLoading,
+      practiceError: !!practiceError,
+      recordsError: !!recordsError
+    })
+
+    if (practiceLogsData) {
+      console.log('Practice logs data:', practiceLogsData)
+    } else if (!practiceLoading) {
+      console.log('No practice logs data received')
+    }
+    
+    if (recordsData) {
+      console.log('Records data:', recordsData)
+    } else if (!recordsLoading) {
+      console.log('No records data received')
+    }
+
     if (calendarError) {
       console.error('Calendar data fetch error:', calendarError)
       if ((calendarError as any).graphQLErrors) {
@@ -81,11 +108,23 @@ export function useCalendarData(currentDate: Date, userId?: string) {
     }
     if (practiceError) {
       console.error('Practice logs fetch error:', practiceError)
+      if ((practiceError as any).graphQLErrors) {
+        console.error('Practice GraphQL errors:', (practiceError as any).graphQLErrors)
+      }
+      if ((practiceError as any).networkError) {
+        console.error('Practice Network error:', (practiceError as any).networkError)
+      }
     }
     if (recordsError) {
       console.error('Records fetch error:', recordsError)
+      if ((recordsError as any).graphQLErrors) {
+        console.error('Records GraphQL errors:', (recordsError as any).graphQLErrors)
+      }
+      if ((recordsError as any).networkError) {
+        console.error('Records Network error:', (recordsError as any).networkError)
+      }
     }
-  }, [calendarError, practiceError, recordsError])
+  }, [calendarError, practiceError, recordsError, practiceLogsData, recordsData, practiceLoading, recordsLoading])
 
   // データを統合してカレンダー表示用に変換
   const calendarEntries: CalendarEntry[] = useMemo(() => {
@@ -147,36 +186,33 @@ export function useCalendarData(currentDate: Date, userId?: string) {
     const entries: CalendarEntry[] = []
 
     // 練習記録を追加
-    if (practiceLogsData && (practiceLogsData as any).practice_logs) {
-      (practiceLogsData as any).practice_logs.forEach((log: any) => {
+    if (practiceLogsData && (practiceLogsData as any).myPracticeLogs) {
+      (practiceLogsData as any).myPracticeLogs.forEach((log: any) => {
         // 日付範囲でフィルタリング
         const logDate = new Date(log.date)
         if (logDate >= monthStart && logDate <= monthEnd) {
-          const tagNames = Array.isArray(log.tags) ? log.tags : []
-          const title = tagNames.length > 0 
-            ? `練習: ${tagNames.slice(0, 2).join(', ')}`
-            : `練習: ${log.style || '場所未記載'}`
+          const title = `練習: ${log.style || log.place || '記録なし'}`
           
           entries.push({
             id: log.id,
             entry_type: 'practice',
             entry_date: log.date,
             title,
-            location: 'プール' // 既存のクエリにはlocationフィールドがないためデフォルト値
+            location: log.place || 'プール' // 既存のクエリにはlocationフィールドがないためデフォルト値
           })
         }
       })
     }
 
     // 大会記録を追加
-    if (recordsData && (recordsData as any).records) {
-      (recordsData as any).records.forEach((record: any) => {
+    if (recordsData && (recordsData as any).myRecords) {
+      (recordsData as any).myRecords.forEach((record: any) => {
         // 日付範囲でフィルタリング（competitionのdateを使用）
         if (record.competition && record.competition.date) {
           const recordDate = new Date(record.competition.date)
           if (recordDate >= monthStart && recordDate <= monthEnd) {
             const timeString = record.time ? `${record.time.toFixed(2)}s` : ''
-            const styleInfo = record.style ? `${record.style.name_jp}` : '記録'
+            const styleInfo = record.style ? `${record.style.nameJp}` : '記録'
             const title = `${styleInfo}: ${timeString}`
             
             entries.push({
@@ -193,6 +229,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
       })
     }
 
+    console.log('Generated calendar entries:', entries)
     return entries
   }, [practiceLogsData, recordsData, currentDate, USE_MOCK_DATA])
 
@@ -237,9 +274,14 @@ export function useCalendarData(currentDate: Date, userId?: string) {
     monthlySummary,
     loading: USE_MOCK_DATA ? false : (calendarLoading || practiceLoading || recordsLoading),
     error: USE_MOCK_DATA ? null : (calendarError || practiceError || recordsError),
-    refetch: () => {
+    refetch: async () => {
       if (!USE_MOCK_DATA) {
-        refetch()
+        // すべてのクエリを並行して再実行
+        await Promise.all([
+          refetch(),
+          refetchPracticeLogs(),
+          refetchRecords()
+        ])
       }
     }
   }

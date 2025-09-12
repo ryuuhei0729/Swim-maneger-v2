@@ -23,7 +23,7 @@ interface CalendarProps {
   onDateClick?: (date: Date) => void
   onAddEntry?: (date: Date, type: 'practice' | 'record') => void
   onEditEntry?: (entry: CalendarEntry) => void
-  onDeleteEntry?: (entryId: string) => void
+  onDeleteEntry?: (entryId: string, entryType: 'practice' | 'record') => void
   isLoading?: boolean
   userId?: string // 特定のユーザーのカレンダーを表示する場合
 }
@@ -592,8 +592,8 @@ export default function Calendar({
           date={selectedDate}
           entries={getDateEntries(selectedDate)}
           onEditEntry={onEditEntry}
-          onDeleteEntry={(entryId) => {
-            onDeleteEntry?.(entryId)
+          onDeleteEntry={(entryId, entryType) => {
+            onDeleteEntry?.(entryId, entryType)
             // データを再取得
             refetch()
           }}

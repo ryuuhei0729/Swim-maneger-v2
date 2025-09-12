@@ -45,6 +45,12 @@ export const CREATE_PRACTICE_LOG = gql`
       distance
       circle
       note
+      times {
+        id
+        repNumber
+        setNumber
+        time
+      }
       createdAt
       updatedAt
     }
@@ -64,6 +70,12 @@ export const UPDATE_PRACTICE_LOG = gql`
       distance
       circle
       note
+      times {
+        id
+        repNumber
+        setNumber
+        time
+      }
       createdAt
       updatedAt
     }
@@ -72,20 +84,21 @@ export const UPDATE_PRACTICE_LOG = gql`
 
 export const DELETE_PRACTICE_LOG = gql`
   mutation DeletePracticeLog($id: ID!) {
-    deletePracticeLog(id: $id) {
-      success
-    }
+    deletePracticeLog(id: $id)
   }
 `
 
 export const CREATE_PRACTICE_TIME = gql`
-  mutation CreatePracticeTime($input: PracticeTimeInput!) {
+  mutation CreatePracticeTime($input: CreatePracticeTimeInput!) {
     createPracticeTime(input: $input) {
       id
-      practice_log_id
-      rep_number
-      set_number
+      userId
+      practiceLogId
+      repNumber
+      setNumber
       time
+      createdAt
+      updatedAt
     }
   }
 `

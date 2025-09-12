@@ -29,7 +29,7 @@ interface DayDetailModalProps {
   date: Date
   entries: CalendarEntry[]
   onEditEntry?: (entry: CalendarEntry) => void
-  onDeleteEntry?: (entryId: string) => void
+  onDeleteEntry?: (entryId: string, entryType: 'practice' | 'record') => void
   onAddEntry?: (date: Date, type: 'practice' | 'record') => void
 }
 
@@ -42,16 +42,24 @@ export default function DayDetailModal({
   onDeleteEntry,
   onAddEntry
 }: DayDetailModalProps) {
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<{id: string, type: 'practice' | 'record'} | null>(null)
 
   if (!isOpen) return null
 
   const practiceEntries = entries.filter(e => e.entry_type === 'practice')
   const recordEntries = entries.filter(e => e.entry_type === 'record')
 
-  const handleDeleteConfirm = (entryId: string) => {
-    onDeleteEntry?.(entryId)
-    setShowDeleteConfirm(null)
+  const handleDeleteConfirm = async () => {
+    if (showDeleteConfirm) {
+      await onDeleteEntry?.(showDeleteConfirm.id, showDeleteConfirm.type)
+      setShowDeleteConfirm(null)
+      
+      // 削除後、残りのエントリーがない場合はモーダルを閉じる
+      const remainingEntries = entries.filter(e => e.id !== showDeleteConfirm.id)
+      if (remainingEntries.length === 0) {
+        onClose()
+      }
+    }
   }
 
   const formatTime = (time: number) => {
@@ -146,14 +154,18 @@ export default function DayDetailModal({
                         </div>
                         <div className="flex items-center space-x-2 ml-4">
                           <button
-                            onClick={() => onEditEntry?.(entry)}
+                            onClick={() => {
+                              console.log('DayDetailModal: Practice edit button clicked for entry:', entry)
+                              console.log('DayDetailModal: onEditEntry function:', onEditEntry)
+                              onEditEntry?.(entry)
+                            }}
                             className="p-2 text-gray-400 hover:text-blue-600 rounded-md hover:bg-blue-50"
                             title="編集"
                           >
                             <PencilIcon className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => setShowDeleteConfirm(entry.id)}
+                            onClick={() => setShowDeleteConfirm({id: entry.id, type: entry.entry_type})}
                             className="p-2 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
                             title="削除"
                           >
@@ -220,7 +232,7 @@ export default function DayDetailModal({
                             <PencilIcon className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => setShowDeleteConfirm(entry.id)}
+                            onClick={() => setShowDeleteConfirm({id: entry.id, type: entry.entry_type})}
                             className="p-2 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
                             title="削除"
                           >
@@ -299,7 +311,7 @@ export default function DayDetailModal({
                 <button
                   type="button"
                   className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={() => handleDeleteConfirm(showDeleteConfirm)}
+                  onClick={handleDeleteConfirm}
                 >
                   削除
                 </button>

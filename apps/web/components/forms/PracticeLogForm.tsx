@@ -51,6 +51,7 @@ export default function PracticeLogForm({
   onClose,
   onSubmit,
   initialDate,
+  editData,
   isLoading = false
 }: PracticeLogFormProps) {
   const [formData, setFormData] = useState<PracticeLogFormData>({
@@ -67,6 +68,68 @@ export default function PracticeLogForm({
   })
   const [showTimeModal, setShowTimeModal] = useState(false)
   const [selectedSetForTime, setSelectedSetForTime] = useState<PracticeSet | null>(null)
+
+  // 編集データが渡された時にフォームデータを初期化
+  useEffect(() => {
+    if (editData && isOpen) {
+      console.log('PracticeLogForm: Setting form data from editData:', editData)
+      console.log('PracticeLogForm: Times data:', editData.times)
+      
+      // 編集データをフォーム形式に変換
+      // setCountが複数の場合でも、現在のフォームは1つのセットとして扱う
+      const totalReps = editData.repCount || 1
+      const totalDistance = editData.distance || 100
+      const averageDistance = editData.setCount ? Math.round(totalDistance / editData.setCount) : totalDistance
+      
+      const setsData = [{
+        id: '1',
+        reps: totalReps,
+        distance: averageDistance,
+        circleTime: editData.circle || 90,
+        style: editData.style || 'フリー',
+        times: editData.times || []
+      }]
+
+      console.log('PracticeLogForm: Generated sets data:', setsData)
+
+      const newFormData = {
+        practiceDate: editData.date || format(new Date(), 'yyyy-MM-dd'),
+        location: editData.place || '',
+        sets: setsData,
+        note: editData.note || ''
+      }
+
+      console.log('PracticeLogForm: New form data:', newFormData)
+      setFormData(newFormData)
+    } else if (!editData && isOpen) {
+      // 新規作成時はデフォルト値にリセット
+      console.log('PracticeLogForm: Resetting to default values (new entry)')
+      setFormData({
+        practiceDate: initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+        location: '',
+        sets: [{
+          id: '1',
+          reps: 1,
+          distance: 100,
+          circleTime: 90,
+          style: 'フリー'
+        }],
+        note: ''
+      })
+    }
+    
+    // デバッグ: どの条件にも該当しない場合
+    if (isOpen && !editData) {
+      console.log('PracticeLogForm: No editData, isOpen:', isOpen)
+    }
+  }, [editData, isOpen, initialDate])
+
+  // デバッグ: 現在のフォームデータをログ出力
+  useEffect(() => {
+    if (isOpen) {
+      console.log('PracticeLogForm: Current form data:', formData)
+    }
+  }, [formData, isOpen])
 
   if (!isOpen) return null
 
@@ -157,7 +220,7 @@ export default function PracticeLogForm({
           <div className="bg-white px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h3 className="text-lg leading-6 font-medium text-gray-900">
-                練習記録を追加
+                {editData ? '練習記録を編集' : '練習記録を追加'}
               </h3>
               <button
                 type="button"
@@ -231,6 +294,12 @@ export default function PracticeLogForm({
                         >
                           ⏱️ タイム入力
                         </Button>
+                        {/* タイムデータがある場合の表示 */}
+                        {set.times && set.times.length > 0 && (
+                          <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                            {set.times.filter((t: any) => t.time > 0).length}件のタイム記録
+                          </div>
+                        )}
                         {formData.sets.length > 1 && (
                           <button
                             type="button"

@@ -84,6 +84,12 @@ export const apolloClient = new ApolloClient({
       CompetitionRecord: {
         keyFields: ['id'],
       },
+      PracticeLog: {
+        keyFields: ['id'],
+      },
+      Record: {
+        keyFields: ['id'],
+      },
       Goal: {
         keyFields: ['id'],
       },
@@ -96,9 +102,14 @@ export const apolloClient = new ApolloClient({
     watchQuery: {
       errorPolicy: 'all',
       notifyOnNetworkStatusChange: true,
+      fetchPolicy: 'cache-first', // デフォルトでキャッシュ優先
     },
     query: {
       errorPolicy: 'all',
+      fetchPolicy: 'cache-first', // デフォルトでキャッシュ優先
+    },
+    mutate: {
+      errorPolicy: 'all', // ミューテーションでもエラーを含めて処理
     },
   },
 })
