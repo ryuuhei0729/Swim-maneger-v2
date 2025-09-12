@@ -36,13 +36,8 @@
     "supabase:stop": "npx supabase stop --workdir supabase",
     "supabase:reset": "npx supabase db reset --workdir supabase",
     "supabase:status": "npx supabase status --workdir supabase",
-    "supabase:generate-types": "npx supabase gen types typescript --workdir supabase --local > packages/types/src/database.ts",
     "supabase:deploy": "npx supabase functions deploy --workdir supabase",
-    "supabase:deploy:graphql": "npx supabase functions deploy graphql --workdir supabase",
-    "graphql:codegen": "npm run codegen --workspace=packages/graphql-schema",
-    "type-gen": "npm run type-gen:ts && npm run type-gen:dart",
-    "type-gen:ts": "npm run build --workspace=packages/types",
-    "type-gen:dart": "echo 'Dart type generation not implemented yet'"
+    "supabase:deploy:graphql": "npx supabase functions deploy graphql --workdir supabase"
   },
   "devDependencies": {
     "@types/node": "^20",
