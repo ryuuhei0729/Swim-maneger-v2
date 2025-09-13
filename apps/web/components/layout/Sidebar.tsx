@@ -8,7 +8,6 @@ import {
   HomeIcon,
   ChartBarIcon,
   TrophyIcon,
-  Cog6ToothIcon,
   XMarkIcon,
   ChevronRightIcon
 } from '@heroicons/react/24/outline'
@@ -45,12 +44,6 @@ const navigation: NavigationItem[] = [
     icon: TrophyIcon,
     description: '大会結果とエントリー',
   },
-  { 
-    name: '設定', 
-    href: '/settings', 
-    icon: Cog6ToothIcon,
-    description: 'システム設定とプロフィール',
-  },
 ]
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
@@ -63,14 +56,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* モバイル用オーバーレイ */}
       {isOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
+          className="fixed top-16 inset-x-0 bottom-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
           onClick={onClose}
         />
       )}
 
       {/* サイドバー */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:w-64
+        fixed top-16 bottom-0 left-0 z-50 w-72 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:fixed lg:w-64
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* モバイル用ヘッダー */}
@@ -93,7 +86,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
 
         {/* ナビゲーション */}
-        <nav className="mt-6 px-3">
+        <nav className="mt-6 px-3 pb-6">
           <div className="space-y-2">
             {filteredNavigation.map((item) => {
               const isActive = pathname === item.href
@@ -144,20 +137,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
         </nav>
 
-        {/* フッター情報 */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
-          <div className="text-center">
-            <div className="text-xs font-medium text-gray-600">
-              水泳選手マネジメントシステム
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              Version 1.0.0 • {new Date().getFullYear()}
-            </div>
-            <div className="text-xs text-gray-400 mt-1">
-              Made with ❤️ for swimmers
-            </div>
-          </div>
-        </div>
       </div>
     </>
   )

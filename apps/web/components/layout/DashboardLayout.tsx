@@ -21,25 +21,23 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50">
       {/* ヘッダー */}
       <Header onMenuClick={handleMenuClick} />
 
-      <div className="flex flex-1">
-        {/* サイドバー */}
-        <Sidebar isOpen={sidebarOpen} onClose={handleSidebarClose} />
+      {/* サイドバー（固定） */}
+      <Sidebar isOpen={sidebarOpen} onClose={handleSidebarClose} />
 
-        {/* メインコンテンツエリア */}
-        <div className="flex-1 flex flex-col lg:pl-0">
-          <main className="flex-1">
-            <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-              {children}
-            </div>
-          </main>
-          
-          {/* フッター */}
-          <Footer />
-        </div>
+      {/* メインコンテンツエリア */}
+      <div className="pt-16 lg:pl-64">
+        <main className="min-h-screen">
+          <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            {children}
+          </div>
+        </main>
+        
+        {/* フッター */}
+        <Footer />
       </div>
     </div>
   )

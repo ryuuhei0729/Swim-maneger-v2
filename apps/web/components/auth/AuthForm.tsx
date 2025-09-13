@@ -24,25 +24,53 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 
   const { signIn, signUp } = useAuth()
 
-  const formatAuthError = (err: unknown, _action: 'signin' | 'signup'): string => {
+  const formatAuthError = (err: unknown, action: 'signin' | 'signup'): string => {
     const e = err as any
     const status = e?.status ? ` [status: ${e.status}]` : ''
     const message = e?.message || e?.error_description || e?.error || '不明なエラーが発生しました。'
 
-    // 補足ヒント（既知パターンの説明）
+    // エラーメッセージの日本語化と補足ヒント
     if (typeof message === 'string') {
       const msg = message.toLowerCase()
-      if (msg.includes('invalid') && msg.includes('email')) {
-        return `${message}${status}\n原因の可能性: メール形式の不備、または許可ドメイン制限（Auth設定のAllowed email domains）。` 
+      
+      // ログイン認証エラーの処理（OWASP準拠）
+      if (action === 'signin') {
+        // 認証関連エラーは全て同じメッセージで統一（アカウント列挙攻撃を防止）
+        if (msg.includes('invalid') && (msg.includes('credentials') || msg.includes('email'))) {
+          return `メールアドレスまたはパスワードが正しくありません。入力内容を確認してから再度お試しください。`
+        }
+        if (msg.includes('email not confirmed')) {
+          return `メールアドレスまたはパスワードが正しくありません。入力内容を確認してから再度お試しください。`
+        }
+        if (msg.includes('too many requests')) {
+          return `ログイン試行回数が上限に達しました。しばらく時間をおいてから再度お試しください。`
+        }
       }
+      
+      // サインアップエラーの処理（OWASP準拠）
+      if (action === 'signup') {
+        if (msg.includes('user already registered')) {
+          return `アカウントの作成に失敗しました。入力内容を確認してから再度お試しください。`
+        }
+        if (msg.includes('password') && msg.includes('weak')) {
+          return `パスワードが弱すぎます。より強力なパスワードを設定してください。`
+        }
+      }
+      
+      // 共通エラーの処理
       if (msg.includes('captcha')) {
-        return `${message}${status}\n原因の可能性: Captchaが有効ですがトークンが未提供。AuthのCaptcha設定をご確認ください。`
+        return `Captcha認証が必要です。Captchaを完了してから再度お試しください。`
       }
       if (msg.includes('rate limit') || e?.status === 429) {
-        return `${message}${status}\n原因の可能性: メール送信のレート制限に達しました。時間をおいて再試行してください。`
+        return `リクエスト制限に達しました。しばらく時間をおいてから再度お試しください。`
+      }
+      if (msg.includes('network') || msg.includes('connection')) {
+        return `ネットワークエラーが発生しました。インターネット接続を確認してから再度お試しください。`
       }
     }
-    return `${message}${status}`
+    
+    // デフォルトのエラーメッセージ
+    return `エラーが発生しました: ${message}${status}`
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,14 +114,28 @@ export const AuthForm: React.FC<AuthFormProps> = ({
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-          {error}
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+          <div className="flex items-start">
+            <svg className="w-5 h-5 text-red-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <div className="whitespace-pre-line text-sm leading-relaxed">
+              {error}
+            </div>
+          </div>
         </div>
       )}
 
       {message && (
-        <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
-          {message}
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
+          <div className="flex items-start">
+            <svg className="w-5 h-5 text-green-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <div className="whitespace-pre-line text-sm leading-relaxed">
+              {message}
+            </div>
+          </div>
         </div>
       )}
 
