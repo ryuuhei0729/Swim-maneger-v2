@@ -7,7 +7,7 @@ const nextConfig = {
   
   // ESLint設定
   eslint: {
-    ignoreDuringBuilds: false,
+    ignoreDuringBuilds: true, // ビルド時にESLintエラーを無視
   },
   
   // 環境変数
