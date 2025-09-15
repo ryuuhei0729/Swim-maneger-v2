@@ -25,12 +25,18 @@ export const CREATE_RECORD = gql`
         place
         poolType
       }
+      splitTimes {
+        id
+        recordId
+        distance
+        splitTime
+      }
     }
   }
 `
 
 export const UPDATE_RECORD = gql`
-  mutation UpdateRecord($id: ID!, $input: RecordInput!) {
+  mutation UpdateRecord($id: ID!, $input: UpdateRecordInput!) {
     updateRecord(id: $id, input: $input) {
       id
       userId
@@ -50,6 +56,12 @@ export const UPDATE_RECORD = gql`
         name
         stroke
         distance
+      }
+      splitTimes {
+        id
+        recordId
+        distance
+        splitTime
       }
     }
   }

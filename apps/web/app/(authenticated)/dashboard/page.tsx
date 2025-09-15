@@ -49,10 +49,22 @@ export default function DashboardPage() {
     }
   }, [editingEntry, practiceLogData, practiceLogLoading, practiceLogError])
 
-  const { data: recordData } = useQuery(GET_RECORD, {
+  const { data: recordData, loading: recordLoading, error: recordError } = useQuery(GET_RECORD, {
     variables: { id: editingEntry?.id },
     skip: !editingEntry || editingEntry.entry_type !== 'record',
   })
+
+  // デバッグ: 大会記録データの取得状況をログ出力
+  useEffect(() => {
+    if (editingEntry && editingEntry.entry_type === 'record') {
+      console.log('Dashboard: Record query status:', {
+        editingEntryId: editingEntry.id,
+        recordLoading,
+        recordError,
+        recordData
+      })
+    }
+  }, [editingEntry, recordData, recordLoading, recordError])
 
   // GraphQLミューテーション
   const [createPracticeLog] = useMutation(CREATE_PRACTICE_LOG, {
@@ -364,6 +376,13 @@ export default function DashboardPage() {
         })
       }
     },
+    onCompleted: (data) => {
+      console.log('Dashboard: Record update completed successfully:', data)
+      setShowRecordForm(false)
+      setSelectedDate(null)
+      setEditingEntry(null)
+      setEditingData(null)
+    },
     onError: (error) => {
       console.error('記録の更新に失敗しました:', error)
       alert('記録の更新に失敗しました。')
@@ -405,10 +424,13 @@ export default function DashboardPage() {
       const newEditingData = {
         id: record.id,
         recordDate: record.competition?.date || new Date().toISOString().split('T')[0],
-        location: record.competition?.title || '',
+        location: record.competition?.place || '',
         competitionName: record.competition?.title || '',
+        poolType: record.competition?.poolType || 0,
         styleId: record.styleId,
         time: record.time,
+        isRelaying: record.isRelay || false,
+        splitTimes: record.splitTimes || [],
         videoUrl: record.videoUrl,
         note: record.note,
         competition: record.competition,
@@ -428,6 +450,13 @@ export default function DashboardPage() {
       console.log('Dashboard: PracticeLogForm is opening with editingData:', editingData)
     }
   }, [showPracticeForm, editingData])
+
+  // デバッグ: RecordFormが開かれる時の状態をログ出力
+  useEffect(() => {
+    if (showRecordForm) {
+      console.log('Dashboard: RecordForm is opening with editingData:', editingData)
+    }
+  }, [showRecordForm, editingData])
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date)
@@ -540,25 +569,34 @@ export default function DashboardPage() {
   }
 
   const handleRecordSubmit = async (formData: any) => {
+    console.log('Dashboard: handleRecordSubmit called with:', formData)
+    console.log('Dashboard: editingData:', editingData)
+    console.log('Dashboard: editingEntry:', editingEntry)
     setIsLoading(true)
     try {
       let competitionId = null
 
-      // 大会情報が入力されている場合、先に大会を作成
-      if (formData.competitionName && formData.location) {
-        const competitionInput = {
-          title: formData.competitionName,
-          date: formData.recordDate,
-          place: formData.location,
-          poolType: formData.poolType,
-          note: ''
-        }
+      if (formData.id) {
+        // 編集時は既存のCompetition IDを使用
+        competitionId = editingData?.competition?.id || null
+        console.log('Dashboard: Using existing competition ID:', competitionId)
+      } else {
+        // 新規作成時は大会情報が入力されている場合、先に大会を作成
+        if (formData.competitionName && formData.location) {
+          const competitionInput = {
+            title: formData.competitionName,
+            date: formData.recordDate,
+            place: formData.location,
+            poolType: formData.poolType,
+            note: ''
+          }
 
-        const competitionResult = await createCompetition({
-          variables: { input: competitionInput }
-        })
-        
-        competitionId = (competitionResult.data as any)?.createCompetition?.id
+          const competitionResult = await createCompetition({
+            variables: { input: competitionInput }
+          })
+          
+          competitionId = (competitionResult.data as any)?.createCompetition?.id
+        }
       }
 
       const recordInput = {
@@ -566,27 +604,42 @@ export default function DashboardPage() {
         time: formData.time,
         videoUrl: formData.videoUrl,
         note: formData.note,
-        competitionId: competitionId
+        competitionId: competitionId,
+        splitTimes: formData.splitTimes || []
       }
 
-      if (editingData && editingEntry?.entry_type === 'record') {
+      if (formData.id) {
         // 更新処理
-        await updateRecord({
+        console.log('Dashboard: Updating record with ID:', formData.id)
+        console.log('Dashboard: Update input:', recordInput)
+        const updateResult = await updateRecord({
           variables: {
-            id: editingEntry.id,
+            id: formData.id,
             input: recordInput
           }
         })
+        console.log('Dashboard: Update result:', updateResult)
       } else {
         // 作成処理
-        await createRecord({
+        console.log('Dashboard: Creating new record')
+        console.log('Dashboard: Create input:', recordInput)
+        const createResult = await createRecord({
           variables: { input: recordInput }
         })
+        console.log('Dashboard: Create result:', createResult)
       }
     } catch (error) {
       console.error('大会記録の保存に失敗しました:', error)
+      alert('大会記録の保存に失敗しました。')
     } finally {
       setIsLoading(false)
+      // フォームを閉じる（onCompletedで処理されるが、エラー時も閉じる）
+      if (!formData.id) {
+        setShowRecordForm(false)
+        setSelectedDate(null)
+        setEditingEntry(null)
+        setEditingData(null)
+      }
     }
   }
 

@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react'
 import { Button, Input } from '@/components/ui'
 import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
+import { formatTime } from '@/utils/formatters'
 
 interface SplitTime {
   id: string
   distance: number
-  time: number
+  splitTime: number
 }
 
 interface RecordFormData {
@@ -16,15 +17,17 @@ interface RecordFormData {
   location: string
   competitionName: string
   poolType: number // 0: short, 1: long
-  competitionCategory: number // 1: official, 2: record, 3: time_trial
   styleId: string
   time: number
   isRelaying: boolean
-  relayLeg?: number
-  rankPosition?: number
-  splitTimes: SplitTime[]
+  splitTimes: SplitTimeInput[]
   note: string
   videoUrl?: string
+}
+
+interface SplitTimeInput {
+  distance: number
+  splitTime: number
 }
 
 interface RecordFormProps {
@@ -42,18 +45,6 @@ const POOL_TYPES = [
   { value: 1, label: '長水路 (50m)' }
 ]
 
-const COMPETITION_CATEGORIES = [
-  { value: 1, label: '公式大会' },
-  { value: 2, label: '記録会' },
-  { value: 3, label: 'タイムトライアル' }
-]
-
-const RELAY_LEGS = [
-  { value: 1, label: '1泳目' },
-  { value: 2, label: '2泳目' },
-  { value: 3, label: '3泳目' },
-  { value: 4, label: '4泳目' }
-]
 
 export default function RecordForm({
   isOpen,
@@ -69,7 +60,6 @@ export default function RecordForm({
     location: '',
     competitionName: '',
     poolType: 0,
-    competitionCategory: 1,
     styleId: styles[0]?.id || '',
     time: 0,
     isRelaying: false,
@@ -88,19 +78,61 @@ export default function RecordForm({
     }
   }, [isOpen, initialDate])
 
+  // 編集データがある場合、フォームを初期化
+  useEffect(() => {
+    if (editData && isOpen) {
+      console.log('RecordForm: Setting form data from editData:', editData)
+      
+      setFormData({
+        recordDate: editData.recordDate || format(new Date(), 'yyyy-MM-dd'),
+        location: editData.location || '',
+        competitionName: editData.competitionName || '',
+        poolType: editData.poolType || 0,
+        styleId: editData.styleId || styles[0]?.id || '',
+        time: editData.time || 0,
+        isRelaying: editData.isRelaying || false,
+        splitTimes: editData.splitTimes?.map((st: any) => ({
+          distance: st.distance,
+          splitTime: st.splitTime
+        })) || [],
+        note: editData.note || '',
+        videoUrl: editData.videoUrl || ''
+      })
+    } else if (!editData && isOpen) {
+      // 新規作成時はデフォルト値にリセット
+      setFormData({
+        recordDate: initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+        location: '',
+        competitionName: '',
+        poolType: 0,
+        styleId: styles[0]?.id || '',
+        time: 0,
+        isRelaying: false,
+        splitTimes: [],
+        note: '',
+        videoUrl: ''
+      })
+    }
+  }, [editData, isOpen, initialDate, styles])
+
   if (!isOpen) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await onSubmit(formData)
+      // 編集時はIDを含めて送信
+      const submitData = {
+        ...formData,
+        ...(editData ? { id: editData.id } : {})
+      }
+      console.log('RecordForm: Submitting data:', submitData)
+      await onSubmit(submitData)
       // フォームリセット
       setFormData({
         recordDate: format(new Date(), 'yyyy-MM-dd'),
         location: '',
         competitionName: '',
         poolType: 0,
-        competitionCategory: 1,
         styleId: styles[0]?.id || '',
         time: 0,
         isRelaying: false,
@@ -115,10 +147,9 @@ export default function RecordForm({
   }
 
   const addSplitTime = () => {
-    const newSplit: SplitTime = {
-      id: Date.now().toString(),
+    const newSplit: SplitTimeInput = {
       distance: 25,
-      time: 0
+      splitTime: 0
     }
     setFormData(prev => ({
       ...prev,
@@ -126,18 +157,18 @@ export default function RecordForm({
     }))
   }
 
-  const removeSplitTime = (id: string) => {
+  const removeSplitTime = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      splitTimes: prev.splitTimes.filter(split => split.id !== id)
+      splitTimes: prev.splitTimes.filter((_, i) => i !== index)
     }))
   }
 
-  const updateSplitTime = (id: string, field: keyof SplitTime, value: number) => {
+  const updateSplitTime = (index: number, field: keyof SplitTimeInput, value: number) => {
     setFormData(prev => ({
       ...prev,
-      splitTimes: prev.splitTimes.map(split => 
-        split.id === id ? { ...split, [field]: value } : split
+      splitTimes: prev.splitTimes.map((split, i) => 
+        i === index ? { ...split, [field]: value } : split
       )
     }))
   }
@@ -243,23 +274,6 @@ export default function RecordForm({
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    大会カテゴリ *
-                  </label>
-                  <select
-                    value={formData.competitionCategory}
-                    onChange={(e) => setFormData(prev => ({ ...prev, competitionCategory: parseInt(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    {COMPETITION_CATEGORIES.map(category => (
-                      <option key={category.value} value={category.value}>
-                        {category.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
             </div>
 
@@ -299,6 +313,11 @@ export default function RecordForm({
                     onChange={(e) => setFormData(prev => ({ ...prev, time: parseFloat(e.target.value) || 0 }))}
                     required
                   />
+                  {formData.time > 0 && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      表示: {formatTime(formData.time)}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -311,8 +330,7 @@ export default function RecordForm({
                     checked={formData.isRelaying}
                     onChange={(e) => setFormData(prev => ({ 
                       ...prev, 
-                      isRelaying: e.target.checked,
-                      relayLeg: e.target.checked ? 1 : undefined
+                      isRelaying: e.target.checked
                     }))}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
@@ -321,37 +339,6 @@ export default function RecordForm({
                   </label>
                 </div>
                 
-                {formData.isRelaying && (
-                  <div className="ml-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      泳順
-                    </label>
-                    <select
-                      value={formData.relayLeg || 1}
-                      onChange={(e) => setFormData(prev => ({ ...prev, relayLeg: parseInt(e.target.value) }))}
-                      className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {RELAY_LEGS.map(leg => (
-                        <option key={leg.value} value={leg.value}>
-                          {leg.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  順位
-                </label>
-                <Input
-                  type="number"
-                  min="1"
-                  placeholder="例: 1"
-                  value={formData.rankPosition || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, rankPosition: parseInt(e.target.value) || undefined }))}
-                />
               </div>
             </div>
 
@@ -374,8 +361,8 @@ export default function RecordForm({
 
               {formData.splitTimes.length > 0 && (
                 <div className="space-y-3">
-                  {formData.splitTimes.map((split, _index) => (
-                    <div key={split.id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+                  {formData.splitTimes.map((split, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
                       <div className="flex-1">
                         <label className="block text-xs font-medium text-gray-700 mb-1">
                           距離 (m)
@@ -384,7 +371,7 @@ export default function RecordForm({
                           type="number"
                           min="1"
                           value={split.distance}
-                          onChange={(e) => updateSplitTime(split.id, 'distance', parseInt(e.target.value) || 25)}
+                          onChange={(e) => updateSplitTime(index, 'distance', parseInt(e.target.value) || 25)}
                           className="text-sm"
                         />
                       </div>
@@ -396,14 +383,19 @@ export default function RecordForm({
                           type="number"
                           step="0.01"
                           min="0"
-                          value={split.time || ''}
-                          onChange={(e) => updateSplitTime(split.id, 'time', parseFloat(e.target.value) || 0)}
+                          value={split.splitTime || ''}
+                          onChange={(e) => updateSplitTime(index, 'splitTime', parseFloat(e.target.value) || 0)}
                           className="text-sm"
                         />
+                        {split.splitTime > 0 && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formatTime(split.splitTime)}
+                          </p>
+                        )}
                       </div>
                       <button
                         type="button"
-                        onClick={() => removeSplitTime(split.id)}
+                        onClick={() => removeSplitTime(index)}
                         className="text-red-600 hover:text-red-800 mt-6"
                       >
                         <TrashIcon className="h-4 w-4" />
@@ -441,6 +433,18 @@ export default function RecordForm({
                 />
               </div>
             </div>
+
+            {/* 記録情報表示 */}
+            {_selectedStyle && formData.time > 0 && (
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h5 className="font-medium text-blue-900 mb-2">記録サマリー</h5>
+                <div className="text-sm text-blue-800">
+                  <p><strong>{_selectedStyle.nameJp}</strong></p>
+                  <p>タイム: <strong>{formatTime(formData.time)}</strong></p>
+                  <p>プール: {POOL_TYPES.find(pt => pt.value === formData.poolType)?.label}</p>
+                </div>
+              </div>
+            )}
 
             {/* フッター */}
             <div className="bg-gray-50 px-6 py-3 sm:flex sm:flex-row-reverse sm:px-6 -mx-6 -mb-4">

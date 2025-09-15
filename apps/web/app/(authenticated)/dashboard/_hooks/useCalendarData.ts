@@ -3,6 +3,7 @@ import { endOfMonth, format, startOfMonth } from 'date-fns'
 import { useEffect, useMemo } from 'react'
 import { useAuth } from '../../../../contexts'
 import { GET_CALENDAR_DATA, GET_PRACTICE_LOGS, GET_RECORDS } from '../../../../graphql/queries'
+import { formatTime } from '../../../../utils/formatters'
 
 interface CalendarEntry {
   id: string
@@ -211,7 +212,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
         if (record.competition && record.competition.date) {
           const recordDate = new Date(record.competition.date)
           if (recordDate >= monthStart && recordDate <= monthEnd) {
-            const timeString = record.time ? `${record.time.toFixed(2)}s` : ''
+            const timeString = record.time ? formatTime(record.time) : ''
             const styleInfo = record.style ? `${record.style.nameJp}` : '記録'
             const title = `${styleInfo}: ${timeString}`
             

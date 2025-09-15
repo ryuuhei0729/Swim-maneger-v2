@@ -207,7 +207,7 @@ export default function DayDetailModal({
                           )}
                           {entry.time_result && (
                             <p className="text-lg font-semibold text-blue-700 mb-1">
-                              ⏱️ {formatTime(entry.time_result)}
+                              ⏱️ {formatTime(entry.time_result / 100)}
                             </p>
                           )}
                           {entry.pool_type != null && (

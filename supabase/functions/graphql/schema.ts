@@ -469,6 +469,7 @@ input CreateRecordInput {
   videoUrl: String
   note: String
   competitionId: ID
+  splitTimes: [SplitTimeInput!]
 }
 
 input UpdateRecordInput {
@@ -477,6 +478,13 @@ input UpdateRecordInput {
   videoUrl: String
   note: String
   competitionId: ID
+  splitTimes: [SplitTimeInput!]
+}
+
+# スプリットタイム入力型（Record作成・更新用）
+input SplitTimeInput {
+  distance: Int!
+  splitTime: Float!
 }
 
 # スプリットタイム入力型

@@ -432,7 +432,9 @@ export const resolvers = {
         competition: data.competitions ? {
           id: data.competitions.id,
           title: data.competitions.title,
-          date: data.competitions.date
+          date: data.competitions.date,
+          place: data.competitions.place,
+          poolType: data.competitions.pool_type
         } : null,
         style: data.styles ? {
           id: data.styles.id,
@@ -991,6 +993,24 @@ export const resolvers = {
       
       if (error) throw new Error(error.message)
       
+      // SplitTimeが提供されている場合、それらを作成
+      if (input.splitTimes && input.splitTimes.length > 0) {
+        const splitTimeInserts = input.splitTimes.map((splitTime: any) => ({
+          record_id: data.id,
+          distance: splitTime.distance,
+          split_time: splitTime.splitTime
+        }))
+        
+        const { error: splitTimeError } = await supabase
+          .from('split_times')
+          .insert(splitTimeInserts)
+        
+        if (splitTimeError) {
+          console.error('SplitTime作成でエラーが発生しました:', splitTimeError)
+          // SplitTimeの作成に失敗してもRecordは作成済みなので、エラーは投げない
+        }
+      }
+      
       // データベースのフィールド名をGraphQLスキーマに合わせて変換
       const strokeMapping: { [key: string]: string } = {
         'fr': 'FREESTYLE',
@@ -1028,28 +1048,148 @@ export const resolvers = {
     updateRecord: async (_: any, { id, input }: { id: string, input: any }, context: any) => {
       const userId = getUserId(context)
       
+      // camelCaseからsnake_caseに変換
+      const updateData: any = {}
+      if (input.competitionId !== undefined) updateData.competition_id = input.competitionId
+      if (input.styleId !== undefined) updateData.style_id = input.styleId
+      if (input.time !== undefined) updateData.time = input.time
+      if (input.videoUrl !== undefined) updateData.video_url = input.videoUrl
+      if (input.note !== undefined) updateData.note = input.note
+      
       const { data, error } = await supabase
         .from('records')
-        .update(input)
+        .update(updateData)
         .eq('id', id)
         .eq('user_id', userId)
-        .select()
+        .select(`
+          *,
+          styles(*),
+          competitions(*)
+        `)
         .single()
       
       if (error) throw new Error(error.message)
-      return data
+      
+      // SplitTimeが提供されている場合、既存のSplitTimeを削除して新しいものを作成
+      if (input.splitTimes !== undefined) {
+        // 既存のSplitTimeを削除
+        const { error: deleteError } = await supabase
+          .from('split_times')
+          .delete()
+          .eq('record_id', id)
+        
+        if (deleteError) {
+          console.error('SplitTime削除でエラーが発生しました:', deleteError)
+        }
+        
+        // 新しいSplitTimeを作成
+        if (input.splitTimes && input.splitTimes.length > 0) {
+          const splitTimeInserts = input.splitTimes.map((splitTime: any) => ({
+            record_id: id,
+            distance: splitTime.distance,
+            split_time: splitTime.splitTime
+          }))
+          
+          const { error: splitTimeError } = await supabase
+            .from('split_times')
+            .insert(splitTimeInserts)
+          
+          if (splitTimeError) {
+            console.error('SplitTime作成でエラーが発生しました:', splitTimeError)
+          }
+        }
+      }
+      
+      // データベースのフィールド名をGraphQLスキーマに合わせて変換
+      const strokeMapping: { [key: string]: string } = {
+        'fr': 'FREESTYLE',
+        'br': 'BREASTSTROKE', 
+        'ba': 'BACKSTROKE',
+        'fly': 'BUTTERFLY',
+        'im': 'INDIVIDUAL_MEDLEY'
+      }
+      
+      return {
+        id: data.id,
+        userId: data.user_id,
+        competitionId: data.competition_id,
+        styleId: data.style_id,
+        time: data.time,
+        videoUrl: data.video_url,
+        note: data.note,
+        style: data.styles ? {
+          id: data.styles.id,
+          nameJp: data.styles.name_jp,
+          name: data.styles.name,
+          stroke: strokeMapping[data.styles.style] || 'FREESTYLE',
+          distance: data.styles.distance
+        } : null,
+        competition: data.competitions ? {
+          id: data.competitions.id,
+          title: data.competitions.title,
+          date: data.competitions.date,
+          place: data.competitions.place,
+          poolType: data.competitions.pool_type
+        } : null
+      }
     },
 
     deleteRecord: async (_: any, { id }: { id: string }, context: any) => {
       const userId = getUserId(context)
       
-      const { error } = await supabase
+      // まず削除対象のRecordを取得してcompetition_idを確認
+      const { data: recordData, error: recordError } = await supabase
+        .from('records')
+        .select('competition_id')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single()
+      
+      if (recordError) throw new Error(recordError.message)
+      
+      // 関連するSplitTimeを削除
+      const { error: splitTimeDeleteError } = await supabase
+        .from('split_times')
+        .delete()
+        .eq('record_id', id)
+      
+      if (splitTimeDeleteError) {
+        console.error('SplitTime削除でエラーが発生しました:', splitTimeDeleteError)
+      }
+      
+      // Recordを削除
+      const { error: deleteError } = await supabase
         .from('records')
         .delete()
         .eq('id', id)
         .eq('user_id', userId)
       
-      if (error) throw new Error(error.message)
+      if (deleteError) throw new Error(deleteError.message)
+      
+      // Competitionが存在し、かつそのCompetitionを参照している他のRecordがない場合、Competitionも削除
+      if (recordData.competition_id) {
+        const { data: otherRecords, error: checkError } = await supabase
+          .from('records')
+          .select('id')
+          .eq('competition_id', recordData.competition_id)
+          .limit(1)
+        
+        if (checkError) {
+          console.error('Competition参照チェックでエラーが発生しました:', checkError)
+        } else if (!otherRecords || otherRecords.length === 0) {
+          // 他のRecordがこのCompetitionを参照していない場合、Competitionを削除
+          const { error: competitionDeleteError } = await supabase
+            .from('competitions')
+            .delete()
+            .eq('id', recordData.competition_id)
+          
+          if (competitionDeleteError) {
+            console.error('Competition削除でエラーが発生しました:', competitionDeleteError)
+            // Competition削除の失敗は警告のみ（Recordは既に削除済み）
+          }
+        }
+      }
+      
       return true
     },
 

@@ -39,7 +39,7 @@ export const GET_EVENT = gql`
       }
       attendances {
         id
-        user_id
+        userId
         status
         notes
         user {
@@ -49,7 +49,7 @@ export const GET_EVENT = gql`
       }
       practiceRecords {
         id
-        user_id
+        userId
         stroke
         distance
         sets
@@ -91,8 +91,8 @@ export const GET_ATTENDANCES = gql`
   query GetAttendances($eventId: ID) {
     attendances(eventId: $eventId) {
       id
-      event_id
-      user_id
+      eventId
+      userId
       status
       notes
       event {

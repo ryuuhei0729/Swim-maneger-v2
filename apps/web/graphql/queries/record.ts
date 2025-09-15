@@ -31,20 +31,18 @@ export const GET_RECORD = gql`
   query GetRecord($id: ID!) {
     record(id: $id) {
       id
-      userId: user_id
-      competitionId: competition_id
-      styleId: style_id
+      userId
+      competitionId
+      styleId
       time
-      videoUrl: video_url
+      videoUrl
       note
-      user {
-        id
-        name
-      }
       competition {
         id
         title
         date
+        place
+        poolType
       }
       style {
         id
@@ -67,11 +65,11 @@ export const GET_RECORDS_BY_USER = gql`
   query GetRecordsByUser($userId: ID!) {
     recordsByUser(userId: $userId) {
       id
-      userId: user_id
-      competitionId: competition_id
-      styleId: style_id
+      userId
+      competitionId
+      styleId
       time
-      videoUrl: video_url
+      videoUrl
       note
       competition {
         id
