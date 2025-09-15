@@ -143,7 +143,7 @@ export default function TimeInputModal({
               </button>
             </div>
             <p className="text-sm text-gray-600 mt-1">
-              {setCount}セット × {repCount}本のタイムを入力してください
+              メニュー{setCount} × {repCount}本のタイムを入力してください
             </p>
           </div>
 
@@ -159,7 +159,7 @@ export default function TimeInputModal({
                   <div key={setNumber} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-md font-semibold text-gray-900">
-                        セット {setNumber}
+                        メニュー {setNumber}
                       </h4>
                       <div className="text-sm text-gray-600">
                         合計: {formatTime(setTotal)}

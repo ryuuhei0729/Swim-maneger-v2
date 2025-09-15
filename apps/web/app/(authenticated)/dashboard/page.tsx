@@ -491,61 +491,74 @@ export default function DashboardPage() {
   const handlePracticeSubmit = async (formData: any) => {
     setIsLoading(true)
     try {
-      const input = {
-        date: formData.practiceDate,
-        place: formData.location,
-        style: formData.sets[0]?.style || 'フリー',
-        repCount: formData.sets.reduce((sum: number, set: any) => sum + set.reps, 0),
-        setCount: formData.sets.length,
-        distance: formData.sets.reduce((sum: number, set: any) => sum + (set.distance * set.reps), 0),
-        circle: formData.sets[0]?.circleTime || null,
-        note: formData.note
-      }
+      const menus = Array.isArray(formData.sets) ? formData.sets : []
 
-      let practiceLogId: string | null = null
+      // 編集時: 先頭メニューのみ更新（従来互換）。新規時: メニュー毎に作成
+      const createdPracticeLogIds: string[] = []
 
       if (editingData && editingEntry?.entry_type === 'practice') {
-        // 更新処理
-        const result = await updatePracticeLog({
-          variables: {
-            id: editingEntry.id,
-            input
-          }
-        })
-        practiceLogId = editingEntry.id
+        const m = menus[0] || {}
+        const repsPerSet = (m?.reps as number) || 0
+        const setCount = (m?.setCount as number) || 1
+        const distancePerRep = (m?.distance as number) || 0
+        const input = {
+          date: formData.practiceDate,
+          place: formData.location,
+          style: m?.style || 'フリー',
+          repCount: repsPerSet * setCount,
+          setCount: setCount,
+          distance: distancePerRep * repsPerSet * setCount,
+          circle: m?.circleTime || null,
+          note: formData.note
+        }
+        await updatePracticeLog({ variables: { id: editingEntry.id, input } })
+        createdPracticeLogIds.push(editingEntry.id)
       } else {
-        // 作成処理
-        const result = await createPracticeLog({
-          variables: { input }
-        })
-        practiceLogId = (result.data as any)?.createPracticeLog?.id
+        for (const m of menus) {
+          const repsPerSet = (m?.reps as number) || 0
+          const setCount = (m?.setCount as number) || 1
+          const distancePerRep = (m?.distance as number) || 0
+          const input = {
+            date: formData.practiceDate,
+            place: formData.location,
+            style: m?.style || 'フリー',
+            repCount: repsPerSet * setCount,
+            setCount: setCount,
+            distance: distancePerRep * repsPerSet * setCount,
+            circle: m?.circleTime || null,
+            note: formData.note
+          }
+          const result = await createPracticeLog({ variables: { input } })
+          const id = (result.data as any)?.createPracticeLog?.id
+          if (id) createdPracticeLogIds.push(id)
+        }
       }
 
       // タイムデータの管理
-      if (practiceLogId && formData.sets) {
-        // 編集時は既存のタイムデータを削除（editingData の times を使用）
+      if (createdPracticeLogIds.length > 0 && menus.length > 0) {
+        // 編集時は既存タイムを削除
         if (editingData && editingData.times && editingData.times.length > 0) {
           for (const existingTime of editingData.times) {
             try {
-              await deletePracticeTime({
-                variables: { id: existingTime.id }
-              })
+              await deletePracticeTime({ variables: { id: existingTime.id } })
             } catch (deleteError) {
               console.error('既存タイム記録の削除でエラーが発生しました:', deleteError)
             }
           }
         }
 
-        // 新しいタイムデータを作成
-        for (const set of formData.sets) {
-          if (set.times && set.times.length > 0) {
+        // メニューごとに新しいタイムを保存
+        for (let i = 0; i < menus.length; i++) {
+          const set = menus[i]
+          const practiceLogId = createdPracticeLogIds[i] || createdPracticeLogIds[0]
+          if (practiceLogId && set?.times && set.times.length > 0) {
             for (const timeRecord of set.times) {
               if (timeRecord.time > 0) {
                 try {
                   await createPracticeTime({
                     variables: {
                       input: {
-                        practiceLogId: practiceLogId,
+                        practiceLogId,
                         repNumber: timeRecord.repNumber,
                         setNumber: timeRecord.setNumber,
                         time: timeRecord.time
@@ -554,7 +567,6 @@ export default function DashboardPage() {
                   })
                 } catch (timeError) {
                   console.error('タイム記録の保存でエラーが発生しました:', timeError)
-                  // タイムの保存に失敗してもメインの練習記録は保存されているので、警告のみ
                 }
               }
             }

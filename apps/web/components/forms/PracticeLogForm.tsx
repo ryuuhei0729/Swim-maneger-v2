@@ -14,6 +14,7 @@ interface PracticeSet {
   // UI用の分・秒入力（内部的にはcircleTime[秒]に正規化）
   uiCircleMin?: number | ''
   uiCircleSec?: number | ''
+  setCount?: number | ''
   style: string
   times?: Array<{
     setNumber: number
@@ -67,6 +68,7 @@ export default function PracticeLogForm({
       circleTime: 90,
       uiCircleMin: 1,
       uiCircleSec: 30,
+      setCount: 1,
       style: 'フリー'
     }],
     note: ''
@@ -89,33 +91,35 @@ export default function PracticeLogForm({
     if (editData && isOpen) {
       console.log('PracticeLogForm: Setting form data from editData:', editData)
       console.log('PracticeLogForm: Times data:', editData.times)
-      
-      // 編集データをフォーム形式に変換
-      // 実際のセット数に基づいて複数のセットを生成
-      const actualSetCount = editData.setCount || 1
-      const repsPerSet = editData.repCount || 1
-      const totalDistance = editData.distance || 100
-      const distancePerSet = actualSetCount > 1 ? Math.round(totalDistance / actualSetCount) : totalDistance
-      
-      const setsData = [] as any[]
-      for (let setIndex = 1; setIndex <= actualSetCount; setIndex++) {
-        // 各セットのタイムデータを抽出
-        const setTimes = (editData.times || []).filter((time: any) => time.setNumber === setIndex)
-        
-        const ct = editData.circle || 90
-        setsData.push({
-          id: setIndex.toString(),
-          reps: repsPerSet,
-          distance: distancePerSet,
-          circleTime: ct,
-          uiCircleMin: Math.floor(ct / 60),
-          uiCircleSec: ct % 60,
-          style: editData.style || 'フリー',
-          times: setTimes
-        })
-      }
+    
+      // 編集データをフォーム形式に変換（単一メニュー + セット数で管理）
+      const actualSetCount: number = editData.setCount || 1
+      const allTimes: Array<{ setNumber: number; repNumber: number; time: number }> = (editData.times || [])
+      const derivedRepsFromTimes = allTimes.length > 0
+        ? Math.max(...allTimes.map((t: any) => t.repNumber || 0))
+        : 0
+      const repsPerSet = derivedRepsFromTimes > 0
+        ? derivedRepsFromTimes
+        : Math.max(1, Math.floor((editData.repCount || 1) / (actualSetCount || 1)))
+      const totalDistance = editData.distance || 0
+      const perRepDistance = (repsPerSet > 0 && actualSetCount > 0)
+        ? Math.max(1, Math.round(totalDistance / (repsPerSet * actualSetCount)))
+        : (editData.distance || 100)
+      const ct = editData.circle || 90
 
-      console.log('PracticeLogForm: Generated sets data:', setsData)
+      const setsData = [{
+        id: '1',
+        reps: repsPerSet,
+        distance: perRepDistance,
+        circleTime: ct,
+        uiCircleMin: Math.floor(ct / 60),
+        uiCircleSec: ct % 60,
+        setCount: actualSetCount,
+        style: editData.style || 'フリー',
+        times: allTimes
+      }]
+
+      console.log('PracticeLogForm: Generated single set data:', setsData)
 
       const newFormData = {
         practiceDate: editData.date || format(new Date(), 'yyyy-MM-dd'),
@@ -139,6 +143,7 @@ export default function PracticeLogForm({
           circleTime: 90,
           uiCircleMin: 1,
           uiCircleSec: 30,
+          setCount: 1,
           style: 'フリー'
         }],
         note: ''
@@ -171,6 +176,7 @@ export default function PracticeLogForm({
           reps: 1,
           distance: 100,
           circleTime: 90,
+          setCount: 1,
           style: 'フリー'
         }],
         note: ''
@@ -181,23 +187,27 @@ export default function PracticeLogForm({
     }
   }
 
-  const addSet = () => {
-    const newSet: PracticeSet = {
-      id: Date.now().toString(),
-      reps: 1,
-      distance: 100,
-      circleTime: 90,
-      uiCircleMin: 1,
-      uiCircleSec: 30,
-      style: 'フリー'
-    }
-    setFormData(prev => ({
-      ...prev,
-      sets: [...prev.sets, newSet]
-    }))
+  const addMenu = () => {
+    setFormData(prev => {
+      const base = prev.sets[0]
+      const newSet: PracticeSet = {
+        id: Date.now().toString(),
+        reps: (typeof base?.reps === 'number' || base?.reps === '') ? (base.reps as any) : 1,
+        distance: (typeof base?.distance === 'number' || base?.distance === '') ? (base.distance as any) : 100,
+        circleTime: (typeof base?.circleTime === 'number' || base?.circleTime === '') ? (base.circleTime as any) : 90,
+        uiCircleMin: (typeof base?.uiCircleMin === 'number' || base?.uiCircleMin === '') ? (base.uiCircleMin as any) : 1,
+        uiCircleSec: (typeof base?.uiCircleSec === 'number' || base?.uiCircleSec === '') ? (base.uiCircleSec as any) : 30,
+        setCount: (typeof base?.setCount === 'number' || base?.setCount === '') ? (base.setCount as any) : 1,
+        style: base?.style || 'フリー'
+      }
+      return {
+        ...prev,
+        sets: [...prev.sets, newSet]
+      }
+    })
   }
 
-  const removeSet = (id: string) => {
+  const removeMenu = (id: string) => {
     if (formData.sets.length > 1) {
       setFormData(prev => ({
         ...prev,
@@ -256,35 +266,31 @@ export default function PracticeLogForm({
   }
 
   const handleTimeInput = (set: PracticeSet) => {
+    // 選択したメニューのタイム入力
     setSelectedSetForTime(set)
     setShowTimeModal(true)
   }
 
   const handleTimeSubmit = (times: Array<{ id: string; setNumber: number; repNumber: number; time: number }>) => {
-    if (!selectedSetForTime) return
-
-    // TimeInputModalから返されたタイムデータを、現在のセット用に変換
-    const setIndex = formData.sets.findIndex(set => set.id === selectedSetForTime.id)
-    const actualSetNumber = setIndex + 1 // 実際のセット番号
-
-    const convertedTimes = times
-      .filter(t => t.time > 0) // タイムが入力されているもののみ
-      .map(t => ({
-        id: `${actualSetNumber}-${t.repNumber}`, // 実際のセット番号を使用
-        setNumber: actualSetNumber,
-        repNumber: t.repNumber,
-        time: t.time
-      }))
-
+    // 選択したメニューにのみ反映
+    const targetId = selectedSetForTime?.id
     setFormData(prev => ({
       ...prev,
-      sets: prev.sets.map(set => 
-        set.id === selectedSetForTime.id 
-          ? { ...set, times: convertedTimes } 
-          : set
-      )
+      sets: prev.sets.map(s => {
+        if (s.id !== targetId) return s
+        const repsNum = typeof s.reps === 'number' ? s.reps : 0
+        const setCountNum = typeof s.setCount === 'number' ? s.setCount : 1
+        const filtered = times.filter(t => t.time > 0 && t.repNumber >= 1 && t.repNumber <= repsNum && t.setNumber >= 1 && t.setNumber <= setCountNum)
+        const mapped = filtered.map(t => ({
+          id: `${t.setNumber}-${t.repNumber}`,
+          setNumber: t.setNumber,
+          repNumber: t.repNumber,
+          time: t.time
+        }))
+        return { ...s, times: mapped }
+      })
     }))
-    
+
     setShowTimeModal(false)
     setSelectedSetForTime(null)
   }
@@ -349,12 +355,12 @@ export default function PracticeLogForm({
                 </label>
                 <Button
                   type="button"
-                  onClick={addSet}
+                  onClick={addMenu}
                   variant="outline"
                   size="sm"
                 >
                   <PlusIcon className="h-4 w-4 mr-1" />
-                  セット追加
+                  メニュー追加
                 </Button>
               </div>
 
@@ -363,7 +369,7 @@ export default function PracticeLogForm({
                   <div key={set.id} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="text-sm font-medium text-gray-900">
-                        セット {index + 1}
+                        メニュー {index + 1}
                       </h4>
                       <div className="flex items-center space-x-2">
                         <Button
@@ -383,7 +389,7 @@ export default function PracticeLogForm({
                         {formData.sets.length > 1 && (
                           <button
                             type="button"
-                            onClick={() => removeSet(set.id)}
+                            onClick={() => removeMenu(set.id)}
                             className="text-red-600 hover:text-red-800"
                           >
                             <TrashIcon className="h-4 w-4" />
@@ -406,6 +412,27 @@ export default function PracticeLogForm({
                             <option key={style} value={style}>{style}</option>
                           ))}
                         </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          セット数
+                        </label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={(set.setCount ?? 1) as number | ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '') {
+                              updateSet(set.id, 'setCount', '')
+                            } else {
+                              const numValue = parseInt(value)
+                              updateSet(set.id, 'setCount', Number.isNaN(numValue) ? '' : numValue)
+                            }
+                          }}
+                          className="text-sm h-9"
+                        />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -447,7 +474,7 @@ export default function PracticeLogForm({
                           className="text-sm h-9"
                         />
                       </div>
-                      <div className="md:col-span-3">
+                      <div className="md:col-span-2">
                         <label className="block text-xs font-medium text-gray-700 mb-1">
                           サークル（分・秒）
                         </label>
@@ -494,7 +521,7 @@ export default function PracticeLogForm({
                             .map((time: any, timeIndex: number) => (
                               <div key={`${time.setNumber}-${time.repNumber}-${timeIndex}`} className="text-center">
                                 <div className="text-xs text-blue-600 font-medium">
-                                  {time.setNumber}セット{time.repNumber}本目
+                                  メニュー{time.setNumber}の{time.repNumber}本目
                                 </div>
                                 <div className="text-sm font-mono text-blue-800 bg-white px-2 py-1 rounded border">
                                   {formatTimeDisplay(time.time)}
@@ -554,21 +581,14 @@ export default function PracticeLogForm({
             setSelectedSetForTime(null)
           }}
           onSubmit={handleTimeSubmit}
-          setCount={1} // 1セットのみ（現在選択されたセット）
-          repCount={typeof selectedSetForTime.reps === 'number' ? selectedSetForTime.reps : 0}
-          initialTimes={(() => {
-            const setIndex = formData.sets.findIndex(set => set.id === selectedSetForTime.id)
-            const actualSetNumber = setIndex + 1
-            
-            return selectedSetForTime.times?.filter(t => 
-              t.setNumber === actualSetNumber // 実際のセット番号でフィルタ
-            ).map(t => ({
-              id: `1-${t.repNumber}`, // TimeInputModalでは常にセット1として扱う
-              setNumber: 1,
-              repNumber: t.repNumber,
-              time: t.time
-            })) || []
-          })()}
+          setCount={(typeof selectedSetForTime.setCount === 'number' ? (selectedSetForTime.setCount as number) : 1)}
+          repCount={(typeof selectedSetForTime.reps === 'number' ? (selectedSetForTime.reps as number) : 0)}
+          initialTimes={(selectedSetForTime.times || []).map((t: any) => ({
+            id: `${t.setNumber}-${t.repNumber}`,
+            setNumber: t.setNumber,
+            repNumber: t.repNumber,
+            time: t.time
+          }))}
         />
       )}
     </div>

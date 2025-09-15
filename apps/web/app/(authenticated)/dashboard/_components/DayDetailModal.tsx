@@ -355,9 +355,7 @@ function RecordSplitTimes({ recordId }: { recordId: string }) {
 
   const splits = (data as any)?.record?.splitTimes || []
   if (!splits.length) {
-    return (
-      <div className="mt-3 text-sm text-gray-500">スプリットは登録されていません</div>
-    )
+    return null
   }
 
   return (
