@@ -26,8 +26,10 @@ interface RecordFormData {
 }
 
 interface SplitTimeInput {
-  distance: number
+  distance: number | ''
   splitTime: number
+  // UI安定化用のキー（サーバー送信時には除去）
+  uiKey?: string
 }
 
 interface RecordFormProps {
@@ -91,10 +93,13 @@ export default function RecordForm({
         styleId: editData.styleId || styles[0]?.id || '',
         time: editData.time || 0,
         isRelaying: editData.isRelaying || false,
-        splitTimes: editData.splitTimes?.map((st: any) => ({
+        splitTimes: (editData.splitTimes?.map((st: any) => ({
           distance: st.distance,
-          splitTime: st.splitTime
-        })) || [],
+          splitTime: st.splitTime,
+          uiKey: (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+            ? (crypto as any).randomUUID()
+            : 'st-' + Math.random().toString(36).slice(2)
+        })) || []).sort((a: any, b: any) => (a.distance || 0) - (b.distance || 0)),
         note: editData.note || '',
         videoUrl: editData.videoUrl || ''
       })
@@ -120,9 +125,17 @@ export default function RecordForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      // 送信前にUI専用プロパティを除去
+      const sanitizedSplitTimes = (formData.splitTimes || [])
+        .filter(st => typeof st.distance === 'number' && Number.isFinite(st.distance) && (st.distance as number) > 0)
+        .map(st => ({
+          distance: st.distance as number,
+          splitTime: st.splitTime
+        }))
       // 編集時はIDを含めて送信
       const submitData = {
         ...formData,
+        splitTimes: sanitizedSplitTimes,
         ...(editData ? { id: editData.id } : {})
       }
       console.log('RecordForm: Submitting data:', submitData)
@@ -149,11 +162,14 @@ export default function RecordForm({
   const addSplitTime = () => {
     const newSplit: SplitTimeInput = {
       distance: 25,
-      splitTime: 0
+      splitTime: 0,
+      uiKey: (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+        ? (crypto as any).randomUUID()
+        : 'st-' + Math.random().toString(36).slice(2)
     }
     setFormData(prev => ({
       ...prev,
-      splitTimes: [...prev.splitTimes, newSplit]
+      splitTimes: [...prev.splitTimes, newSplit].sort((a, b) => (a.distance || 0) - (b.distance || 0))
     }))
   }
 
@@ -164,13 +180,24 @@ export default function RecordForm({
     }))
   }
 
-  const updateSplitTime = (index: number, field: keyof SplitTimeInput, value: number) => {
-    setFormData(prev => ({
-      ...prev,
-      splitTimes: prev.splitTimes.map((split, i) => 
-        i === index ? { ...split, [field]: value } : split
-      )
-    }))
+  const updateSplitTime = (index: number, field: keyof SplitTimeInput, value: number | '') => {
+    setFormData(prev => {
+      const beforeKey = prev.splitTimes[index]?.uiKey
+      const updated = prev.splitTimes
+        .map((split, i) => (i === index ? { ...split, [field]: value } : split))
+        .sort((a, b) => ((a.distance as number) || 0) - ((b.distance as number) || 0))
+
+      // 入力中行がソートで移動してもフォーカスを維持するため、同じuiKeyを持つ要素のindexを探して
+      // 次のレンダリングでも安定したkeyで描画されるようにする（keyはuiKeyを使用）
+      if (beforeKey) {
+        const newIndex = updated.findIndex(s => s.uiKey === beforeKey)
+        if (newIndex >= 0) {
+          // 何もしなくてもkeyによってReactが同一要素とみなす
+        }
+      }
+
+      return { ...prev, splitTimes: updated }
+    })
   }
 
   const _formatTimeInput = (seconds: number): string => {
@@ -362,7 +389,7 @@ export default function RecordForm({
               {formData.splitTimes.length > 0 && (
                 <div className="space-y-3">
                   {formData.splitTimes.map((split, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+                    <div key={split.uiKey ?? index} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
                       <div className="flex-1">
                         <label className="block text-xs font-medium text-gray-700 mb-1">
                           距離 (m)
@@ -370,8 +397,16 @@ export default function RecordForm({
                         <Input
                           type="number"
                           min="1"
-                          value={split.distance}
-                          onChange={(e) => updateSplitTime(index, 'distance', parseInt(e.target.value) || 25)}
+                          value={split.distance as number | ''}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            if (val === '') {
+                              updateSplitTime(index, 'distance', '')
+                            } else {
+                              const n = parseInt(val)
+                              updateSplitTime(index, 'distance', Number.isNaN(n) ? '' : n)
+                            }
+                          }}
                           className="text-sm"
                         />
                       </div>

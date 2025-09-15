@@ -1041,7 +1041,26 @@ export const resolvers = {
           date: data.competitions.date,
           place: data.competitions.place,
           poolType: data.competitions.pool_type
-        } : null
+        } : null,
+        // 非Null型のため、必ず配列を返す
+        splitTimes: await (async () => {
+          try {
+            const { data: splitRows, error: splitFetchError } = await supabase
+              .from('split_times')
+              .select('*')
+              .eq('record_id', data.id)
+
+            if (splitFetchError || !splitRows) return []
+            return splitRows.map((split: any) => ({
+              id: split.id,
+              recordId: split.record_id,
+              distance: split.distance,
+              splitTime: split.split_time,
+            }))
+          } catch (_err) {
+            return []
+          }
+        })()
       }
     },
 
@@ -1130,7 +1149,26 @@ export const resolvers = {
           date: data.competitions.date,
           place: data.competitions.place,
           poolType: data.competitions.pool_type
-        } : null
+        } : null,
+        // 非Null型のため、必ず配列を返す
+        splitTimes: await (async () => {
+          try {
+            const { data: splitRows, error: splitFetchError } = await supabase
+              .from('split_times')
+              .select('*')
+              .eq('record_id', data.id)
+
+            if (splitFetchError || !splitRows) return []
+            return splitRows.map((split: any) => ({
+              id: split.id,
+              recordId: split.record_id,
+              distance: split.distance,
+              splitTime: split.split_time,
+            }))
+          } catch (_err) {
+            return []
+          }
+        })()
       }
     },
 

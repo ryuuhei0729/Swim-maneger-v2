@@ -5,6 +5,8 @@ import { XMarkIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { formatTime } from '@/utils/formatters'
+import { useQuery } from '@apollo/client/react'
+import { GET_RECORD } from '@/graphql/queries'
 
 interface CalendarEntry {
   id: string
@@ -220,6 +222,8 @@ export default function DayDetailModal({
                               💭 {entry.note}
                             </p>
                           )}
+                          {/* スプリットタイム */}
+                          <RecordSplitTimes recordId={entry.id} />
                         </div>
                         <div className="flex items-center space-x-2 ml-4">
                           <button
@@ -325,6 +329,51 @@ export default function DayDetailModal({
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// 大会記録のスプリットタイム一覧
+function RecordSplitTimes({ recordId }: { recordId: string }) {
+  const { data, loading, error } = useQuery(GET_RECORD, {
+    variables: { id: recordId },
+    fetchPolicy: 'cache-and-network',
+    notifyOnNetworkStatusChange: true,
+    errorPolicy: 'ignore',
+  })
+
+  if (loading) {
+    return (
+      <div className="mt-3 text-sm text-gray-500">スプリットを読み込み中...</div>
+    )
+  }
+  if (error) {
+    return (
+      <div className="mt-3 text-sm text-red-600">スプリットの取得に失敗しました</div>
+    )
+  }
+
+  const splits = (data as any)?.record?.splitTimes || []
+  if (!splits.length) {
+    return (
+      <div className="mt-3 text-sm text-gray-500">スプリットは登録されていません</div>
+    )
+  }
+
+  return (
+    <div className="mt-3">
+      <p className="text-sm font-medium text-blue-800 mb-1">スプリット</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {splits
+          .slice()
+          .sort((a: any, b: any) => (a.distance || 0) - (b.distance || 0))
+          .map((st: any) => (
+          <div key={st.id} className="text-xs text-blue-900 bg-blue-100 rounded px-2 py-1">
+            <span className="mr-2">{st.distance}m</span>
+            <span className="font-semibold">{formatTime(st.splitTime)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

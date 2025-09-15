@@ -25,12 +25,6 @@ export const CREATE_RECORD = gql`
         place
         poolType
       }
-      splitTimes {
-        id
-        recordId
-        distance
-        splitTime
-      }
     }
   }
 `
@@ -57,12 +51,6 @@ export const UPDATE_RECORD = gql`
         stroke
         distance
       }
-      splitTimes {
-        id
-        recordId
-        distance
-        splitTime
-      }
     }
   }
 `
@@ -74,7 +62,7 @@ export const DELETE_RECORD = gql`
 `
 
 export const CREATE_SPLIT_TIME = gql`
-  mutation CreateSplitTime($input: SplitTimeInput!) {
+  mutation CreateSplitTime($input: CreateSplitTimeInput!) {
     createSplitTime(input: $input) {
       id
       recordId
@@ -85,7 +73,7 @@ export const CREATE_SPLIT_TIME = gql`
 `
 
 export const UPDATE_SPLIT_TIME = gql`
-  mutation UpdateSplitTime($id: ID!, $input: SplitTimeInput!) {
+  mutation UpdateSplitTime($id: ID!, $input: UpdateSplitTimeInput!) {
     updateSplitTime(id: $id, input: $input) {
       id
       recordId
@@ -97,8 +85,6 @@ export const UPDATE_SPLIT_TIME = gql`
 
 export const DELETE_SPLIT_TIME = gql`
   mutation DeleteSplitTime($id: ID!) {
-    deleteSplitTime(id: $id) {
-      success
-    }
+    deleteSplitTime(id: $id)
   }
 `

@@ -7,6 +7,7 @@ import PracticeLogForm from '@/components/forms/PracticeLogForm'
 import RecordForm from '@/components/forms/RecordForm'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { gql } from '@apollo/client'
+import { apolloClient } from '@/lib/apollo-client'
 import { CREATE_PRACTICE_LOG, CREATE_RECORD, DELETE_PRACTICE_LOG, DELETE_RECORD, UPDATE_PRACTICE_LOG, UPDATE_RECORD, CREATE_PRACTICE_TIME, UPDATE_PRACTICE_TIME, DELETE_PRACTICE_TIME, CREATE_COMPETITION } from '@/graphql/mutations'
 import { GET_CALENDAR_DATA, GET_STYLES, GET_PRACTICE_LOG, GET_RECORD, GET_PRACTICE_LOGS, GET_RECORDS } from '@/graphql/queries'
 
@@ -623,9 +624,48 @@ export default function DashboardPage() {
         // 作成処理
         console.log('Dashboard: Creating new record')
         console.log('Dashboard: Create input:', recordInput)
-        const createResult = await createRecord({
-          variables: { input: recordInput }
-        })
+        let createResult
+        try {
+          createResult = await createRecord({
+            variables: { input: recordInput }
+          })
+        } catch (err: any) {
+          // 一部の環境でCreateRecordInputにsplitTimesが未定義な場合のフォールバック
+          const message = err?.message || ''
+          const isSplitTimesFieldError = message.includes('Field "splitTimes" is not defined') || message.includes('Field \"splitTimes\" is not defined')
+          if (isSplitTimesFieldError) {
+            console.warn('splitTimesが未対応のためフォールバック実行: Recordのみ先に作成し、その後にスプリットを個別作成します。')
+            const fallbackInput = { ...recordInput }
+            delete (fallbackInput as any).splitTimes
+
+            // Recordのみ作成
+            createResult = await createRecord({ variables: { input: fallbackInput } })
+
+            // 作成されたRecord IDを取得し、スプリットを個別追加
+            const createdRecordId = (createResult as any)?.data?.createRecord?.id
+            const splits: Array<{ distance: number; splitTime: number }> = recordInput.splitTimes || []
+            if (createdRecordId && splits.length > 0) {
+              for (const st of splits) {
+                try {
+                  await apolloClient.mutate({
+                    mutation: gql`
+                      mutation CreateSplitTime($input: CreateSplitTimeInput!) {
+                        createSplitTime(input: $input) { id }
+                      }
+                    `,
+                    variables: {
+                      input: { recordId: createdRecordId, distance: st.distance, splitTime: st.splitTime }
+                    }
+                  })
+                } catch (splitErr) {
+                  console.error('スプリットの個別作成に失敗しました:', splitErr)
+                }
+              }
+            }
+          } else {
+            throw err
+          }
+        }
         console.log('Dashboard: Create result:', createResult)
       }
     } catch (error) {

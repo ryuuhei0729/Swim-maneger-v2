@@ -8,9 +8,12 @@ import TimeInputModal from './TimeInputModal'
 
 interface PracticeSet {
   id: string
-  reps: number
-  distance: number
-  circleTime: number
+  reps: number | ''
+  distance: number | ''
+  circleTime: number | ''
+  // UI用の分・秒入力（内部的にはcircleTime[秒]に正規化）
+  uiCircleMin?: number | ''
+  uiCircleSec?: number | ''
   style: string
   times?: Array<{
     setNumber: number
@@ -62,6 +65,8 @@ export default function PracticeLogForm({
       reps: 1,
       distance: 100,
       circleTime: 90,
+      uiCircleMin: 1,
+      uiCircleSec: 30,
       style: 'フリー'
     }],
     note: ''
@@ -92,16 +97,19 @@ export default function PracticeLogForm({
       const totalDistance = editData.distance || 100
       const distancePerSet = actualSetCount > 1 ? Math.round(totalDistance / actualSetCount) : totalDistance
       
-      const setsData = []
+      const setsData = [] as any[]
       for (let setIndex = 1; setIndex <= actualSetCount; setIndex++) {
         // 各セットのタイムデータを抽出
         const setTimes = (editData.times || []).filter((time: any) => time.setNumber === setIndex)
         
+        const ct = editData.circle || 90
         setsData.push({
           id: setIndex.toString(),
           reps: repsPerSet,
           distance: distancePerSet,
-          circleTime: editData.circle || 90,
+          circleTime: ct,
+          uiCircleMin: Math.floor(ct / 60),
+          uiCircleSec: ct % 60,
           style: editData.style || 'フリー',
           times: setTimes
         })
@@ -129,6 +137,8 @@ export default function PracticeLogForm({
           reps: 1,
           distance: 100,
           circleTime: 90,
+          uiCircleMin: 1,
+          uiCircleSec: 30,
           style: 'フリー'
         }],
         note: ''
@@ -143,7 +153,15 @@ export default function PracticeLogForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await onSubmit(formData)
+      // サニタイズ: 空文字は0として扱い、数値型に統一
+      const sanitizedSets = (formData.sets || []).map(set => ({
+        ...set,
+        reps: (typeof set.reps === 'number' && Number.isFinite(set.reps)) ? set.reps : 0,
+        distance: (typeof set.distance === 'number' && Number.isFinite(set.distance)) ? set.distance : 0,
+        circleTime: (typeof set.circleTime === 'number' && Number.isFinite(set.circleTime)) ? set.circleTime : 0,
+      }))
+      const sanitizedForm = { ...formData, sets: sanitizedSets }
+      await onSubmit?.(sanitizedForm)
       // フォームリセット
       setFormData({
         practiceDate: format(new Date(), 'yyyy-MM-dd'),
@@ -169,6 +187,8 @@ export default function PracticeLogForm({
       reps: 1,
       distance: 100,
       circleTime: 90,
+      uiCircleMin: 1,
+      uiCircleSec: 30,
       style: 'フリー'
     }
     setFormData(prev => ({
@@ -192,6 +212,46 @@ export default function PracticeLogForm({
       sets: prev.sets.map(set => 
         set.id === id ? { ...set, [field]: value } : set
       )
+    }))
+  }
+
+  const updateCirclePart = (id: string, part: 'min' | 'sec', rawValue: string) => {
+    setFormData(prev => ({
+      ...prev,
+      sets: prev.sets.map(set => {
+        if (set.id !== id) return set
+        const currentMin = set.uiCircleMin ?? (typeof set.circleTime === 'number' ? Math.floor(set.circleTime / 60) : '')
+        const currentSec = set.uiCircleSec ?? (typeof set.circleTime === 'number' ? (set.circleTime % 60) : '')
+        let nextMin: number | '' = currentMin
+        let nextSec: number | '' = currentSec
+        if (part === 'min') {
+          if (rawValue === '') nextMin = ''
+          else {
+            const n = parseInt(rawValue, 10)
+            nextMin = Number.isNaN(n) || n < 0 ? '' : n
+          }
+        } else {
+          if (rawValue === '') nextSec = ''
+          else {
+            let n = parseInt(rawValue, 10)
+            if (Number.isNaN(n) || n < 0) n = 0
+            if (n > 59) n = 59
+            nextSec = n
+          }
+        }
+
+        // 両方数値なら秒に正規化、それ以外は空
+        const nextCircle = (typeof nextMin === 'number' && typeof nextSec === 'number')
+          ? (nextMin * 60 + nextSec)
+          : ''
+
+        return {
+          ...set,
+          uiCircleMin: nextMin,
+          uiCircleSec: nextSec,
+          circleTime: nextCircle
+        }
+      })
     }))
   }
 
@@ -332,7 +392,7 @@ export default function PracticeLogForm({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">
                           泳法
@@ -340,7 +400,7 @@ export default function PracticeLogForm({
                         <select
                           value={set.style}
                           onChange={(e) => updateSet(set.id, 'style', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 h-9 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           {SWIMMING_STYLES.map(style => (
                             <option key={style} value={style}>{style}</option>
@@ -354,19 +414,17 @@ export default function PracticeLogForm({
                         <Input
                           type="number"
                           min="1"
-                          value={set.reps}
+                          value={set.reps as number | ''}
                           onChange={(e) => {
                             const value = e.target.value
                             if (value === '') {
-                              updateSet(set.id, 'reps', 1)
+                              updateSet(set.id, 'reps', '')
                             } else {
                               const numValue = parseInt(value)
-                              if (!isNaN(numValue) && numValue > 0) {
-                                updateSet(set.id, 'reps', numValue)
-                              }
+                              updateSet(set.id, 'reps', Number.isNaN(numValue) ? '' : numValue)
                             }
                           }}
-                          className="text-sm"
+                          className="text-sm h-9"
                         />
                       </div>
                       <div>
@@ -376,51 +434,48 @@ export default function PracticeLogForm({
                         <Input
                           type="number"
                           min="1"
-                          value={set.distance}
+                          value={set.distance as number | ''}
                           onChange={(e) => {
                             const value = e.target.value
                             if (value === '') {
-                              updateSet(set.id, 'distance', 100)
+                              updateSet(set.id, 'distance', '')
                             } else {
                               const numValue = parseInt(value)
-                              if (!isNaN(numValue) && numValue > 0) {
-                                updateSet(set.id, 'distance', numValue)
-                              }
+                              updateSet(set.id, 'distance', Number.isNaN(numValue) ? '' : numValue)
                             }
                           }}
-                          className="text-sm"
+                          className="text-sm h-9"
                         />
                       </div>
-                      <div>
+                      <div className="md:col-span-3">
                         <label className="block text-xs font-medium text-gray-700 mb-1">
-                          サークル(秒)
+                          サークル（分・秒）
                         </label>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={set.circleTime}
-                          onChange={(e) => {
-                            const value = e.target.value
-                            if (value === '') {
-                              updateSet(set.id, 'circleTime', 90)
-                            } else {
-                              const numValue = parseInt(value)
-                              if (!isNaN(numValue) && numValue > 0) {
-                                updateSet(set.id, 'circleTime', numValue)
-                              }
-                            }
-                          }}
-                          className="text-sm"
-                        />
-                      </div>
-                      <div className="md:col-span-1">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          総距離
-                        </label>
-                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600">
-                          {set.reps * set.distance}m
+                        <div className="flex items-center gap-1 sm:gap-2 flex-nowrap">
+                          <div className="flex-1 min-w-0">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={(set.uiCircleMin ?? (typeof set.circleTime === 'number' ? Math.floor(set.circleTime / 60) : '')) as number | ''}
+                              onChange={(e) => updateCirclePart(set.id, 'min', e.target.value)}
+                              className="text-sm h-9 w-full"
+                            />
+                          </div>
+                          <span className="text-xs text-gray-600">分</span>
+                          <div className="flex-1 min-w-0">
+                            <Input
+                              type="number"
+                              min="0"
+                              max="59"
+                              value={(set.uiCircleSec ?? (typeof set.circleTime === 'number' ? (set.circleTime % 60) : '')) as number | ''}
+                              onChange={(e) => updateCirclePart(set.id, 'sec', e.target.value)}
+                              className="text-sm h-9 w-full"
+                            />
+                          </div>
+                          <span className="text-xs text-gray-600">秒</span>
                         </div>
                       </div>
+                      
                     </div>
 
                     {/* タイム表示セクション */}
@@ -500,7 +555,7 @@ export default function PracticeLogForm({
           }}
           onSubmit={handleTimeSubmit}
           setCount={1} // 1セットのみ（現在選択されたセット）
-          repCount={selectedSetForTime.reps}
+          repCount={typeof selectedSetForTime.reps === 'number' ? selectedSetForTime.reps : 0}
           initialTimes={(() => {
             const setIndex = formData.sets.findIndex(set => set.id === selectedSetForTime.id)
             const actualSetNumber = setIndex + 1
