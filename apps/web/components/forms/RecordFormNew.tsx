@@ -6,12 +6,12 @@ import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
 import { 
   useStyles,
-  useMyCompetitions,
-  useCreateCompetition,
   useCreateRecord,
   useUpdateRecord,
   useCreateSplitTime
 } from '@/hooks/useGraphQL'
+import { useMutation } from '@apollo/client/react'
+import { CREATE_COMPETITION } from '@/graphql/mutations'
 
 interface SplitTime {
   distance: number
@@ -74,15 +74,13 @@ export default function RecordForm({
 
   // GraphQLフック
   const { data: stylesData, loading: stylesLoading } = useStyles()
-  const { data: competitionsData } = useMyCompetitions()
-  const [createCompetition] = useCreateCompetition()
+  const [createCompetition] = useMutation(CREATE_COMPETITION)
   const [createRecord, { loading: createLoading }] = useCreateRecord()
   const [updateRecord, { loading: updateLoading }] = useUpdateRecord()
   const [createSplitTime] = useCreateSplitTime()
 
   const isLoading = createLoading || updateLoading
-  const styles = stylesData?.styles || []
-  const competitions = competitionsData?.myCompetitions || []
+  const styles = (stylesData as any)?.styles || []
 
   // 編集データがある場合、フォームを初期化
   useEffect(() => {
@@ -90,7 +88,7 @@ export default function RecordForm({
       setFormData({
         recordDate: editData.recordDate || format(new Date(), 'yyyy-MM-dd'),
         location: editData.location || '',
-        competitionName: editData.competition?.name || '',
+        competitionName: editData.competition?.title || '',
         poolType: editData.poolType || 'SHORT_COURSE',
         poolLength: editData.poolLength || 25,
         competitionCategory: 'OFFICIAL', // デフォルト値
@@ -125,40 +123,37 @@ export default function RecordForm({
     try {
       // まず大会を作成または取得
       let competitionId = null
-      const existingCompetition = competitions.find(c => 
-        c.name === formData.competitionName && 
-        c.competitionDate === formData.recordDate
-      )
+      const normalize = (v?: string) => (v ?? '').trim()
+      const normalizeDate = (v?: string) => {
+        if (!v) return ''
+        try {
+          return format(new Date(v), 'yyyy-MM-dd')
+        } catch {
+          return (v ?? '').slice(0, 10)
+        }
+      }
 
-      if (existingCompetition) {
-        competitionId = existingCompetition.id
-      } else if (formData.competitionName) {
+      if (formData.competitionName) {
+        const poolTypeInt = formData.poolType === 'LONG_COURSE' ? 1 : 0
         const { data: competitionResult } = await createCompetition({
           variables: {
             input: {
-              name: formData.competitionName,
-              competitionDate: formData.recordDate,
-              location: formData.location,
-              poolType: formData.poolType,
-              poolLength: formData.poolLength,
-              competitionCategory: formData.competitionCategory
+              title: formData.competitionName,
+              date: formData.recordDate,
+              place: formData.location,
+              poolType: poolTypeInt,
+              note: formData.competitionCategory
             }
           }
         })
-        competitionId = competitionResult?.createCompetition?.id
+        competitionId = (competitionResult as any)?.createCompetition?.id
       }
 
-      // 記録を作成または更新
+      // 記録を作成または更新（スキーマ準拠のキーのみ）
       const recordInput = {
-        styleId: formData.styleId,
+        styleId: parseInt(String(formData.styleId), 10),
         time: formData.time,
-        recordDate: formData.recordDate,
-        location: formData.location,
-        poolType: formData.poolType,
-        poolLength: formData.poolLength,
-        isRelay: formData.isRelay,
-        rankPosition: formData.rankPosition,
-        memo: formData.memo,
+        note: formData.memo,
         videoUrl: formData.videoUrl,
         competitionId
       }
@@ -172,12 +167,12 @@ export default function RecordForm({
             input: recordInput
           }
         })
-        recordId = recordResult?.updateRecord?.id
+        recordId = (recordResult as any)?.updateRecord?.id
       } else {
         const { data: recordResult } = await createRecord({
           variables: { input: recordInput }
         })
-        recordId = recordResult?.createRecord?.id
+        recordId = (recordResult as any)?.createRecord?.id
       }
 
       if (!recordId) {

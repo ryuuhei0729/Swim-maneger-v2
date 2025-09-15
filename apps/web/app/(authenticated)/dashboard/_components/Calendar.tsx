@@ -207,7 +207,7 @@ export default function Calendar({
       <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
           <div className="flex items-center space-x-2">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+            <h2 className="hidden sm:block text-xl font-semibold text-gray-900">
               練習・記録カレンダー
             </h2>
             {isLoading && <LoadingSpinner size="sm" />}
@@ -251,7 +251,7 @@ export default function Calendar({
       {/* カレンダー本体 */}
       <div className="p-3 sm:p-6">
         {/* 曜日ヘッダー */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
+        <div className="grid grid-cols-7 gap-0 sm:gap-1 mb-2">
           {WEEKDAYS.map((day) => (
             <div key={day} className="p-1 sm:p-2 text-center text-sm font-medium text-gray-500">
               {day}
@@ -260,7 +260,7 @@ export default function Calendar({
         </div>
 
         {/* 日付グリッド */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-0 sm:gap-1">
           {isLoading ? (
             // ローディング中のスケルトン
             Array.from({ length: 42 }, (_, index) => (
@@ -289,10 +289,10 @@ export default function Calendar({
               <div
                 key={day.toISOString()}
                 className={`
-                  relative min-h-[80px] sm:min-h-[100px] p-1 sm:p-2 border border-gray-200 rounded-lg cursor-pointer transition-all duration-200
+                  relative min-h-[80px] sm:min-h-[100px] p-1 sm:p-2 border border-gray-200 rounded-none sm:rounded-lg cursor-pointer transition-all duration-200
                   ${isCurrentMonth ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 text-gray-400'}
-                  ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
-                  ${isTodayDate ? 'ring-2 ring-blue-400 bg-blue-50/30' : ''}
+                  ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50 z-10' : ''}
+                  ${isTodayDate ? 'ring-2 ring-blue-400 bg-blue-50/30 z-10' : ''}
                   ${dayEntries.length > 0 && isCurrentMonth ? 'shadow-sm hover:shadow-md' : ''}
                 `}
                 onClick={() => handleDateClick(day)}

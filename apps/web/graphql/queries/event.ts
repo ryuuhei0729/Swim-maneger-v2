@@ -115,7 +115,7 @@ export const GET_MY_ATTENDANCES = gql`
   query GetMyAttendances {
     myAttendances {
       id
-      event_id
+      eventId
       status
       notes
       event {

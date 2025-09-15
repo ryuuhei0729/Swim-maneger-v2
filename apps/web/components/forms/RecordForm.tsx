@@ -113,7 +113,7 @@ export default function RecordForm({
         videoUrl: ''
       })
     }
-  }, [editData, isOpen, initialDate, styles])
+  }, [editData, isOpen, initialDate])
 
   if (!isOpen) return null
 

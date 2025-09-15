@@ -26,12 +26,12 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 
   const formatAuthError = (err: unknown, action: 'signin' | 'signup'): string => {
     const e = err as any
-    const status = e?.status ? ` [status: ${e.status}]` : ''
-    const message = e?.message || e?.error_description || e?.error || '不明なエラーが発生しました。'
+    const statusText = e?.status ? ` [status: ${e.status}]` : ''
+    const errMsg = e?.message || e?.error_description || e?.error || '不明なエラーが発生しました。'
 
     // エラーメッセージの日本語化と補足ヒント
-    if (typeof message === 'string') {
-      const msg = message.toLowerCase()
+    if (typeof errMsg === 'string') {
+      const msg = errMsg.toLowerCase()
       
       // ログイン認証エラーの処理（OWASP準拠）
       if (action === 'signin') {
@@ -52,7 +52,15 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         if (msg.includes('user already registered')) {
           return `アカウントの作成に失敗しました。入力内容を確認してから再度お試しください。`
         }
-        if (msg.includes('password') && msg.includes('weak')) {
+        // パスワード強度エラーの検出を拡張
+        const weakPwdRegex = /\b(pass(word)?).*(weak|too short|at least|characters)\b/i
+        if (
+          msg.includes('password') && msg.includes('weak') ||
+          msg.includes('too short') ||
+          (msg.includes('at least') && msg.includes('characters')) ||
+          (msg.includes('minimum') && msg.includes('characters')) ||
+          weakPwdRegex.test(errMsg)
+        ) {
           return `パスワードが弱すぎます。より強力なパスワードを設定してください。`
         }
       }
@@ -70,7 +78,13 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     }
     
     // デフォルトのエラーメッセージ
-    return `エラーが発生しました: ${message}${status}`
+    if (action === 'signin' && process.env.NODE_ENV !== 'development') {
+      // 署名情報を隠すため、プロダクションでは非開示の汎用文言を返す
+      return 'ログインに失敗しました。入力内容を確認してから再度お試しください。'
+    }
+    return process.env.NODE_ENV === 'development'
+      ? `エラーが発生しました: ${errMsg}${statusText}`
+      : 'エラーが発生しました。時間をおいて再度お試しください。'
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -522,9 +522,9 @@ export default function DashboardPage() {
 
       // タイムデータの管理
       if (practiceLogId && formData.sets) {
-        // 編集時は既存のタイムデータを削除
-        if (editingEntry && editingEntry.times && editingEntry.times.length > 0) {
-          for (const existingTime of editingEntry.times) {
+        // 編集時は既存のタイムデータを削除（editingData の times を使用）
+        if (editingData && editingData.times && editingData.times.length > 0) {
+          for (const existingTime of editingData.times) {
             try {
               await deletePracticeTime({
                 variables: { id: existingTime.id }

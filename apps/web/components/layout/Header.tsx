@@ -71,10 +71,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 <span className="text-white font-bold text-sm">🏊</span>
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900 sm:text-xl">
+                <h1 className="text-base font-bold text-gray-900 sm:text-xl">
                   水泳選手マネジメント
                 </h1>
-                <div className="hidden sm:block text-xs text-gray-500 -mt-1">
+                <div className="text-[10px] sm:text-xs text-gray-500 -mt-1">
                   Swimming Management System
                 </div>
               </div>
