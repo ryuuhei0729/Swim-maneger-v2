@@ -1,5 +1,4 @@
 {
-  // Deno configuration for GraphQL functions
   "compilerOptions": {
     "allowJs": true,
     "lib": ["deno.window", "deno.ns", "deno.unstable"],

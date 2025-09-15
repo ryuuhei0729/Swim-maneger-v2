@@ -37,7 +37,7 @@ export default function Footer() {
   return (
     <footer className="bg-white border-t border-gray-200 mt-auto">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* 左側：システム情報 */}
           <div className="space-y-4">
             <div className="flex items-center">
@@ -55,39 +55,6 @@ export default function Footer() {
               <span>Made with</span>
               <HeartIcon className="h-4 w-4 text-red-500 mx-1" />
               <span>for swimmers</span>
-            </div>
-          </div>
-
-          {/* 中央：クイックリンク */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
-              クイックアクセス
-            </h4>
-            <div className="grid grid-cols-2 gap-2">
-              <Link 
-                href="/dashboard" 
-                className="text-sm text-gray-600 hover:text-blue-600 transition-colors duration-200"
-              >
-                ダッシュボード
-              </Link>
-              <Link 
-                href="/schedule" 
-                className="text-sm text-gray-600 hover:text-blue-600 transition-colors duration-200"
-              >
-                スケジュール
-              </Link>
-              <Link 
-                href="/members" 
-                className="text-sm text-gray-600 hover:text-blue-600 transition-colors duration-200"
-              >
-                メンバー
-              </Link>
-              <Link 
-                href="/practice" 
-                className="text-sm text-gray-600 hover:text-blue-600 transition-colors duration-200"
-              >
-                練習記録
-              </Link>
             </div>
           </div>
 
