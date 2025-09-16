@@ -8,8 +8,8 @@ import RecordForm from '@/components/forms/RecordForm'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { gql } from '@apollo/client'
 import { apolloClient } from '@/lib/apollo-client'
-import { CREATE_PRACTICE, CREATE_PRACTICE_LOG, CREATE_RECORD, DELETE_PRACTICE_LOG, DELETE_RECORD, UPDATE_PRACTICE_LOG, UPDATE_RECORD, CREATE_PRACTICE_TIME, UPDATE_PRACTICE_TIME, DELETE_PRACTICE_TIME, CREATE_COMPETITION } from '@/graphql/mutations'
-import { GET_CALENDAR_DATA, GET_STYLES, GET_PRACTICE_LOG, GET_RECORD, GET_PRACTICE_LOGS, GET_RECORDS } from '@/graphql/queries'
+import { CREATE_PRACTICE, CREATE_PRACTICE_LOG, CREATE_RECORD, DELETE_PRACTICE, DELETE_PRACTICE_LOG, DELETE_RECORD, UPDATE_PRACTICE_LOG, UPDATE_RECORD, CREATE_PRACTICE_TIME, UPDATE_PRACTICE_TIME, DELETE_PRACTICE_TIME, CREATE_COMPETITION } from '@/graphql/mutations'
+import { GET_CALENDAR_DATA, GET_STYLES, GET_PRACTICE, GET_PRACTICE_LOG, GET_RECORD, GET_PRACTICE_LOGS, GET_RECORDS } from '@/graphql/queries'
 
 export default function DashboardPage() {
   const { profile } = useAuth()
@@ -35,7 +35,7 @@ export default function DashboardPage() {
   const styles = (stylesData as any)?.styles || []
 
   // 編集時の詳細データを取得
-  const { data: practiceLogData, loading: practiceLogLoading, error: practiceLogError } = useQuery(GET_PRACTICE_LOG, {
+  const { data: practiceData, loading: practiceDataLoading, error: practiceDataError } = useQuery(GET_PRACTICE, {
     variables: { id: editingEntry?.id },
     skip: !editingEntry || editingEntry.entry_type !== 'practice',
   })
@@ -44,11 +44,11 @@ export default function DashboardPage() {
   useEffect(() => {
     if (editingEntry?.entry_type === 'practice') {
       console.log('Dashboard: editingEntry for practice:', editingEntry)
-      console.log('Dashboard: practiceLogData:', practiceLogData)
-      console.log('Dashboard: practiceLogLoading:', practiceLogLoading)
-      console.log('Dashboard: practiceLogError:', practiceLogError)
+      console.log('Dashboard: practiceData:', practiceData)
+      console.log('Dashboard: practiceDataLoading:', practiceDataLoading)
+      console.log('Dashboard: practiceDataError:', practiceDataError)
     }
-  }, [editingEntry, practiceLogData, practiceLogLoading, practiceLogError])
+  }, [editingEntry, practiceData, practiceDataLoading, practiceDataError])
 
   const { data: recordData, loading: recordLoading, error: recordError } = useQuery(GET_RECORD, {
     variables: { id: editingEntry?.id },
@@ -152,6 +152,21 @@ export default function DashboardPage() {
     onError: (error) => {
       console.error('記録の作成に失敗しました:', error)
       alert('記録の作成に失敗しました。')
+    }
+  })
+
+  const [deletePractice] = useMutation(DELETE_PRACTICE, {
+    optimisticResponse: (variables) => ({
+      deletePractice: true
+    }),
+    refetchQueries: [{
+      query: GET_CALENDAR_DATA,
+      variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
+    }],
+    awaitRefetchQueries: true,
+    onError: (error) => {
+      console.error('練習記録の削除に失敗しました:', error)
+      alert('練習記録の削除に失敗しました。')
     }
   })
 
@@ -406,32 +421,38 @@ export default function DashboardPage() {
   useEffect(() => {
     console.log('Dashboard: useEffect triggered for editingData:', {
       editingEntry,
-      practiceLogData,
+      practiceData,
       recordData,
-      hasPracticeLog: !!(practiceLogData as any)?.practiceLog,
+      hasPractice: !!(practiceData as any)?.practice,
       hasRecord: !!(recordData as any)?.record
     })
     
-    if (editingEntry && editingEntry.entry_type === 'practice' && (practiceLogData as any)?.practiceLog) {
-      const log = (practiceLogData as any).practiceLog
-      console.log('Dashboard: Setting practice log data:', log)
-      console.log('Dashboard: Practice log times:', log.times)
-      const newEditingData = {
-        id: log.id,
-        practiceId: log.practiceId,
-        date: log.practice?.date || new Date().toISOString().split('T')[0], // Practiceから取得
-        place: log.practice?.place || '', // Practiceから取得
-        style: log.style,
-        repCount: log.repCount,
-        setCount: log.setCount,
-        distance: log.distance,
-        circle: log.circle,
-        note: log.note,
-        times: log.times || []
+    if (editingEntry && editingEntry.entry_type === 'practice' && (practiceData as any)?.practice) {
+      const practice = (practiceData as any).practice
+      console.log('Dashboard: Setting practice data:', practice)
+      console.log('Dashboard: Practice logs:', practice.practiceLogs)
+      
+      // 最初のPracticeLogを使用（通常は1つだが、複数ある場合は最初のもの）
+      const firstLog = practice.practiceLogs?.[0]
+      if (firstLog) {
+        console.log('Dashboard: First practice log times:', firstLog.times)
+        const newEditingData = {
+          id: firstLog.id, // PracticeLog ID
+          practiceId: practice.id, // Practice ID
+          date: practice.date || new Date().toISOString().split('T')[0],
+          place: practice.place || '',
+          style: firstLog.style,
+          repCount: firstLog.repCount,
+          setCount: firstLog.setCount,
+          distance: firstLog.distance,
+          circle: firstLog.circle,
+          note: firstLog.note,
+          times: firstLog.times || []
+        }
+        console.log('Dashboard: New editing data for practice:', newEditingData)
+        setEditingData(newEditingData)
+        console.log('Dashboard: editingData has been set')
       }
-      console.log('Dashboard: New editing data for practice:', newEditingData)
-      setEditingData(newEditingData)
-      console.log('Dashboard: editingData has been set')
     } else if (editingEntry && editingEntry.entry_type === 'record' && (recordData as any)?.record) {
       const record = (recordData as any).record
       console.log('Setting record data:', record)
@@ -456,7 +477,7 @@ export default function DashboardPage() {
       console.log('No data to set, clearing editingData')
       setEditingData(null)
     }
-  }, [editingEntry, practiceLogData, recordData])
+  }, [editingEntry, practiceData, recordData])
 
   // デバッグ: PracticeLogFormが開かれる時の状態をログ出力
   useEffect(() => {
@@ -524,8 +545,8 @@ export default function DashboardPage() {
           circle: m?.circleTime || null,
           note: formData.note
         }
-        await updatePracticeLog({ variables: { id: editingEntry.id, input } })
-        createdPracticeLogIds.push(editingEntry.id)
+        await updatePracticeLog({ variables: { id: editingData.id, input } })
+        createdPracticeLogIds.push(editingData.id)
       } else {
         // 新規時: まずPracticeを作成
         const practiceInput = {
@@ -727,7 +748,8 @@ export default function DashboardPage() {
 
     try {
       if (entryType === 'practice') {
-        await deletePracticeLog({
+        // Practice本体を削除（カスケード削除により関連するPracticeLogとPracticeTimeも削除される）
+        await deletePractice({
           variables: { id: entryId }
         })
       } else {
@@ -799,3 +821,4 @@ export default function DashboardPage() {
     </div>
   )
 }
+

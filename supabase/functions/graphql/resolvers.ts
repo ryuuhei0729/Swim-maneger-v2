@@ -201,7 +201,7 @@ export const resolvers = {
       const userId = getUserId(context)
       
       let query = supabase
-        .from('practice')
+        .from('practices')
         .select(`
           *,
           practice_logs(
@@ -264,7 +264,7 @@ export const resolvers = {
       const userId = getUserId(context)
       
       const { data, error } = await supabase
-        .from('practice')
+        .from('practices')
         .select(`
           *,
           practice_logs(
@@ -316,7 +316,7 @@ export const resolvers = {
       const userId = getUserId(context)
       
       const { data, error } = await supabase
-        .from('practice')
+        .from('practices')
         .select(`
           *,
           practice_logs(
@@ -373,7 +373,7 @@ export const resolvers = {
         .select(`
           *,
           practice_times(*),
-          practice(*)
+          practices(*)
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -382,7 +382,7 @@ export const resolvers = {
       if (startDate || endDate) {
         // practice テーブルとJOINして日付フィルタリング
         let practiceQuery = supabase
-          .from('practice')
+          .from('practices')
           .select('id')
           .eq('user_id', userId)
         
@@ -417,14 +417,14 @@ export const resolvers = {
         id: log.id,
         userId: log.user_id || userId,
         practiceId: log.practice_id,
-        practice: log.practice ? {
-          id: log.practice.id,
-          userId: log.practice.user_id,
-          date: log.practice.date,
-          place: log.practice.place,
-          note: log.practice.note,
-          createdAt: log.practice.created_at,
-          updatedAt: log.practice.updated_at
+        practice: log.practices ? {
+          id: log.practices.id,
+          userId: log.practices.user_id,
+          date: log.practices.date,
+          place: log.practices.place,
+          note: log.practices.note,
+          createdAt: log.practices.created_at,
+          updatedAt: log.practices.updated_at
         } : null,
         style: log.style,
         repCount: log.rep_count,
@@ -457,7 +457,7 @@ export const resolvers = {
         .select(`
           *,
           practice_times(*),
-          practice(*),
+          practices(*),
           practice_log_tags(
             practice_tag_id,
             practice_tags(*)
@@ -474,14 +474,14 @@ export const resolvers = {
         id: data.id,
         userId: data.user_id,
         practiceId: data.practice_id,
-        practice: data.practice ? {
-          id: data.practice.id,
-          userId: data.practice.user_id,
-          date: data.practice.date,
-          place: data.practice.place,
-          note: data.practice.note,
-          createdAt: data.practice.created_at,
-          updatedAt: data.practice.updated_at
+        practice: data.practices ? {
+          id: data.practices.id,
+          userId: data.practices.user_id,
+          date: data.practices.date,
+          place: data.practices.place,
+          note: data.practices.note,
+          createdAt: data.practices.created_at,
+          updatedAt: data.practices.updated_at
         } : null,
         style: data.style,
         repCount: data.rep_count,
@@ -510,12 +510,12 @@ export const resolvers = {
     practiceLogsByDate: async (_: any, { date }: { date: string }, context: any) => {
       const userId = getUserId(context)
       
-      // まず指定された日付のPracticeを取得
-      const { data: practiceData, error: practiceError } = await supabase
-        .from('practice')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('date', date)
+        // まず指定された日付のPracticeを取得
+        const { data: practiceData, error: practiceError } = await supabase
+          .from('practices')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('date', date)
       
       if (practiceError) throw new Error(practiceError.message)
       
@@ -530,7 +530,7 @@ export const resolvers = {
         .select(`
           *,
           practice_times(*),
-          practice(*),
+          practices(*),
           practice_log_tags(
             practice_tag_id,
             practice_tags(*)
@@ -547,14 +547,14 @@ export const resolvers = {
         id: log.id,
         userId: log.user_id || userId,
         practiceId: log.practice_id,
-        practice: log.practice ? {
-          id: log.practice.id,
-          userId: log.practice.user_id,
-          date: log.practice.date,
-          place: log.practice.place,
-          note: log.practice.note,
-          createdAt: log.practice.created_at,
-          updatedAt: log.practice.updated_at
+        practice: log.practices ? {
+          id: log.practices.id,
+          userId: log.practices.user_id,
+          date: log.practices.date,
+          place: log.practices.place,
+          note: log.practices.note,
+          createdAt: log.practices.created_at,
+          updatedAt: log.practices.updated_at
         } : null,
         style: log.style,
         repCount: log.rep_count,
@@ -863,9 +863,9 @@ export const resolvers = {
       const startDateStr = formatDate(startDate)
       const endDateStr = formatDate(endDate)
       
-      // 練習記録を取得
-      const { data: practiceLogs, error: practiceError } = await supabase
-        .from('practice_logs')
+      // 練習記録を取得（practicesテーブルから日付を取得）
+      const { data: practices, error: practiceError } = await supabase
+        .from('practices')
         .select('date')
         .eq('user_id', userId)
         .gte('date', startDateStr)
@@ -873,10 +873,13 @@ export const resolvers = {
       
       if (practiceError) throw new Error(practiceError.message)
       
-      // 記録を取得（基本的なrecordsテーブル構造に合わせる）
+      // 記録を取得（competitionsテーブルから日付を取得）
       const { data: records, error: recordsError } = await supabase
         .from('records')
-        .select('id')
+        .select(`
+          id,
+          competitions(date)
+        `)
         .eq('user_id', userId)
       
       if (recordsError) throw new Error(recordsError.message)
@@ -885,15 +888,20 @@ export const resolvers = {
       const practicesByDate = new Map<string, number>()
       const recordsByDate = new Map<string, number>()
       
-      practiceLogs?.forEach(log => {
-        const date = log.date
+      practices?.forEach(practice => {
+        const date = practice.date
         practicesByDate.set(date, (practicesByDate.get(date) || 0) + 1)
       })
       
-      // 記録は基本構造では日付フィールドがないため、作成日で代用
+      // 記録の日付は競技会の日付を使用
       records?.forEach(record => {
-        // 実際の実装では、競技会の日付を使用する場合は別途取得が必要
-        recordsByDate.set(startDateStr, (recordsByDate.get(startDateStr) || 0) + 1)
+        if (record.competitions && record.competitions.date) {
+          const date = record.competitions.date
+          // 指定された月の範囲内かチェック
+          if (date >= startDateStr && date <= endDateStr) {
+            recordsByDate.set(date, (recordsByDate.get(date) || 0) + 1)
+          }
+        }
       })
       
       // カレンダーデータを生成
@@ -920,14 +928,23 @@ export const resolvers = {
         })
       }
       
+      // 指定月の範囲内の記録のみカウント
+      const monthlyRecords = records?.filter(record => {
+        if (record.competitions && record.competitions.date) {
+          const date = record.competitions.date
+          return date >= startDateStr && date <= endDateStr
+        }
+        return false
+      }) || []
+      
       return {
         year,
         month,
         days,
         summary: {
-          totalPractices: practiceLogs?.length || 0,
-          totalCompetitions: records?.length || 0,
-          totalRecords: records?.length || 0
+          totalPractices: practices?.length || 0,
+          totalCompetitions: monthlyRecords.length,
+          totalRecords: monthlyRecords.length
         }
       }
     }
@@ -986,7 +1003,7 @@ export const resolvers = {
       const userId = getUserId(context)
       
       const { data, error } = await supabase
-        .from('practice')
+        .from('practices')
         .insert({
           user_id: userId,
           date: input.date,
@@ -1047,7 +1064,7 @@ export const resolvers = {
       if (input.note !== undefined) updateData.note = input.note
       
       const { data, error } = await supabase
-        .from('practice')
+        .from('practices')
         .update(updateData)
         .eq('id', id)
         .eq('user_id', userId)
@@ -1100,7 +1117,7 @@ export const resolvers = {
       const userId = getUserId(context)
       
       const { error } = await supabase
-        .from('practice')
+        .from('practices')
         .delete()
         .eq('id', id)
         .eq('user_id', userId)
@@ -1132,7 +1149,7 @@ export const resolvers = {
           .select(`
             *,
             practice_times(*),
-            practice(*)
+            practices(*)
           `)
           .single()
         
@@ -1150,14 +1167,14 @@ export const resolvers = {
           id: practiceLog.id,
           userId: practiceLog.user_id || userId,
           practiceId: practiceLog.practice_id,
-          practice: practiceLog.practice ? {
-            id: practiceLog.practice.id,
-            userId: practiceLog.practice.user_id,
-            date: practiceLog.practice.date,
-            place: practiceLog.practice.place,
-            note: practiceLog.practice.note,
-            createdAt: practiceLog.practice.created_at,
-            updatedAt: practiceLog.practice.updated_at
+          practice: practiceLog.practices ? {
+            id: practiceLog.practices.id,
+            userId: practiceLog.practices.user_id,
+            date: practiceLog.practices.date,
+            place: practiceLog.practices.place,
+            note: practiceLog.practices.note,
+            createdAt: practiceLog.practices.created_at,
+            updatedAt: practiceLog.practices.updated_at
           } : null,
           style: practiceLog.style,
           repCount: practiceLog.rep_count,
@@ -1206,7 +1223,7 @@ export const resolvers = {
         .select(`
           *,
           practice_times(*),
-          practice(*)
+          practices(*)
         `)
         .single()
       
@@ -1217,14 +1234,14 @@ export const resolvers = {
         id: data.id,
         userId: data.user_id || userId,
         practiceId: data.practice_id,
-        practice: data.practice ? {
-          id: data.practice.id,
-          userId: data.practice.user_id,
-          date: data.practice.date,
-          place: data.practice.place,
-          note: data.practice.note,
-          createdAt: data.practice.created_at,
-          updatedAt: data.practice.updated_at
+        practice: data.practices ? {
+          id: data.practices.id,
+          userId: data.practices.user_id,
+          date: data.practices.date,
+          place: data.practices.place,
+          note: data.practices.note,
+          createdAt: data.practices.created_at,
+          updatedAt: data.practices.updated_at
         } : null,
         style: data.style,
         repCount: data.rep_count,
@@ -1282,7 +1299,7 @@ export const resolvers = {
       return {
         id: data.id,
         userId: data.user_id,
-        practiceLogId: data.practice_log_id,
+        practiceLogId: data.practices_log_id,
         repNumber: data.rep_number,
         setNumber: data.set_number,
         time: data.time,

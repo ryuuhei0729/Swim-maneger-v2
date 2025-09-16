@@ -521,7 +521,7 @@ export default function PracticeLogForm({
                             .map((time: any, timeIndex: number) => (
                               <div key={`${time.setNumber}-${time.repNumber}-${timeIndex}`} className="text-center">
                                 <div className="text-xs text-blue-600 font-medium">
-                                  メニュー{time.setNumber}の{time.repNumber}本目
+                                  {time.setNumber}セットの{time.repNumber}本目
                                 </div>
                                 <div className="text-sm font-mono text-blue-800 bg-white px-2 py-1 rounded border">
                                   {formatTimeDisplay(time.time)}
@@ -589,6 +589,7 @@ export default function PracticeLogForm({
             repNumber: t.repNumber,
             time: t.time
           }))}
+          menuNumber={formData.sets.findIndex(set => set.id === selectedSetForTime.id) + 1}
         />
       )}
     </div>

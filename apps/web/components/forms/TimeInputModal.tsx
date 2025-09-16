@@ -19,6 +19,7 @@ interface TimeInputModalProps {
   setCount: number
   repCount: number
   initialTimes?: TimeEntry[]
+  menuNumber?: number // メニュー番号を追加
 }
 
 export default function TimeInputModal({
@@ -27,7 +28,8 @@ export default function TimeInputModal({
   onSubmit,
   setCount,
   repCount,
-  initialTimes = []
+  initialTimes = [],
+  menuNumber
 }: TimeInputModalProps) {
   const formatTime = (seconds: number) => {
     if (seconds === 0) return ''
@@ -132,7 +134,7 @@ export default function TimeInputModal({
           <div className="bg-white px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h3 className="text-lg leading-6 font-medium text-gray-900">
-                タイム入力
+                {menuNumber ? `メニュー${menuNumber}のタイム入力` : 'タイム入力'}
               </h3>
               <button
                 type="button"
@@ -143,7 +145,7 @@ export default function TimeInputModal({
               </button>
             </div>
             <p className="text-sm text-gray-600 mt-1">
-              メニュー{setCount} × {repCount}本のタイムを入力してください
+              {setCount}セット × {repCount}本のタイムを入力してください
             </p>
           </div>
 
@@ -159,7 +161,7 @@ export default function TimeInputModal({
                   <div key={setNumber} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-md font-semibold text-gray-900">
-                        メニュー {setNumber}
+                        セット {setNumber}
                       </h4>
                       <div className="text-sm text-gray-600">
                         合計: {formatTime(setTotal)}
