@@ -40,13 +40,38 @@ export const resolvers = {
       const userId = getUserId(context)
       
       try {
-        const { data, error } = await supabase
+        // まず既存のユーザープロフィールを取得
+        let { data, error } = await supabase
           .from('users')
           .select('*')
           .eq('id', userId)
           .single()
         
-        if (error) {
+        // ユーザーが存在しない場合、デフォルトプロフィールを作成
+        if (error && error.code === 'PGRST116') {
+          console.log('User profile not found, creating default profile for:', userId)
+          
+          const { data: newUser, error: createError } = await supabase
+            .from('users')
+            .insert({
+              id: userId,
+              name: 'ユーザー',
+              gender: 0,
+              bio: '',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single()
+          
+          if (createError) {
+            console.error('Failed to create user profile:', createError)
+            throw new Error(createError.message)
+          }
+          
+          data = newUser
+        } else if (error) {
+          console.error('User query error:', error)
           throw new Error(error.message)
         }
         
@@ -67,6 +92,7 @@ export const resolvers = {
           updatedAt: data.updated_at
         }
       } catch (err) {
+        console.error('Error in me resolver:', err)
         throw err
       }
     },
@@ -167,15 +193,21 @@ export const resolvers = {
       return data
     },
 
-    // 練習記録関連
-    myPracticeLogs: async (_: any, { startDate, endDate }: { startDate?: string, endDate?: string }, context: any) => {
+    // 練習関連
+    myPractices: async (_: any, { startDate, endDate }: {
+      startDate?: string,
+      endDate?: string
+    }, context: any) => {
       const userId = getUserId(context)
       
       let query = supabase
-        .from('practice_logs')
+        .from('practice')
         .select(`
           *,
-          practice_times(*)
+          practice_logs(
+            *,
+            practice_times(*)
+          )
         `)
         .eq('user_id', userId)
         .order('date', { ascending: false })
@@ -191,12 +223,209 @@ export const resolvers = {
       
       if (error) throw new Error(error.message)
       
-      // タグの構造を変換し、GraphQLスキーマに合わせてフィールド名を変換
+      // GraphQLスキーマに合わせてフィールド名を変換
+      const transformedData = data?.map(practice => ({
+        id: practice.id,
+        userId: practice.user_id,
+        date: practice.date,
+        place: practice.place,
+        note: practice.note,
+        practiceLogs: (practice.practice_logs || []).map((log: any) => ({
+          id: log.id,
+          userId: log.user_id,
+          practiceId: log.practice_id,
+          style: log.style,
+          repCount: log.rep_count,
+          setCount: log.set_count,
+          distance: log.distance,
+          circle: log.circle,
+          note: log.note,
+          times: (log.practice_times || []).map((time: any) => ({
+            id: time.id,
+            userId: time.user_id,
+            practiceLogId: time.practice_log_id,
+            repNumber: time.rep_number,
+            setNumber: time.set_number,
+            time: time.time,
+            createdAt: time.created_at,
+            updatedAt: time.updated_at
+          })),
+          createdAt: log.created_at,
+          updatedAt: log.updated_at
+        })),
+        createdAt: practice.created_at,
+        updatedAt: practice.updated_at
+      })) || []
+      
+      return transformedData
+    },
+
+    practice: async (_: any, { id }: { id: string }, context: any) => {
+      const userId = getUserId(context)
+      
+      const { data, error } = await supabase
+        .from('practice')
+        .select(`
+          *,
+          practice_logs(
+            *,
+            practice_times(*)
+          )
+        `)
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single()
+      
+      if (error) throw new Error(error.message)
+      
+      return {
+        id: data.id,
+        userId: data.user_id,
+        date: data.date,
+        place: data.place,
+        note: data.note,
+        practiceLogs: (data.practice_logs || []).map((log: any) => ({
+          id: log.id,
+          userId: log.user_id,
+          practiceId: log.practice_id,
+          style: log.style,
+          repCount: log.rep_count,
+          setCount: log.set_count,
+          distance: log.distance,
+          circle: log.circle,
+          note: log.note,
+          times: (log.practice_times || []).map((time: any) => ({
+            id: time.id,
+            userId: time.user_id,
+            practiceLogId: time.practice_log_id,
+            repNumber: time.rep_number,
+            setNumber: time.set_number,
+            time: time.time,
+            createdAt: time.created_at,
+            updatedAt: time.updated_at
+          })),
+          createdAt: log.created_at,
+          updatedAt: log.updated_at
+        })),
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+    },
+
+    practicesByDate: async (_: any, { date }: { date: string }, context: any) => {
+      const userId = getUserId(context)
+      
+      const { data, error } = await supabase
+        .from('practice')
+        .select(`
+          *,
+          practice_logs(
+            *,
+            practice_times(*)
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('date', date)
+        .order('created_at')
+      
+      if (error) throw new Error(error.message)
+      
+      return data?.map(practice => ({
+        id: practice.id,
+        userId: practice.user_id,
+        date: practice.date,
+        place: practice.place,
+        note: practice.note,
+        practiceLogs: (practice.practice_logs || []).map((log: any) => ({
+          id: log.id,
+          userId: log.user_id,
+          practiceId: log.practice_id,
+          style: log.style,
+          repCount: log.rep_count,
+          setCount: log.set_count,
+          distance: log.distance,
+          circle: log.circle,
+          note: log.note,
+          times: (log.practice_times || []).map((time: any) => ({
+            id: time.id,
+            userId: time.user_id,
+            practiceLogId: time.practice_log_id,
+            repNumber: time.rep_number,
+            setNumber: time.set_number,
+            time: time.time,
+            createdAt: time.created_at,
+            updatedAt: time.updated_at
+          })),
+          createdAt: log.created_at,
+          updatedAt: log.updated_at
+        })),
+        createdAt: practice.created_at,
+        updatedAt: practice.updated_at
+      })) || []
+    },
+
+    // 練習記録関連
+    myPracticeLogs: async (_: any, { startDate, endDate }: { startDate?: string, endDate?: string }, context: any) => {
+      const userId = getUserId(context)
+      
+      let query = supabase
+        .from('practice_logs')
+        .select(`
+          *,
+          practice_times(*),
+          practice(*)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+      
+      // 日付フィルタリングはpracticeテーブル経由で行う
+      if (startDate || endDate) {
+        // practice テーブルとJOINして日付フィルタリング
+        let practiceQuery = supabase
+          .from('practice')
+          .select('id')
+          .eq('user_id', userId)
+        
+        if (startDate) {
+          practiceQuery = practiceQuery.gte('date', startDate)
+        }
+        if (endDate) {
+          practiceQuery = practiceQuery.lte('date', endDate)
+        }
+        
+        const { data: practiceIds, error: practiceError } = await practiceQuery
+        
+        if (practiceError) {
+          throw new Error(practiceError.message)
+        }
+        
+        if (practiceIds && practiceIds.length > 0) {
+          const ids = practiceIds.map(p => p.id)
+          query = query.in('practice_id', ids)
+        } else {
+          // 条件に合うpracticeが存在しない場合は空配列を返す
+          return []
+        }
+      }
+      
+      const { data, error } = await query
+      
+      if (error) throw new Error(error.message)
+      
+      // GraphQLスキーマに合わせてフィールド名を変換
       const transformedData = data?.map(log => ({
         id: log.id,
-        userId: log.user_id || userId, // フォールバック
-        date: log.date,
-        place: log.place,
+        userId: log.user_id || userId,
+        practiceId: log.practice_id,
+        practice: log.practice ? {
+          id: log.practice.id,
+          userId: log.practice.user_id,
+          date: log.practice.date,
+          place: log.practice.place,
+          note: log.practice.note,
+          createdAt: log.practice.created_at,
+          updatedAt: log.practice.updated_at
+        } : null,
         style: log.style,
         repCount: log.rep_count,
         setCount: log.set_count,
@@ -205,7 +434,7 @@ export const resolvers = {
         note: log.note,
         times: (log.practice_times || []).map((time: any) => ({
           id: time.id,
-          userId: time.user_id || userId, // フォールバック
+          userId: time.user_id || userId,
           practiceLogId: time.practice_log_id,
           repNumber: time.rep_number,
           setNumber: time.set_number,
@@ -228,6 +457,7 @@ export const resolvers = {
         .select(`
           *,
           practice_times(*),
+          practice(*),
           practice_log_tags(
             practice_tag_id,
             practice_tags(*)
@@ -239,12 +469,20 @@ export const resolvers = {
       
       if (error) throw new Error(error.message)
       
-      // タグの構造を変換し、GraphQLスキーマに合わせてフィールド名を変換
+      // GraphQLスキーマに合わせてフィールド名を変換（新構造対応）
       const transformedData = {
         id: data.id,
         userId: data.user_id,
-        date: data.date,
-        place: data.place,
+        practiceId: data.practice_id,
+        practice: data.practice ? {
+          id: data.practice.id,
+          userId: data.practice.user_id,
+          date: data.practice.date,
+          place: data.practice.place,
+          note: data.practice.note,
+          createdAt: data.practice.created_at,
+          updatedAt: data.practice.updated_at
+        } : null,
         style: data.style,
         repCount: data.rep_count,
         setCount: data.set_count,
@@ -272,28 +510,52 @@ export const resolvers = {
     practiceLogsByDate: async (_: any, { date }: { date: string }, context: any) => {
       const userId = getUserId(context)
       
+      // まず指定された日付のPracticeを取得
+      const { data: practiceData, error: practiceError } = await supabase
+        .from('practice')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('date', date)
+      
+      if (practiceError) throw new Error(practiceError.message)
+      
+      if (!practiceData || practiceData.length === 0) {
+        return []
+      }
+      
+      const practiceIds = practiceData.map(p => p.id)
+      
       const { data, error } = await supabase
         .from('practice_logs')
         .select(`
           *,
           practice_times(*),
+          practice(*),
           practice_log_tags(
             practice_tag_id,
             practice_tags(*)
           )
         `)
         .eq('user_id', userId)
-        .eq('date', date)
+        .in('practice_id', practiceIds)
         .order('created_at')
       
       if (error) throw new Error(error.message)
       
-      // タグの構造を変換し、GraphQLスキーマに合わせてフィールド名を変換
+      // GraphQLスキーマに合わせてフィールド名を変換（新構造対応）
       const transformedData = data?.map(log => ({
         id: log.id,
-        userId: log.user_id || userId, // フォールバック
-        date: log.date,
-        place: log.place,
+        userId: log.user_id || userId,
+        practiceId: log.practice_id,
+        practice: log.practice ? {
+          id: log.practice.id,
+          userId: log.practice.user_id,
+          date: log.practice.date,
+          place: log.practice.place,
+          note: log.practice.note,
+          createdAt: log.practice.created_at,
+          updatedAt: log.practice.updated_at
+        } : null,
         style: log.style,
         repCount: log.rep_count,
         setCount: log.set_count,
@@ -719,16 +981,143 @@ export const resolvers = {
       return true
     },
 
+    // 練習関連
+    createPractice: async (_: any, { input }: { input: any }, context: any) => {
+      const userId = getUserId(context)
+      
+      const { data, error } = await supabase
+        .from('practice')
+        .insert({
+          user_id: userId,
+          date: input.date,
+          place: input.place,
+          note: input.note
+        })
+        .select(`
+          *,
+          practice_logs(
+            *,
+            practice_times(*)
+          )
+        `)
+        .single()
+      
+      if (error) throw new Error(error.message)
+      
+      return {
+        id: data.id,
+        userId: data.user_id,
+        date: data.date,
+        place: data.place,
+        note: data.note,
+        practiceLogs: (data.practice_logs || []).map((log: any) => ({
+          id: log.id,
+          userId: log.user_id,
+          practiceId: log.practice_id,
+          style: log.style,
+          repCount: log.rep_count,
+          setCount: log.set_count,
+          distance: log.distance,
+          circle: log.circle,
+          note: log.note,
+          times: (log.practice_times || []).map((time: any) => ({
+            id: time.id,
+            userId: time.user_id,
+            practiceLogId: time.practice_log_id,
+            repNumber: time.rep_number,
+            setNumber: time.set_number,
+            time: time.time,
+            createdAt: time.created_at,
+            updatedAt: time.updated_at
+          })),
+          createdAt: log.created_at,
+          updatedAt: log.updated_at
+        })),
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+    },
+
+    updatePractice: async (_: any, { id, input }: { id: string, input: any }, context: any) => {
+      const userId = getUserId(context)
+      
+      const updateData: any = {}
+      if (input.date) updateData.date = input.date
+      if (input.place !== undefined) updateData.place = input.place
+      if (input.note !== undefined) updateData.note = input.note
+      
+      const { data, error } = await supabase
+        .from('practice')
+        .update(updateData)
+        .eq('id', id)
+        .eq('user_id', userId)
+        .select(`
+          *,
+          practice_logs(
+            *,
+            practice_times(*)
+          )
+        `)
+        .single()
+      
+      if (error) throw new Error(error.message)
+      
+      return {
+        id: data.id,
+        userId: data.user_id,
+        date: data.date,
+        place: data.place,
+        note: data.note,
+        practiceLogs: (data.practice_logs || []).map((log: any) => ({
+          id: log.id,
+          userId: log.user_id,
+          practiceId: log.practice_id,
+          style: log.style,
+          repCount: log.rep_count,
+          setCount: log.set_count,
+          distance: log.distance,
+          circle: log.circle,
+          note: log.note,
+          times: (log.practice_times || []).map((time: any) => ({
+            id: time.id,
+            userId: time.user_id,
+            practiceLogId: time.practice_log_id,
+            repNumber: time.rep_number,
+            setNumber: time.set_number,
+            time: time.time,
+            createdAt: time.created_at,
+            updatedAt: time.updated_at
+          })),
+          createdAt: log.created_at,
+          updatedAt: log.updated_at
+        })),
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+    },
+
+    deletePractice: async (_: any, { id }: { id: string }, context: any) => {
+      const userId = getUserId(context)
+      
+      const { error } = await supabase
+        .from('practice')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId)
+      
+      if (error) throw new Error(error.message)
+      return true
+    },
+
     // 練習記録関連
     createPracticeLog: async (_: any, { input }: { input: any }, context: any) => {
       try {
         const userId = getUserId(context)
         
-        // 練習記録を作成
+        // 練習記録を作成（新構造に対応）
         const insertData = {
           user_id: userId,
-          date: input.date || input.practiceDate,
-          place: input.place || input.location,
+          practice_id: input.practiceId,
           style: input.style,
           rep_count: input.repCount,
           set_count: input.setCount,
@@ -742,7 +1131,8 @@ export const resolvers = {
           .insert(insertData)
           .select(`
             *,
-            practice_times(*)
+            practice_times(*),
+            practice(*)
           `)
           .single()
         
@@ -758,9 +1148,17 @@ export const resolvers = {
         // 基本データをGraphQLスキーマに合わせて変換して返す
         const transformedLog = {
           id: practiceLog.id,
-          userId: practiceLog.user_id || userId, // フォールバック
-          date: practiceLog.date,
-          place: practiceLog.place,
+          userId: practiceLog.user_id || userId,
+          practiceId: practiceLog.practice_id,
+          practice: practiceLog.practice ? {
+            id: practiceLog.practice.id,
+            userId: practiceLog.practice.user_id,
+            date: practiceLog.practice.date,
+            place: practiceLog.practice.place,
+            note: practiceLog.practice.note,
+            createdAt: practiceLog.practice.created_at,
+            updatedAt: practiceLog.practice.updated_at
+          } : null,
           style: practiceLog.style,
           repCount: practiceLog.rep_count,
           setCount: practiceLog.set_count,
@@ -769,7 +1167,7 @@ export const resolvers = {
           note: practiceLog.note,
           times: (practiceLog.practice_times || []).map((time: any) => ({
             id: time.id,
-            userId: time.user_id || userId, // フォールバック
+            userId: time.user_id || userId,
             practiceLogId: time.practice_log_id,
             repNumber: time.rep_number,
             setNumber: time.set_number,
@@ -792,8 +1190,7 @@ export const resolvers = {
       const userId = getUserId(context)
       
       const updateData: any = {}
-      if (input.date) updateData.date = input.date
-      if (input.place !== undefined) updateData.place = input.place
+      if (input.practiceId) updateData.practice_id = input.practiceId
       if (input.style !== undefined) updateData.style = input.style
       if (input.repCount) updateData.rep_count = input.repCount
       if (input.setCount) updateData.set_count = input.setCount
@@ -808,7 +1205,8 @@ export const resolvers = {
         .eq('user_id', userId)
         .select(`
           *,
-          practice_times(*)
+          practice_times(*),
+          practice(*)
         `)
         .single()
       
@@ -817,9 +1215,17 @@ export const resolvers = {
       // GraphQLスキーマに合わせてフィールド名を変換
       return {
         id: data.id,
-        userId: data.user_id || userId, // フォールバック
-        date: data.date,
-        place: data.place,
+        userId: data.user_id || userId,
+        practiceId: data.practice_id,
+        practice: data.practice ? {
+          id: data.practice.id,
+          userId: data.practice.user_id,
+          date: data.practice.date,
+          place: data.practice.place,
+          note: data.practice.note,
+          createdAt: data.practice.created_at,
+          updatedAt: data.practice.updated_at
+        } : null,
         style: data.style,
         repCount: data.rep_count,
         setCount: data.set_count,
@@ -828,7 +1234,7 @@ export const resolvers = {
         note: data.note,
         times: (data.practice_times || []).map((time: any) => ({
           id: time.id,
-          userId: time.user_id || userId, // フォールバック
+          userId: time.user_id || userId,
           practiceLogId: time.practice_log_id,
           repNumber: time.rep_number,
           setNumber: time.set_number,

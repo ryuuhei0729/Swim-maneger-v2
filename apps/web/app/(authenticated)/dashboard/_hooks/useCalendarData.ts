@@ -2,7 +2,7 @@ import { useQuery } from '@apollo/client/react'
 import { endOfMonth, format, startOfMonth } from 'date-fns'
 import { useEffect, useMemo } from 'react'
 import { useAuth } from '../../../../contexts'
-import { GET_CALENDAR_DATA, GET_PRACTICE_LOGS, GET_RECORDS } from '../../../../graphql/queries'
+import { GET_CALENDAR_DATA, GET_PRACTICES, GET_RECORDS } from '../../../../graphql/queries'
 import { formatTime } from '../../../../utils/formatters'
 
 interface CalendarEntry {
@@ -51,10 +51,14 @@ export function useCalendarData(currentDate: Date, userId?: string) {
     }
   )
 
-  // 練習記録を取得
-  const { data: practiceLogsData, loading: practiceLoading, error: practiceError, refetch: refetchPracticeLogs } = useQuery(
-    GET_PRACTICE_LOGS,
+  // 練習記録を取得（新しい正規化構造対応）
+  const { data: practicesData, loading: practiceLoading, error: practiceError, refetch: refetchPractices } = useQuery(
+    GET_PRACTICES,
     {
+      variables: {
+        startDate,
+        endDate
+      },
       skip: USE_MOCK_DATA,
       fetchPolicy: 'cache-first', // キャッシュ優先でリアルタイム更新に対応
       nextFetchPolicy: 'cache-first',
@@ -78,7 +82,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
   // エラーログ出力とデバッグ情報
   useEffect(() => {
     console.log('Calendar data fetch status:', {
-      practiceLogsData: !!practiceLogsData,
+      practicesData: !!practicesData,
       recordsData: !!recordsData,
       practiceLoading,
       recordsLoading,
@@ -86,10 +90,10 @@ export function useCalendarData(currentDate: Date, userId?: string) {
       recordsError: !!recordsError
     })
 
-    if (practiceLogsData) {
-      console.log('Practice logs data:', practiceLogsData)
+    if (practicesData) {
+      console.log('Practices data:', practicesData)
     } else if (!practiceLoading) {
-      console.log('No practice logs data received')
+      console.log('No practices data received')
     }
     
     if (recordsData) {
@@ -125,7 +129,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
         console.error('Records Network error:', (recordsError as any).networkError)
       }
     }
-  }, [calendarError, practiceError, recordsError, practiceLogsData, recordsData, practiceLoading, recordsLoading])
+  }, [calendarError, practiceError, recordsError, practicesData, recordsData, practiceLoading, recordsLoading])
 
   // データを統合してカレンダー表示用に変換
   const calendarEntries: CalendarEntry[] = useMemo(() => {
@@ -186,21 +190,30 @@ export function useCalendarData(currentDate: Date, userId?: string) {
     // GraphQLデータを使用する場合
     const entries: CalendarEntry[] = []
 
-    // 練習記録を追加
-    if (practiceLogsData && (practiceLogsData as any).myPracticeLogs) {
-      (practiceLogsData as any).myPracticeLogs.forEach((log: any) => {
-        // 日付範囲でフィルタリング
-        const logDate = new Date(log.date)
-        if (logDate >= monthStart && logDate <= monthEnd) {
-          const title = `練習: ${log.style || log.place || '記録なし'}`
-          
-          entries.push({
-            id: log.id,
-            entry_type: 'practice',
-            entry_date: log.date,
-            title,
-            location: log.place || 'プール' // 既存のクエリにはlocationフィールドがないためデフォルト値
-          })
+    // 練習記録を追加（新しい正規化構造：Practiceベース）
+    if (practicesData && (practicesData as any).myPractices) {
+      (practicesData as any).myPractices.forEach((practice: any) => {
+        const practiceDate = practice.date
+        const practicePlace = practice.place || 'プール'
+        const practiceLogs = practice.practiceLogs || []
+        
+        if (practiceDate) {
+          const logDate = new Date(practiceDate)
+          if (logDate >= monthStart && logDate <= monthEnd) {
+            // 練習メニューのスタイルを取得
+            const styles = practiceLogs.map((log: any) => log.style).filter(Boolean)
+            const uniqueStyles = [...new Set(styles)]
+            
+            const title = `練習: ${uniqueStyles.length > 0 ? uniqueStyles.join(', ') : practicePlace}`
+            
+            entries.push({
+              id: practice.id, // Practice ID
+              entry_type: 'practice',
+              entry_date: practiceDate,
+              title,
+              location: practicePlace
+            })
+          }
         }
       })
     }
@@ -242,7 +255,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
 
     console.log('Generated calendar entries:', entries)
     return entries
-  }, [practiceLogsData, recordsData, currentDate, USE_MOCK_DATA])
+  }, [practicesData, recordsData, currentDate, USE_MOCK_DATA, monthStart, monthEnd])
 
   // 月間サマリー
   const monthlySummary: MonthlySummary = useMemo(() => {
@@ -290,7 +303,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
         // すべてのクエリを並行して再実行
         await Promise.all([
           refetch(),
-          refetchPracticeLogs(),
+          refetchPractices(),
           refetchRecords()
         ])
       }

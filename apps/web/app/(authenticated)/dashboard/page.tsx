@@ -8,7 +8,7 @@ import RecordForm from '@/components/forms/RecordForm'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { gql } from '@apollo/client'
 import { apolloClient } from '@/lib/apollo-client'
-import { CREATE_PRACTICE_LOG, CREATE_RECORD, DELETE_PRACTICE_LOG, DELETE_RECORD, UPDATE_PRACTICE_LOG, UPDATE_RECORD, CREATE_PRACTICE_TIME, UPDATE_PRACTICE_TIME, DELETE_PRACTICE_TIME, CREATE_COMPETITION } from '@/graphql/mutations'
+import { CREATE_PRACTICE, CREATE_PRACTICE_LOG, CREATE_RECORD, DELETE_PRACTICE_LOG, DELETE_RECORD, UPDATE_PRACTICE_LOG, UPDATE_RECORD, CREATE_PRACTICE_TIME, UPDATE_PRACTICE_TIME, DELETE_PRACTICE_TIME, CREATE_COMPETITION } from '@/graphql/mutations'
 import { GET_CALENDAR_DATA, GET_STYLES, GET_PRACTICE_LOG, GET_RECORD, GET_PRACTICE_LOGS, GET_RECORDS } from '@/graphql/queries'
 
 export default function DashboardPage() {
@@ -68,14 +68,26 @@ export default function DashboardPage() {
   }, [editingEntry, recordData, recordLoading, recordError])
 
   // GraphQLミューテーション
+  const [createPractice] = useMutation(CREATE_PRACTICE, {
+    refetchQueries: [{
+      query: GET_CALENDAR_DATA,
+      variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
+    }],
+    awaitRefetchQueries: true,
+    onError: (error) => {
+      console.error('練習の作成に失敗しました:', error)
+      alert('練習の作成に失敗しました。')
+    }
+  })
+
   const [createPracticeLog] = useMutation(CREATE_PRACTICE_LOG, {
     optimisticResponse: (variables) => ({
       createPracticeLog: {
         __typename: 'PracticeLog',
         id: `temp-${Date.now()}`,
         userId: profile?.id,
-        date: variables.input.date,
-        place: variables.input.place,
+        practiceId: variables.input.practiceId,
+        practice: null,
         style: variables.input.style,
         repCount: variables.input.repCount,
         setCount: variables.input.setCount,
@@ -233,8 +245,8 @@ export default function DashboardPage() {
         __typename: 'PracticeLog',
         id: variables.id,
         userId: profile?.id,
-        date: variables.input.date,
-        place: variables.input.place,
+        practiceId: variables.input.practiceId,
+        practice: null,
         style: variables.input.style,
         repCount: variables.input.repCount,
         setCount: variables.input.setCount,
@@ -406,8 +418,9 @@ export default function DashboardPage() {
       console.log('Dashboard: Practice log times:', log.times)
       const newEditingData = {
         id: log.id,
-        date: log.date, // PracticeLogFormが期待するフィールド名
-        place: log.place, // PracticeLogFormが期待するフィールド名
+        practiceId: log.practiceId,
+        date: log.practice?.date || new Date().toISOString().split('T')[0], // Practiceから取得
+        place: log.practice?.place || '', // Practiceから取得
         style: log.style,
         repCount: log.repCount,
         setCount: log.setCount,
@@ -493,17 +506,17 @@ export default function DashboardPage() {
     try {
       const menus = Array.isArray(formData.sets) ? formData.sets : []
 
-      // 編集時: 先頭メニューのみ更新（従来互換）。新規時: メニュー毎に作成
+      // 編集時: 従来のPracticeLogのみを更新、新規時: Practice作成→PracticeLog作成
       const createdPracticeLogIds: string[] = []
 
       if (editingData && editingEntry?.entry_type === 'practice') {
+        // 編集時: PracticeLogのみ更新（Practice部分は今回はスキップ）
         const m = menus[0] || {}
         const repsPerSet = (m?.reps as number) || 0
         const setCount = (m?.setCount as number) || 1
         const distancePerRep = (m?.distance as number) || 0
         const input = {
-          date: formData.practiceDate,
-          place: formData.location,
+          practiceId: editingData.practiceId, // 既存のPractice IDを使用
           style: m?.style || 'フリー',
           repCount: repsPerSet * setCount,
           setCount: setCount,
@@ -514,23 +527,34 @@ export default function DashboardPage() {
         await updatePracticeLog({ variables: { id: editingEntry.id, input } })
         createdPracticeLogIds.push(editingEntry.id)
       } else {
-        for (const m of menus) {
-          const repsPerSet = (m?.reps as number) || 0
-          const setCount = (m?.setCount as number) || 1
-          const distancePerRep = (m?.distance as number) || 0
-          const input = {
-            date: formData.practiceDate,
-            place: formData.location,
-            style: m?.style || 'フリー',
-            repCount: repsPerSet * setCount,
-            setCount: setCount,
-            distance: distancePerRep * repsPerSet * setCount,
-            circle: m?.circleTime || null,
-            note: formData.note
+        // 新規時: まずPracticeを作成
+        const practiceInput = {
+          date: formData.practiceDate,
+          place: formData.location,
+          note: formData.note
+        }
+        const practiceResult = await createPractice({ variables: { input: practiceInput } })
+        const practiceId = (practiceResult.data as any)?.createPractice?.id
+
+        if (practiceId) {
+          // 各メニューをPracticeLogとして作成
+          for (const m of menus) {
+            const repsPerSet = (m?.reps as number) || 0
+            const setCount = (m?.setCount as number) || 1
+            const distancePerRep = (m?.distance as number) || 0
+            const input = {
+              practiceId: practiceId,
+              style: m?.style || 'フリー',
+              repCount: repsPerSet * setCount,
+              setCount: setCount,
+              distance: distancePerRep * repsPerSet * setCount,
+              circle: m?.circleTime || null,
+              note: m?.note || ''
+            }
+            const result = await createPracticeLog({ variables: { input } })
+            const id = (result.data as any)?.createPracticeLog?.id
+            if (id) createdPracticeLogIds.push(id)
           }
-          const result = await createPracticeLog({ variables: { input } })
-          const id = (result.data as any)?.createPracticeLog?.id
-          if (id) createdPracticeLogIds.push(id)
         }
       }
 

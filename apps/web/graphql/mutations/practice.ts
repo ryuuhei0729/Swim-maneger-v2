@@ -1,5 +1,72 @@
 import { gql } from '@apollo/client'
 
+// 練習関連ミューテーション
+export const CREATE_PRACTICE = gql`
+  mutation CreatePractice($input: CreatePracticeInput!) {
+    createPractice(input: $input) {
+      id
+      userId
+      date
+      place
+      note
+      practiceLogs {
+        id
+        practiceId
+        style
+        repCount
+        setCount
+        distance
+        circle
+        note
+        times {
+          id
+          repNumber
+          setNumber
+          time
+        }
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const UPDATE_PRACTICE = gql`
+  mutation UpdatePractice($id: ID!, $input: UpdatePracticeInput!) {
+    updatePractice(id: $id, input: $input) {
+      id
+      userId
+      date
+      place
+      note
+      practiceLogs {
+        id
+        practiceId
+        style
+        repCount
+        setCount
+        distance
+        circle
+        note
+        times {
+          id
+          repNumber
+          setNumber
+          time
+        }
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const DELETE_PRACTICE = gql`
+  mutation DeletePractice($id: ID!) {
+    deletePractice(id: $id)
+  }
+`
+
 // 練習タグ関連ミューテーション
 export const CREATE_PRACTICE_TAG = gql`
   mutation CreatePracticeTag($input: CreatePracticeTagInput!) {
@@ -37,8 +104,13 @@ export const CREATE_PRACTICE_LOG = gql`
     createPracticeLog(input: $input) {
       id
       userId
-      date
-      place
+      practiceId
+      practice {
+        id
+        date
+        place
+        note
+      }
       style
       repCount
       setCount
@@ -62,8 +134,13 @@ export const UPDATE_PRACTICE_LOG = gql`
     updatePracticeLog(id: $id, input: $input) {
       id
       userId
-      date
-      place
+      practiceId
+      practice {
+        id
+        date
+        place
+        note
+      }
       style
       repCount
       setCount

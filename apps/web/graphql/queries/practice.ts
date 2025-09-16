@@ -1,5 +1,96 @@
 import { gql } from '@apollo/client'
 
+// 練習関連クエリ
+export const GET_PRACTICES = gql`
+  query GetPractices($startDate: Date, $endDate: Date) {
+    myPractices(startDate: $startDate, endDate: $endDate) {
+      id
+      userId
+      date
+      place
+      note
+      practiceLogs {
+        id
+        practiceId
+        style
+        repCount
+        setCount
+        distance
+        circle
+        note
+        times {
+          id
+          repNumber
+          setNumber
+          time
+        }
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const GET_PRACTICE = gql`
+  query GetPractice($id: ID!) {
+    practice(id: $id) {
+      id
+      userId
+      date
+      place
+      note
+      practiceLogs {
+        id
+        practiceId
+        style
+        repCount
+        setCount
+        distance
+        circle
+        note
+        times {
+          id
+          repNumber
+          setNumber
+          time
+        }
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const GET_PRACTICES_BY_DATE = gql`
+  query GetPracticesByDate($date: Date!) {
+    practicesByDate(date: $date) {
+      id
+      userId
+      date
+      place
+      note
+      practiceLogs {
+        id
+        practiceId
+        style
+        repCount
+        setCount
+        distance
+        circle
+        note
+        times {
+          id
+          repNumber
+          setNumber
+          time
+        }
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`
+
 // 練習タグ関連クエリ
 export const GET_MY_PRACTICE_TAGS = gql`
   query GetMyPracticeTags {
@@ -19,8 +110,13 @@ export const GET_PRACTICE_LOGS = gql`
     myPracticeLogs {
       id
       userId
-      date
-      place
+      practiceId
+      practice {
+        id
+        date
+        place
+        note
+      }
       style
       repCount
       setCount
@@ -42,8 +138,13 @@ export const GET_PRACTICE_LOG = gql`
     practiceLog(id: $id) {
       id
       userId
-      date
-      place
+      practiceId
+      practice {
+        id
+        date
+        place
+        note
+      }
       style
       repCount
       setCount
@@ -65,8 +166,13 @@ export const GET_PRACTICE_LOGS_BY_USER = gql`
     myPracticeLogs {
       id
       userId
-      date
-      place
+      practiceId
+      practice {
+        id
+        date
+        place
+        note
+      }
       style
       repCount
       setCount

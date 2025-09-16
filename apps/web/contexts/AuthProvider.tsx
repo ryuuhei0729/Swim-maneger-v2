@@ -42,6 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ユーザープロフィールを取得（完全オプション化）
   const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
     try {
+      console.log('AuthProvider: Fetching user profile for:', userId)
       
       // プロフィール取得はタイムアウト付きで実行
       const profilePromise = supabase
@@ -57,7 +58,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await Promise.race([profilePromise, timeoutPromise])
       
       if (error) {
-        // プロフィールが存在しない場合やエラーの場合は null を返すが、認証には影響しない
+        console.log('AuthProvider: Profile fetch error:', error)
+        
+        // ユーザーが存在しない場合（PGRST116エラー）、デフォルトプロフィールを作成
+        if (error.code === 'PGRST116') {
+          console.log('AuthProvider: Creating default profile for user:', userId)
+          
+          try {
+            const { data: newProfile, error: createError } = await supabase
+              .from('users')
+              .insert({
+                id: userId,
+                name: 'ユーザー',
+                gender: 0,
+                bio: '',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              .select()
+              .single()
+            
+            if (createError) {
+              console.error('AuthProvider: Failed to create profile:', createError)
+              return null
+            }
+            
+            return newProfile
+          } catch (createErr) {
+            console.error('AuthProvider: Error creating profile:', createErr)
+            return null
+          }
+        }
+        
+        // その他のエラーの場合は null を返すが、認証には影響しない
         return null
       }
       

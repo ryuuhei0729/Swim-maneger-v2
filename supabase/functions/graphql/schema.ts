@@ -123,12 +123,24 @@ type PracticeTag {
   updatedAt: DateTime!
 }
 
-# 練習記録関連（remote_migration.sqlと同じ構造）
-type PracticeLog {
+# 練習（日単位）関連
+type Practice {
   id: ID!
   userId: ID!
   date: Date!
   place: String
+  note: String
+  practiceLogs: [PracticeLog!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# 練習記録（メニュー単位）関連
+type PracticeLog {
+  id: ID!
+  userId: ID!
+  practiceId: ID!
+  practice: Practice
   style: String!
   repCount: Int!
   setCount: Int!
@@ -266,7 +278,12 @@ type Query {
   myPracticeTags: [PracticeTag!]!
   practiceTag(id: ID!): PracticeTag
 
-  # 練習記録関連（個人利用機能対応）
+  # 練習関連（個人利用機能対応）
+  myPractices(startDate: Date, endDate: Date): [Practice!]!
+  practice(id: ID!): Practice
+  practicesByDate(date: Date!): [Practice!]!
+  
+  # 練習記録（メニュー単位）関連
   myPracticeLogs(startDate: Date, endDate: Date): [PracticeLog!]!
   practiceLog(id: ID!): PracticeLog
   practiceLogsByDate(date: Date!): [PracticeLog!]!
@@ -337,7 +354,12 @@ type Mutation {
   updatePracticeTag(id: ID!, input: UpdatePracticeTagInput!): PracticeTag!
   deletePracticeTag(id: ID!): Boolean!
 
-  # 練習記録関連（個人利用機能対応）
+  # 練習関連（個人利用機能対応）
+  createPractice(input: CreatePracticeInput!): Practice!
+  updatePractice(id: ID!, input: UpdatePracticeInput!): Practice!
+  deletePractice(id: ID!): Boolean!
+
+  # 練習記録（メニュー単位）関連
   createPracticeLog(input: CreatePracticeLogInput!): PracticeLog!
   updatePracticeLog(id: ID!, input: UpdatePracticeLogInput!): PracticeLog!
   deletePracticeLog(id: ID!): Boolean!
@@ -406,23 +428,32 @@ input UpdatePracticeTagInput {
   color: String
 }
 
+# 練習入力型
+input CreatePracticeInput {
+  date: Date!
+  place: String
+  note: String
+}
+
+input UpdatePracticeInput {
+  date: Date
+  place: String
+  note: String
+}
+
 # 練習記録入力型
 input CreatePracticeLogInput {
-  date: Date
-  practiceDate: Date
-  place: String
-  location: String
+  practiceId: ID!
   style: String!
   repCount: Int!
   setCount: Int!
   distance: Int!
-  circle: Float # オプションに変更
+  circle: Float
   note: String
 }
 
 input UpdatePracticeLogInput {
-  date: Date
-  place: String
+  practiceId: ID
   style: String
   repCount: Int
   setCount: Int
