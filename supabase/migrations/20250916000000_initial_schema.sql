@@ -109,7 +109,7 @@ CREATE TABLE practice_tags (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  color TEXT DEFAULT '#3B82F6', -- デフォルトカラー
+  color TEXT DEFAULT '#93C5FD', -- デフォルトカラー（淡い青）
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, name)

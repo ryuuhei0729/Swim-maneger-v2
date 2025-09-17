@@ -84,8 +84,20 @@ export const apolloClient = new ApolloClient({
       CompetitionRecord: {
         keyFields: ['id'],
       },
+      Practice: {
+        keyFields: ['id'],
+      },
       PracticeLog: {
         keyFields: ['id'],
+        fields: {
+          times: {
+            merge(existing = [], incoming = []) {
+              // timesフィールドのマージ関数
+              // 既存のデータと新しいデータを適切にマージ
+              return [...incoming]
+            }
+          }
+        }
       },
       Record: {
         keyFields: ['id'],

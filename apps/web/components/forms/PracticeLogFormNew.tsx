@@ -29,13 +29,11 @@ interface PracticeLogFormProps {
 }
 
 const SWIMMING_STYLES = [
-  'フリー',
-  'バック', 
-  'ブレスト',
-  'バタフライ',
-  'メドレー',
-  'キック',
-  'プル'
+  'Fr',
+  'Ba',
+  'Br',
+  'Fly',
+  'IM'
 ]
 
 export default function PracticeLogForm({
@@ -48,7 +46,7 @@ export default function PracticeLogForm({
   const [formData, setFormData] = useState<PracticeLogFormData>({
     practiceDate: initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     location: '',
-    style: 'フリー',
+    style: 'Fr',
     repCount: 1,
     setCount: 1,
     distance: 100,
@@ -68,7 +66,7 @@ export default function PracticeLogForm({
       setFormData({
         practiceDate: editData.date || format(new Date(), 'yyyy-MM-dd'),
         location: editData.place || '',
-        style: editData.style || 'フリー',
+        style: editData.style || 'Fr',
         repCount: editData.repCount || 1,
         setCount: editData.setCount || 1,
         distance: editData.distance || 100,
@@ -116,7 +114,7 @@ export default function PracticeLogForm({
       setFormData({
         practiceDate: format(new Date(), 'yyyy-MM-dd'),
         location: '',
-        style: 'フリー',
+        style: 'Fr',
         repCount: 1,
         setCount: 1,
         distance: 100,

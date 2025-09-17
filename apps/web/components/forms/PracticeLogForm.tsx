@@ -5,6 +5,13 @@ import { Button, Input } from '@/components/ui'
 import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
 import TimeInputModal from './TimeInputModal'
+import TagSelector from './TagSelector'
+
+interface PracticeTag {
+  id: string
+  name: string
+  color: string
+}
 
 interface PracticeSet {
   id: string
@@ -16,6 +23,8 @@ interface PracticeSet {
   uiCircleSec?: number | ''
   setCount?: number | ''
   style: string
+  note?: string
+  tags?: PracticeTag[] // タグ情報
   times?: Array<{
     setNumber: number
     repNumber: number
@@ -40,13 +49,11 @@ interface PracticeLogFormProps {
 }
 
 const SWIMMING_STYLES = [
-  'フリー',
-  'バック',
-  'ブレスト',
-  'バタフライ',
-  'メドレー',
-  'キック',
-  'プル'
+  'Fr',
+  'Ba',
+  'Br',
+  'Fly',
+  'IM'
 ]
 
 
@@ -69,7 +76,9 @@ export default function PracticeLogForm({
       uiCircleMin: 1,
       uiCircleSec: 30,
       setCount: 1,
-      style: 'フリー'
+      style: 'Fr',
+      note: '',
+      tags: []
     }],
     note: ''
   })
@@ -92,7 +101,43 @@ export default function PracticeLogForm({
       console.log('PracticeLogForm: Setting form data from editData:', editData)
       console.log('PracticeLogForm: Times data:', editData.times)
     
-      // 編集データをフォーム形式に変換（単一メニュー + セット数で管理）
+      // 複数のPractice_logが存在する場合の処理
+      if (editData.practiceLogs && editData.practiceLogs.length > 0) {
+        console.log('PracticeLogForm: Multiple practice logs detected:', editData.practiceLogs.length)
+        
+        // 複数のPractice_logをsets配列に変換
+        const sets: PracticeSet[] = editData.practiceLogs.map((log: any, index: number) => {
+          const actualSetCount: number = log.setCount || 1
+          const allTimes: Array<{ setNumber: number; repNumber: number; time: number }> = (log.times || [])
+          const derivedRepsFromTimes = allTimes.length > 0
+            ? Math.max(...allTimes.map((t: any) => t.repNumber || 0))
+            : 0
+          
+          return {
+            id: log.id || `log-${index}`,
+            reps: derivedRepsFromTimes || log.repCount || 1,
+            distance: log.distance || 100,
+            circleTime: log.circle || 90,
+            uiCircleMin: Math.floor((log.circle || 90) / 60),
+            uiCircleSec: (log.circle || 90) % 60,
+            setCount: actualSetCount,
+            style: log.style || 'Fr',
+            note: log.note || '',
+            tags: log.tags || [],
+            times: allTimes
+          }
+        })
+        
+        setFormData({
+          practiceDate: editData.date ? format(new Date(editData.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+          location: editData.place || '',
+          sets: sets,
+          note: editData.note || ''
+        })
+        return
+      }
+    
+      // 単一のPractice_logの場合の従来の処理
       const actualSetCount: number = editData.setCount || 1
       const allTimes: Array<{ setNumber: number; repNumber: number; time: number }> = (editData.times || [])
       const derivedRepsFromTimes = allTimes.length > 0
@@ -115,7 +160,9 @@ export default function PracticeLogForm({
         uiCircleMin: Math.floor(ct / 60),
         uiCircleSec: ct % 60,
         setCount: actualSetCount,
-        style: editData.style || 'フリー',
+        style: editData.style || 'Fr',
+        note: editData.note || '',
+        tags: editData.tags || [],
         times: allTimes
       }]
 
@@ -144,7 +191,8 @@ export default function PracticeLogForm({
           uiCircleMin: 1,
           uiCircleSec: 30,
           setCount: 1,
-          style: 'フリー'
+          style: 'Fr',
+          note: ''
         }],
         note: ''
       })
@@ -177,7 +225,9 @@ export default function PracticeLogForm({
           distance: 100,
           circleTime: 90,
           setCount: 1,
-          style: 'フリー'
+          style: 'Fr',
+          note: '',
+          tags: []
         }],
         note: ''
       })
@@ -198,7 +248,9 @@ export default function PracticeLogForm({
         uiCircleMin: (typeof base?.uiCircleMin === 'number' || base?.uiCircleMin === '') ? (base.uiCircleMin as any) : 1,
         uiCircleSec: (typeof base?.uiCircleSec === 'number' || base?.uiCircleSec === '') ? (base.uiCircleSec as any) : 30,
         setCount: (typeof base?.setCount === 'number' || base?.setCount === '') ? (base.setCount as any) : 1,
-        style: base?.style || 'フリー'
+        style: base?.style || 'Fr',
+        note: base?.note || '',
+        tags: base?.tags || []
       }
       return {
         ...prev,
@@ -221,6 +273,15 @@ export default function PracticeLogForm({
       ...prev,
       sets: prev.sets.map(set => 
         set.id === id ? { ...set, [field]: value } : set
+      )
+    }))
+  }
+
+  const updateSetTags = (id: string, tags: PracticeTag[]) => {
+    setFormData(prev => ({
+      ...prev,
+      sets: prev.sets.map(set => 
+        set.id === id ? { ...set, tags } : set
       )
     }))
   }
@@ -353,15 +414,17 @@ export default function PracticeLogForm({
                 <label className="block text-sm font-medium text-gray-700">
                   練習内容 *
                 </label>
-                <Button
-                  type="button"
-                  onClick={addMenu}
-                  variant="outline"
-                  size="sm"
-                >
-                  <PlusIcon className="h-4 w-4 mr-1" />
-                  メニュー追加
-                </Button>
+                {!editData?.practiceLogs && (
+                  <Button
+                    type="button"
+                    onClick={addMenu}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-1" />
+                    メニュー追加
+                  </Button>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -369,7 +432,9 @@ export default function PracticeLogForm({
                   <div key={set.id} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="text-sm font-medium text-gray-900">
-                        メニュー {index + 1}
+                        {editData?.practiceLogs && editData.practiceLogs.length > 1 
+                          ? `メニュー ${index + 1} (${set.style})` 
+                          : `メニュー ${index + 1}`}
                       </h4>
                       <div className="flex items-center space-x-2">
                         <Button
@@ -386,7 +451,7 @@ export default function PracticeLogForm({
                             {set.times.filter((t: any) => t.time > 0).length}件のタイム記録
                           </div>
                         )}
-                        {formData.sets.length > 1 && (
+                        {formData.sets.length > 1 && !editData?.practiceLogs && (
                           <button
                             type="button"
                             onClick={() => removeMenu(set.id)}
@@ -531,6 +596,32 @@ export default function PracticeLogForm({
                         </div>
                       </div>
                     )}
+
+                    {/* メニュー個別のメモ欄 */}
+                    <div className="mt-3">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        メニューメモ
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={set.note || ''}
+                        onChange={(e) => updateSet(set.id, 'note', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="このメニューについての感想や気づいたことを記録..."
+                      />
+                    </div>
+
+                    {/* タグ選択 */}
+                    <div className="mt-3">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        タグ
+                      </label>
+                      <TagSelector
+                        selectedTags={set.tags || []}
+                        onTagsChange={(tags) => updateSetTags(set.id, tags)}
+                        disabled={isLoading}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>

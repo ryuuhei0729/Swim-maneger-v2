@@ -42,7 +42,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ユーザープロフィールを取得（完全オプション化）
   const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
     try {
-      console.log('AuthProvider: Fetching user profile for:', userId)
+      // 開発環境でのみログ出力
+      if (process.env.NODE_ENV === 'development') {
+        console.log('AuthProvider: Fetching user profile for:', userId)
+      }
       
       // プロフィール取得はタイムアウト付きで実行
       const profilePromise = supabase
@@ -62,7 +65,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // ユーザーが存在しない場合（PGRST116エラー）、デフォルトプロフィールを作成
         if (error.code === 'PGRST116') {
-          console.log('AuthProvider: Creating default profile for user:', userId)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('AuthProvider: Creating default profile for user:', userId)
+          }
           
           try {
             const { data: newProfile, error: createError } = await supabase

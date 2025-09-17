@@ -117,8 +117,21 @@ export default function TimeInputModal({
     return setTimes.reduce((sum, t) => sum + t.time, 0)
   }
 
+  const getSetAverage = (setNumber: number) => {
+    const setTimes = getTimesBySet(setNumber)
+    const validTimes = setTimes.filter(t => t.time > 0)
+    if (validTimes.length === 0) return 0
+    return validTimes.reduce((sum, t) => sum + t.time, 0) / validTimes.length
+  }
+
   const getOverallTotal = () => {
     return times.reduce((sum, t) => sum + t.time, 0)
+  }
+
+  const getOverallAverage = () => {
+    const validTimes = times.filter(t => t.time > 0)
+    if (validTimes.length === 0) return 0
+    return validTimes.reduce((sum, t) => sum + t.time, 0) / validTimes.length
   }
 
   return (
@@ -155,7 +168,8 @@ export default function TimeInputModal({
               {Array.from({ length: setCount }, (_, setIndex) => {
                 const setNumber = setIndex + 1
                 const setTimes = getTimesBySet(setNumber)
-                const setTotal = getSetTotal(setNumber)
+                const setAverage = getSetAverage(setNumber)
+                const validTimesCount = setTimes.filter(t => t.time > 0).length
                 
                 return (
                   <div key={setNumber} className="border border-gray-200 rounded-lg p-4">
@@ -164,7 +178,8 @@ export default function TimeInputModal({
                         セット {setNumber}
                       </h4>
                       <div className="text-sm text-gray-600">
-                        合計: {formatTime(setTotal)}
+                        平均: {setAverage > 0 ? formatTime(setAverage) : '未入力'} 
+                        {validTimesCount > 0 && ` (${validTimesCount}本)`}
                       </div>
                     </div>
                     
@@ -192,12 +207,12 @@ export default function TimeInputModal({
             </div>
           </div>
 
-          {/* 合計表示 */}
+          {/* 平均値表示 */}
           <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">総合計:</span>
+              <span className="text-sm font-medium text-gray-700">全体平均:</span>
               <span className="text-lg font-bold text-blue-600">
-                {formatTime(getOverallTotal())}
+                {getOverallAverage() > 0 ? formatTime(getOverallAverage()) : '未入力'}
               </span>
             </div>
           </div>

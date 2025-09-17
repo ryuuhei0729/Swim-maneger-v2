@@ -148,6 +148,7 @@ type PracticeLog {
   circle: Float
   note: String
   times: [PracticeTime!]!
+  tags: [PracticeTag!]
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -368,6 +369,10 @@ type Mutation {
   createPracticeTime(input: CreatePracticeTimeInput!): PracticeTime!
   updatePracticeTime(id: ID!, input: UpdatePracticeTimeInput!): PracticeTime!
   deletePracticeTime(id: ID!): Boolean!
+
+  # 練習ログタグ関連
+  addPracticeLogTag(practiceLogId: ID!, practiceTagId: ID!): Boolean!
+  removePracticeLogTag(practiceLogId: ID!, practiceTagId: ID!): Boolean!
 
   # 大会関連（個人利用機能対応）
   createCompetition(input: CreateCompetitionInput!): Competition!

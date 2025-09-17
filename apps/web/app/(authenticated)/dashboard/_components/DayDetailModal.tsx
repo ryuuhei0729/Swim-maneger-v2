@@ -6,7 +6,7 @@ import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { formatTime } from '@/utils/formatters'
 import { useQuery } from '@apollo/client/react'
-import { GET_RECORD } from '@/graphql/queries'
+import { GET_RECORD, GET_PRACTICE } from '@/graphql/queries'
 
 interface CalendarEntry {
   id: string
@@ -151,6 +151,8 @@ export default function DayDetailModal({
                               💭 {entry.note}
                             </p>
                           )}
+                          {/* 練習記録の詳細情報 */}
+                          <PracticeDetails practiceId={entry.id} />
                         </div>
                         <div className="flex items-center space-x-2 ml-4">
                           <button
@@ -329,6 +331,155 @@ export default function DayDetailModal({
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// 練習記録の詳細表示
+function PracticeDetails({ practiceId }: { practiceId: string }) {
+  const { data, loading, error } = useQuery(GET_PRACTICE, {
+    variables: { id: practiceId },
+    fetchPolicy: 'cache-and-network',
+    notifyOnNetworkStatusChange: true,
+    errorPolicy: 'ignore',
+  })
+
+  if (loading) {
+    return (
+      <div className="mt-3 text-sm text-gray-500">練習詳細を読み込み中...</div>
+    )
+  }
+  if (error) {
+    return (
+      <div className="mt-3 text-sm text-red-600">練習詳細の取得に失敗しました</div>
+    )
+  }
+
+  const practice = (data as any)?.practice
+  if (!practice) {
+    return null
+  }
+
+  const practiceLogs = practice.practiceLogs || []
+
+  // デバッグ: タグ情報を確認
+  console.log('PracticeDetails - practice:', practice)
+  console.log('PracticeDetails - practiceLogs:', practiceLogs)
+  practiceLogs.forEach((log: any, index: number) => {
+    console.log(`PracticeDetails - log ${index}:`, log)
+    console.log(`PracticeDetails - log ${index} tags:`, log.tags)
+  })
+
+  // 色の明度に基づいてテキスト色を決定する関数
+  const getTextColor = (backgroundColor: string) => {
+    // 16進数カラーをRGBに変換
+    const hex = backgroundColor.replace('#', '')
+    const r = parseInt(hex.substr(0, 2), 16)
+    const g = parseInt(hex.substr(2, 2), 16)
+    const b = parseInt(hex.substr(4, 2), 16)
+    
+    // 明度を計算（0-255）
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000
+    
+    // 明度が128より高い場合は黒、低い場合は白
+    return brightness > 128 ? '#000000' : '#FFFFFF'
+  }
+
+  // 平均タイムを計算する関数
+  const calculateAverageTime = (times: any[]) => {
+    const validTimes = times.filter(t => t.time > 0)
+    if (validTimes.length === 0) return 0
+    return validTimes.reduce((sum, t) => sum + t.time, 0) / validTimes.length
+  }
+
+  // セットごとの平均タイムを計算する関数
+  const calculateSetAverageTime = (times: any[], setNumber: number) => {
+    const setTimes = times.filter(t => t.setNumber === setNumber)
+    return calculateAverageTime(setTimes)
+  }
+
+  return (
+    <div className="mt-3 space-y-4">
+      {practiceLogs.map((log: any, index: number) => {
+        const allTimes = log.times || []
+        const overallAverage = calculateAverageTime(allTimes)
+        
+        return (
+          <div key={log.id} className="bg-white border border-green-200 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <h6 className="font-medium text-green-800">
+                メニュー{index + 1}: {log.style}
+              </h6>
+              {overallAverage > 0 && (
+                <span className="text-sm font-semibold text-green-700">
+                  全体平均: {formatTime(overallAverage)}
+                </span>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-2">
+              <div>距離: {log.distance}m</div>
+              <div>セット数: {log.setCount}</div>
+              <div>本数: {log.repCount}</div>
+              <div>サークル: {log.circle}秒</div>
+            </div>
+
+            {log.note && (
+              <div className="text-sm text-gray-600 mb-2">
+                💭 {log.note}
+              </div>
+            )}
+
+            {/* タグ表示 */}
+            {log.tags && Array.isArray(log.tags) && log.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {log.tags.map((tag: any) => (
+                  <span
+                    key={tag.id}
+                    className="inline-block px-2 py-1 text-xs rounded-full"
+                    style={{ 
+                      backgroundColor: tag.color,
+                      color: getTextColor(tag.color)
+                    }}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* セットごとのタイム表示 */}
+            {allTimes.length > 0 && (
+              <div className="mt-2">
+                <p className="text-xs font-medium text-green-700 mb-1">セット別タイム</p>
+                <div className="space-y-1">
+                  {Array.from({ length: log.setCount }, (_, setIndex) => {
+                    const setNumber = setIndex + 1
+                    const setAverage = calculateSetAverageTime(allTimes, setNumber)
+                    const setTimes = allTimes.filter(t => t.setNumber === setNumber)
+                    
+                    return (
+                      <div key={setNumber} className="flex items-center justify-between text-xs bg-green-50 rounded px-2 py-1">
+                        <span className="text-green-800">セット{setNumber}</span>
+                        <div className="flex items-center space-x-2">
+                          {setAverage > 0 && (
+                            <span className="font-medium text-green-700">
+                              平均: {formatTime(setAverage)}
+                            </span>
+                          )}
+                          <span className="text-gray-500">
+                            ({setTimes.filter(t => t.time > 0).length}/{log.repCount}本)
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -8,8 +8,8 @@ import RecordForm from '@/components/forms/RecordForm'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { gql } from '@apollo/client'
 import { apolloClient } from '@/lib/apollo-client'
-import { CREATE_PRACTICE, CREATE_PRACTICE_LOG, CREATE_RECORD, DELETE_PRACTICE, DELETE_PRACTICE_LOG, DELETE_RECORD, UPDATE_PRACTICE_LOG, UPDATE_RECORD, CREATE_PRACTICE_TIME, UPDATE_PRACTICE_TIME, DELETE_PRACTICE_TIME, CREATE_COMPETITION } from '@/graphql/mutations'
-import { GET_CALENDAR_DATA, GET_STYLES, GET_PRACTICE, GET_PRACTICE_LOG, GET_RECORD, GET_PRACTICE_LOGS, GET_RECORDS } from '@/graphql/queries'
+import { CREATE_PRACTICE, CREATE_PRACTICE_LOG, CREATE_RECORD, DELETE_PRACTICE, DELETE_PRACTICE_LOG, DELETE_RECORD, UPDATE_PRACTICE, UPDATE_PRACTICE_LOG, UPDATE_RECORD, CREATE_PRACTICE_TIME, UPDATE_PRACTICE_TIME, DELETE_PRACTICE_TIME, CREATE_COMPETITION, ADD_PRACTICE_LOG_TAG, REMOVE_PRACTICE_LOG_TAG } from '@/graphql/mutations'
+import { GET_CALENDAR_DATA, GET_STYLES, GET_PRACTICE, GET_PRACTICE_LOG, GET_RECORD, GET_PRACTICE_LOGS, GET_RECORDS, GET_PRACTICES } from '@/graphql/queries'
 
 export default function DashboardPage() {
   const { profile } = useAuth()
@@ -20,14 +20,18 @@ export default function DashboardPage() {
   const [editingEntry, setEditingEntry] = useState<any>(null)
   const [editingData, setEditingData] = useState<any>(null)
 
-  // デバッグ: editingEntryの状態変化を監視
+  // デバッグ: editingEntryの状態変化を監視（開発環境でのみ）
   useEffect(() => {
-    console.log('Dashboard: editingEntry changed to:', editingEntry)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Dashboard: editingEntry changed to:', editingEntry)
+    }
   }, [editingEntry])
 
-  // デバッグ: editingDataの状態変化を監視
+  // デバッグ: editingDataの状態変化を監視（開発環境でのみ）
   useEffect(() => {
-    console.log('Dashboard: editingData changed to:', editingData)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Dashboard: editingData changed to:', editingData)
+    }
   }, [editingData])
 
   // スタイルデータを取得
@@ -40,9 +44,9 @@ export default function DashboardPage() {
     skip: !editingEntry || editingEntry.entry_type !== 'practice',
   })
 
-  // デバッグ: 練習記録データの取得状況をログ出力
+  // デバッグ: 練習記録データの取得状況をログ出力（開発環境でのみ）
   useEffect(() => {
-    if (editingEntry?.entry_type === 'practice') {
+    if (process.env.NODE_ENV === 'development' && editingEntry?.entry_type === 'practice') {
       console.log('Dashboard: editingEntry for practice:', editingEntry)
       console.log('Dashboard: practiceData:', practiceData)
       console.log('Dashboard: practiceDataLoading:', practiceDataLoading)
@@ -55,9 +59,9 @@ export default function DashboardPage() {
     skip: !editingEntry || editingEntry.entry_type !== 'record',
   })
 
-  // デバッグ: 大会記録データの取得状況をログ出力
+  // デバッグ: 大会記録データの取得状況をログ出力（開発環境でのみ）
   useEffect(() => {
-    if (editingEntry && editingEntry.entry_type === 'record') {
+    if (process.env.NODE_ENV === 'development' && editingEntry && editingEntry.entry_type === 'record') {
       console.log('Dashboard: Record query status:', {
         editingEntryId: editingEntry.id,
         recordLoading,
@@ -69,10 +73,19 @@ export default function DashboardPage() {
 
   // GraphQLミューテーション
   const [createPractice] = useMutation(CREATE_PRACTICE, {
-    refetchQueries: [{
-      query: GET_CALENDAR_DATA,
-      variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
-    }],
+    refetchQueries: [
+      {
+        query: GET_CALENDAR_DATA,
+        variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
+      },
+      {
+        query: GET_PRACTICES,
+        variables: {
+          startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+          endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+        }
+      }
+    ],
     awaitRefetchQueries: true,
     onError: (error) => {
       console.error('練習の作成に失敗しました:', error)
@@ -81,48 +94,21 @@ export default function DashboardPage() {
   })
 
   const [createPracticeLog] = useMutation(CREATE_PRACTICE_LOG, {
-    optimisticResponse: (variables) => ({
-      createPracticeLog: {
-        __typename: 'PracticeLog',
-        id: `temp-${Date.now()}`,
-        userId: profile?.id,
-        practiceId: variables.input.practiceId,
-        practice: null,
-        style: variables.input.style,
-        repCount: variables.input.repCount,
-        setCount: variables.input.setCount,
-        distance: variables.input.distance,
-        circle: variables.input.circle,
-        note: variables.input.note,
-        times: [], // 空の配列を追加
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-    }),
-    refetchQueries: [{
-      query: GET_CALENDAR_DATA,
-      variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
-    }],
-    awaitRefetchQueries: true,
-    update: (cache, { data }) => {
-      if (data?.createPracticeLog) {
-
-        // GET_PRACTICE_LOGSクエリのキャッシュも更新
-        try {
-          const practiceLogsData = cache.readQuery({ query: GET_PRACTICE_LOGS }) as any
-          if (practiceLogsData) {
-            cache.writeQuery({
-              query: GET_PRACTICE_LOGS,
-              data: {
-                myPracticeLogs: [...(practiceLogsData.myPracticeLogs || []), data.createPracticeLog]
-              }
-            })
-          }
-        } catch (error) {
-          console.log('Practice logs cache update failed:', error)
+    refetchQueries: [
+      {
+        query: GET_CALENDAR_DATA,
+        variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
+      },
+      {
+        query: GET_PRACTICES,
+        variables: {
+          startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+          endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
         }
       }
-    },
+    ],
+    awaitRefetchQueries: true,
+    // キャッシュの更新はrefetchQueriesで自動的に行われるため、手動更新は不要
     onCompleted: () => {
       setShowPracticeForm(false)
       setSelectedDate(null)
@@ -159,10 +145,19 @@ export default function DashboardPage() {
     optimisticResponse: (variables) => ({
       deletePractice: true
     }),
-    refetchQueries: [{
-      query: GET_CALENDAR_DATA,
-      variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
-    }],
+    refetchQueries: [
+      {
+        query: GET_CALENDAR_DATA,
+        variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
+      },
+      {
+        query: GET_PRACTICES,
+        variables: {
+          startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+          endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+        }
+      }
+    ],
     awaitRefetchQueries: true,
     onError: (error) => {
       console.error('練習記録の削除に失敗しました:', error)
@@ -254,29 +249,41 @@ export default function DashboardPage() {
     }
   })
 
-  const [updatePracticeLog] = useMutation(UPDATE_PRACTICE_LOG, {
-    optimisticResponse: (variables) => ({
-      updatePracticeLog: {
-        __typename: 'PracticeLog',
-        id: variables.id,
-        userId: profile?.id,
-        practiceId: variables.input.practiceId,
-        practice: null,
-        style: variables.input.style,
-        repCount: variables.input.repCount,
-        setCount: variables.input.setCount,
-        distance: variables.input.distance,
-        circle: variables.input.circle,
-        note: variables.input.note,
-        times: [], // 空の配列を追加
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+  const [updatePractice] = useMutation(UPDATE_PRACTICE, {
+    refetchQueries: [
+      {
+        query: GET_CALENDAR_DATA,
+        variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
+      },
+      {
+        query: GET_PRACTICES,
+        variables: {
+          startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+          endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+        }
       }
-    }),
-    refetchQueries: [{
-      query: GET_CALENDAR_DATA,
-      variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
-    }],
+    ],
+    awaitRefetchQueries: true,
+    onError: (error) => {
+      console.error('練習の更新に失敗しました:', error)
+      alert('練習の更新に失敗しました。')
+    }
+  })
+
+  const [updatePracticeLog] = useMutation(UPDATE_PRACTICE_LOG, {
+    refetchQueries: [
+      {
+        query: GET_CALENDAR_DATA,
+        variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
+      },
+      {
+        query: GET_PRACTICES,
+        variables: {
+          startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+          endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+        }
+      }
+    ],
     awaitRefetchQueries: true,
     update: (cache, { data }) => {
       if (data?.updatePracticeLog) {
@@ -303,31 +310,7 @@ export default function DashboardPage() {
           console.log('Practice logs cache update failed:', error)
         }
 
-        // 特定の練習記録のキャッシュも更新
-        cache.writeFragment({
-          id: `PracticeLog:${data.updatePracticeLog.id}`,
-          fragment: gql`
-            fragment UpdatedPracticeLog on PracticeLog {
-              id
-              userId
-              date
-              place
-              style
-              repCount
-              setCount
-              distance
-              circle
-              note
-              times {
-                id
-                repNumber
-                setNumber
-                time
-              }
-            }
-          `,
-          data: data.updatePracticeLog
-        })
+        // キャッシュの更新はrefetchQueriesで自動的に行われるため、手動更新は不要
       }
     },
     onError: (error) => {
@@ -336,10 +319,28 @@ export default function DashboardPage() {
     }
   })
 
-  const [createPracticeTime] = useMutation(CREATE_PRACTICE_TIME)
+  const [createPracticeTime] = useMutation(CREATE_PRACTICE_TIME, {
+    refetchQueries: [
+      {
+        query: GET_CALENDAR_DATA,
+        variables: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
+      },
+      {
+        query: GET_PRACTICES,
+        variables: {
+          startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+          endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+        }
+      }
+    ],
+    awaitRefetchQueries: true
+  })
   const [updatePracticeTime] = useMutation(UPDATE_PRACTICE_TIME)
   const [deletePracticeTime] = useMutation(DELETE_PRACTICE_TIME)
   const [createCompetition] = useMutation(CREATE_COMPETITION)
+
+  const [addPracticeLogTag] = useMutation(ADD_PRACTICE_LOG_TAG)
+  const [removePracticeLogTag] = useMutation(REMOVE_PRACTICE_LOG_TAG)
 
   const [updateRecord] = useMutation(UPDATE_RECORD, {
     optimisticResponse: (variables) => ({
@@ -419,43 +420,44 @@ export default function DashboardPage() {
 
   // 詳細データが取得されたときにeditingDataを更新
   useEffect(() => {
-    console.log('Dashboard: useEffect triggered for editingData:', {
-      editingEntry,
-      practiceData,
-      recordData,
-      hasPractice: !!(practiceData as any)?.practice,
-      hasRecord: !!(recordData as any)?.record
-    })
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Dashboard: useEffect triggered for editingData:', {
+        editingEntry,
+        practiceData,
+        recordData,
+        hasPractice: !!(practiceData as any)?.practice,
+        hasRecord: !!(recordData as any)?.record
+      })
+    }
     
     if (editingEntry && editingEntry.entry_type === 'practice' && (practiceData as any)?.practice) {
       const practice = (practiceData as any).practice
-      console.log('Dashboard: Setting practice data:', practice)
-      console.log('Dashboard: Practice logs:', practice.practiceLogs)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Dashboard: Setting practice data:', practice)
+        console.log('Dashboard: Practice logs:', practice.practiceLogs)
+      }
       
-      // 最初のPracticeLogを使用（通常は1つだが、複数ある場合は最初のもの）
-      const firstLog = practice.practiceLogs?.[0]
-      if (firstLog) {
-        console.log('Dashboard: First practice log times:', firstLog.times)
-        const newEditingData = {
-          id: firstLog.id, // PracticeLog ID
-          practiceId: practice.id, // Practice ID
-          date: practice.date || new Date().toISOString().split('T')[0],
-          place: practice.place || '',
-          style: firstLog.style,
-          repCount: firstLog.repCount,
-          setCount: firstLog.setCount,
-          distance: firstLog.distance,
-          circle: firstLog.circle,
-          note: firstLog.note,
-          times: firstLog.times || []
-        }
-        console.log('Dashboard: New editing data for practice:', newEditingData)
-        setEditingData(newEditingData)
-        console.log('Dashboard: editingData has been set')
+      // 複数のPractice_logを表示するために、Practice全体のデータを渡す
+      const newEditingData = {
+        id: practice.id, // Practice ID
+        practiceId: practice.id, // Practice ID
+        date: practice.date || new Date().toISOString().split('T')[0],
+        place: practice.place || '',
+        note: practice.note || '',
+        practiceLogs: practice.practiceLogs || [] // 複数のPractice_logを渡す
+      }
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Dashboard: New editing data for practice with multiple logs:', newEditingData)
+      }
+      setEditingData(newEditingData)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Dashboard: editingData has been set with practiceLogs array')
       }
     } else if (editingEntry && editingEntry.entry_type === 'record' && (recordData as any)?.record) {
       const record = (recordData as any).record
-      console.log('Setting record data:', record)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Setting record data:', record)
+      }
       const newEditingData = {
         id: record.id,
         recordDate: record.competition?.date || new Date().toISOString().split('T')[0],
@@ -471,24 +473,28 @@ export default function DashboardPage() {
         competition: record.competition,
         style: record.style
       }
-      console.log('New editing data for record:', newEditingData)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('New editing data for record:', newEditingData)
+      }
       setEditingData(newEditingData)
     } else {
-      console.log('No data to set, clearing editingData')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('No data to set, clearing editingData')
+      }
       setEditingData(null)
     }
   }, [editingEntry, practiceData, recordData])
 
-  // デバッグ: PracticeLogFormが開かれる時の状態をログ出力
+  // デバッグ: PracticeLogFormが開かれる時の状態をログ出力（開発環境でのみ）
   useEffect(() => {
-    if (showPracticeForm) {
+    if (process.env.NODE_ENV === 'development' && showPracticeForm) {
       console.log('Dashboard: PracticeLogForm is opening with editingData:', editingData)
     }
   }, [showPracticeForm, editingData])
 
-  // デバッグ: RecordFormが開かれる時の状態をログ出力
+  // デバッグ: RecordFormが開かれる時の状態をログ出力（開発環境でのみ）
   useEffect(() => {
-    if (showRecordForm) {
+    if (process.env.NODE_ENV === 'development' && showRecordForm) {
       console.log('Dashboard: RecordForm is opening with editingData:', editingData)
     }
   }, [showRecordForm, editingData])
@@ -509,16 +515,60 @@ export default function DashboardPage() {
   }
 
   const handleEditEntry = (entry: any) => {
-    console.log('Dashboard: handleEditEntry called with:', entry)
-    console.log('Dashboard: Setting editingEntry to:', entry)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Dashboard: handleEditEntry called with:', entry)
+      console.log('Dashboard: Setting editingEntry to:', entry)
+    }
     setEditingEntry(entry)
     setEditingData(null) // 編集データをリセット
     setSelectedDate(new Date(entry.entry_date))
     if (entry.entry_type === 'practice') {
-      console.log('Dashboard: Opening practice form for editing')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Dashboard: Opening practice form for editing')
+      }
       setShowPracticeForm(true)
     } else {
       setShowRecordForm(true)
+    }
+  }
+
+  // タグの保存処理
+  const savePracticeLogTags = async (practiceLogId: string, tags: any[], existingTags: any[] = []) => {
+    try {
+      console.log('savePracticeLogTags - practiceLogId:', practiceLogId)
+      console.log('savePracticeLogTags - new tags:', tags)
+      console.log('savePracticeLogTags - existing tags:', existingTags)
+      
+      // 既存のタグをすべて削除
+      for (const existingTag of existingTags) {
+        try {
+          await removePracticeLogTag({
+            variables: {
+              practiceLogId: practiceLogId,
+              practiceTagId: existingTag.id
+            }
+          })
+        } catch (error) {
+          console.warn('既存タグの削除に失敗しました:', error)
+        }
+      }
+      
+      // 新しいタグを追加
+      for (const tag of tags) {
+        try {
+          await addPracticeLogTag({
+            variables: {
+              practiceLogId: practiceLogId,
+              practiceTagId: tag.id
+            }
+          })
+          console.log('タグを追加しました:', tag.name)
+        } catch (error) {
+          console.error('タグの追加に失敗しました:', error)
+        }
+      }
+    } catch (error) {
+      console.error('タグの保存に失敗しました:', error)
     }
   }
 
@@ -531,22 +581,63 @@ export default function DashboardPage() {
       const createdPracticeLogIds: string[] = []
 
       if (editingData && editingEntry?.entry_type === 'practice') {
-        // 編集時: PracticeLogのみ更新（Practice部分は今回はスキップ）
-        const m = menus[0] || {}
-        const repsPerSet = (m?.reps as number) || 0
-        const setCount = (m?.setCount as number) || 1
-        const distancePerRep = (m?.distance as number) || 0
-        const input = {
-          practiceId: editingData.practiceId, // 既存のPractice IDを使用
-          style: m?.style || 'フリー',
-          repCount: repsPerSet * setCount,
-          setCount: setCount,
-          distance: distancePerRep * repsPerSet * setCount,
-          circle: m?.circleTime || null,
+        // 編集時: まずPractice本体を更新
+        const practiceInput = {
+          date: formData.practiceDate,
+          place: formData.location,
           note: formData.note
         }
-        await updatePracticeLog({ variables: { id: editingData.id, input } })
-        createdPracticeLogIds.push(editingData.id)
+        await updatePractice({ variables: { id: editingData.practiceId, input: practiceInput } })
+
+        // 編集時: 複数のPractice_logがある場合の処理
+        if (editingData.practiceLogs && editingData.practiceLogs.length > 0) {
+          // 複数のPractice_logを更新
+          for (let i = 0; i < menus.length && i < editingData.practiceLogs.length; i++) {
+            const m = menus[i]
+            const existingLog = editingData.practiceLogs[i]
+            const repsPerSet = (m?.reps as number) || 0
+            const setCount = (m?.setCount as number) || 1
+            const distancePerRep = (m?.distance as number) || 0
+            const input = {
+              practiceId: editingData.practiceId,
+              style: m?.style || 'Fr',
+              repCount: repsPerSet * setCount,
+              setCount: setCount,
+              distance: distancePerRep * repsPerSet * setCount,
+              circle: m?.circleTime || null,
+              note: m?.note || ''
+            }
+            await updatePracticeLog({ variables: { id: existingLog.id, input } })
+            
+            // タグの保存
+            const existingTags = existingLog.tags || []
+            await savePracticeLogTags(existingLog.id, m?.tags || [], existingTags)
+            
+            createdPracticeLogIds.push(existingLog.id)
+          }
+        } else {
+          // 単一のPractice_logの場合の従来の処理
+          const m = menus[0] || {}
+          const repsPerSet = (m?.reps as number) || 0
+          const setCount = (m?.setCount as number) || 1
+          const distancePerRep = (m?.distance as number) || 0
+          const input = {
+            practiceId: editingData.practiceId, // 既存のPractice IDを使用
+            style: m?.style || 'Fr',
+            repCount: repsPerSet * setCount,
+            setCount: setCount,
+            distance: distancePerRep * repsPerSet * setCount,
+            circle: m?.circleTime || null,
+            note: m?.note || ''
+          }
+          await updatePracticeLog({ variables: { id: editingData.id, input } })
+          
+          // タグの保存
+          const existingTags = editingData.tags || []
+          await savePracticeLogTags(editingData.id, m?.tags || [], existingTags)
+          
+          createdPracticeLogIds.push(editingData.id)
+        }
       } else {
         // 新規時: まずPracticeを作成
         const practiceInput = {
@@ -565,7 +656,7 @@ export default function DashboardPage() {
             const distancePerRep = (m?.distance as number) || 0
             const input = {
               practiceId: practiceId,
-              style: m?.style || 'フリー',
+              style: m?.style || 'Fr',
               repCount: repsPerSet * setCount,
               setCount: setCount,
               distance: distancePerRep * repsPerSet * setCount,
@@ -574,7 +665,12 @@ export default function DashboardPage() {
             }
             const result = await createPracticeLog({ variables: { input } })
             const id = (result.data as any)?.createPracticeLog?.id
-            if (id) createdPracticeLogIds.push(id)
+            if (id) {
+              createdPracticeLogIds.push(id)
+              
+              // タグの保存（新規作成時は既存タグなし）
+              await savePracticeLogTags(id, m?.tags || [], [])
+            }
           }
         }
       }
@@ -617,6 +713,15 @@ export default function DashboardPage() {
             }
           }
         }
+      }
+
+      // すべてのミューテーション完了後、手動でキャッシュを更新
+      try {
+        await apolloClient.refetchQueries({
+          include: [GET_CALENDAR_DATA, GET_PRACTICES]
+        })
+      } catch (refetchError) {
+        console.error('キャッシュの手動更新でエラーが発生しました:', refetchError)
       }
     } catch (error) {
       console.error('練習記録の保存に失敗しました:', error)

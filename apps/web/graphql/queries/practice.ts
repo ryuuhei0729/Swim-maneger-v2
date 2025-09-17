@@ -24,6 +24,11 @@ export const GET_PRACTICES = gql`
           setNumber
           time
         }
+        tags {
+          id
+          name
+          color
+        }
       }
       createdAt
       updatedAt
@@ -54,6 +59,11 @@ export const GET_PRACTICE = gql`
           setNumber
           time
         }
+        tags {
+          id
+          name
+          color
+        }
       }
       createdAt
       updatedAt
@@ -83,6 +93,11 @@ export const GET_PRACTICES_BY_DATE = gql`
           repNumber
           setNumber
           time
+        }
+        tags {
+          id
+          name
+          color
         }
       }
       createdAt

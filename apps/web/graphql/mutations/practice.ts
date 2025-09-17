@@ -24,6 +24,11 @@ export const CREATE_PRACTICE = gql`
           setNumber
           time
         }
+        tags {
+          id
+          name
+          color
+        }
       }
       createdAt
       updatedAt
@@ -53,6 +58,11 @@ export const UPDATE_PRACTICE = gql`
           repNumber
           setNumber
           time
+        }
+        tags {
+          id
+          name
+          color
         }
       }
       createdAt
@@ -197,5 +207,18 @@ export const DELETE_PRACTICE_TIME = gql`
     deletePracticeTime(id: $id) {
       success
     }
+  }
+`
+
+// 練習ログタグ関連ミューテーション
+export const ADD_PRACTICE_LOG_TAG = gql`
+  mutation AddPracticeLogTag($practiceLogId: ID!, $practiceTagId: ID!) {
+    addPracticeLogTag(practiceLogId: $practiceLogId, practiceTagId: $practiceTagId)
+  }
+`
+
+export const REMOVE_PRACTICE_LOG_TAG = gql`
+  mutation RemovePracticeLogTag($practiceLogId: ID!, $practiceTagId: ID!) {
+    removePracticeLogTag(practiceLogId: $practiceLogId, practiceTagId: $practiceTagId)
   }
 `

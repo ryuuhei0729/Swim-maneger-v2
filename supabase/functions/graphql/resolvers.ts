@@ -176,7 +176,16 @@ export const resolvers = {
         .order('created_at')
       
       if (error) throw new Error(error.message)
-      return data || []
+      
+      // GraphQLスキーマに合わせてフィールド名を変換
+      return (data || []).map((tag: any) => ({
+        id: tag.id,
+        userId: tag.user_id,
+        name: tag.name,
+        color: tag.color,
+        createdAt: tag.created_at,
+        updatedAt: tag.updated_at
+      }))
     },
 
     practiceTag: async (_: any, { id }: { id: string }, context: any) => {
@@ -190,7 +199,16 @@ export const resolvers = {
         .single()
       
       if (error) throw new Error(error.message)
-      return data
+      
+      // GraphQLスキーマに合わせてフィールド名を変換
+      return {
+        id: data.id,
+        userId: data.user_id,
+        name: data.name,
+        color: data.color,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
     },
 
     // 練習関連
@@ -206,7 +224,11 @@ export const resolvers = {
           *,
           practice_logs(
             *,
-            practice_times(*)
+            practice_times(*),
+            practice_log_tags(
+              *,
+              practice_tags(*)
+            )
           )
         `)
         .eq('user_id', userId)
@@ -250,6 +272,18 @@ export const resolvers = {
             createdAt: time.created_at,
             updatedAt: time.updated_at
           })),
+          tags: (log.practice_log_tags || []).map((tagRelation: any) => {
+            // タグ情報が存在しない場合はスキップ
+            if (!tagRelation.practice_tags) {
+              console.warn('practice_tags is undefined for tagRelation:', tagRelation)
+              return null
+            }
+            return {
+              id: tagRelation.practice_tags.id,
+              name: tagRelation.practice_tags.name,
+              color: tagRelation.practice_tags.color
+            }
+          }).filter(tag => tag !== null),
           createdAt: log.created_at,
           updatedAt: log.updated_at
         })),
@@ -269,7 +303,11 @@ export const resolvers = {
           *,
           practice_logs(
             *,
-            practice_times(*)
+            practice_times(*),
+            practice_log_tags(
+              *,
+              practice_tags(*)
+            )
           )
         `)
         .eq('id', id)
@@ -277,6 +315,21 @@ export const resolvers = {
         .single()
       
       if (error) throw new Error(error.message)
+      
+      // デバッグ: タグ情報を確認
+      console.log('practice resolver - data:', JSON.stringify(data, null, 2))
+      if (data.practice_logs) {
+        data.practice_logs.forEach((log: any, index: number) => {
+          console.log(`practice resolver - log ${index}:`, log)
+          console.log(`practice resolver - log ${index} practice_log_tags:`, log.practice_log_tags)
+          if (log.practice_log_tags) {
+            log.practice_log_tags.forEach((tagRelation: any, tagIndex: number) => {
+              console.log(`practice resolver - log ${index} tagRelation ${tagIndex}:`, tagRelation)
+              console.log(`practice resolver - log ${index} tagRelation ${tagIndex} practice_tags:`, tagRelation.practice_tags)
+            })
+          }
+        })
+      }
       
       return {
         id: data.id,
@@ -304,6 +357,18 @@ export const resolvers = {
             createdAt: time.created_at,
             updatedAt: time.updated_at
           })),
+          tags: (log.practice_log_tags || []).map((tagRelation: any) => {
+            // タグ情報が存在しない場合はスキップ
+            if (!tagRelation.practice_tags) {
+              console.warn('practice_tags is undefined for tagRelation:', tagRelation)
+              return null
+            }
+            return {
+              id: tagRelation.practice_tags.id,
+              name: tagRelation.practice_tags.name,
+              color: tagRelation.practice_tags.color
+            }
+          }).filter(tag => tag !== null),
           createdAt: log.created_at,
           updatedAt: log.updated_at
         })),
@@ -321,7 +386,11 @@ export const resolvers = {
           *,
           practice_logs(
             *,
-            practice_times(*)
+            practice_times(*),
+            practice_log_tags(
+              *,
+              practice_tags(*)
+            )
           )
         `)
         .eq('user_id', userId)
@@ -356,6 +425,18 @@ export const resolvers = {
             createdAt: time.created_at,
             updatedAt: time.updated_at
           })),
+          tags: (log.practice_log_tags || []).map((tagRelation: any) => {
+            // タグ情報が存在しない場合はスキップ
+            if (!tagRelation.practice_tags) {
+              console.warn('practice_tags is undefined for tagRelation:', tagRelation)
+              return null
+            }
+            return {
+              id: tagRelation.practice_tags.id,
+              name: tagRelation.practice_tags.name,
+              color: tagRelation.practice_tags.color
+            }
+          }).filter(tag => tag !== null),
           createdAt: log.created_at,
           updatedAt: log.updated_at
         })),
@@ -373,7 +454,14 @@ export const resolvers = {
         .select(`
           *,
           practice_times(*),
-          practices(*)
+          practices(*),
+          practice_log_tags(
+            practice_tags(
+              id,
+              name,
+              color
+            )
+          )
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -459,8 +547,11 @@ export const resolvers = {
           practice_times(*),
           practices(*),
           practice_log_tags(
-            practice_tag_id,
-            practice_tags(*)
+            practice_tags(
+              id,
+              name,
+              color
+            )
           )
         `)
         .eq('id', id)
@@ -532,8 +623,11 @@ export const resolvers = {
           practice_times(*),
           practices(*),
           practice_log_tags(
-            practice_tag_id,
-            practice_tags(*)
+            practice_tags(
+              id,
+              name,
+              color
+            )
           )
         `)
         .eq('user_id', userId)
@@ -961,13 +1055,22 @@ export const resolvers = {
         .insert({
           user_id: userId,
           name: input.name,
-          color: input.color || '#3B82F6'
+          color: input.color || '#93C5FD'
         })
         .select()
         .single()
       
       if (error) throw new Error(error.message)
-      return data
+      
+      // GraphQLスキーマに合わせてフィールド名を変換
+      return {
+        id: data.id,
+        userId: data.user_id,
+        name: data.name,
+        color: data.color,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
     },
 
     updatePracticeTag: async (_: any, { id, input }: { id: string, input: any }, context: any) => {
@@ -982,7 +1085,16 @@ export const resolvers = {
         .single()
       
       if (error) throw new Error(error.message)
-      return data
+      
+      // GraphQLスキーマに合わせてフィールド名を変換
+      return {
+        id: data.id,
+        userId: data.user_id,
+        name: data.name,
+        color: data.color,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
     },
 
     deletePracticeTag: async (_: any, { id }: { id: string }, context: any) => {
@@ -1047,6 +1159,18 @@ export const resolvers = {
             createdAt: time.created_at,
             updatedAt: time.updated_at
           })),
+          tags: (log.practice_log_tags || []).map((tagRelation: any) => {
+            // タグ情報が存在しない場合はスキップ
+            if (!tagRelation.practice_tags) {
+              console.warn('practice_tags is undefined for tagRelation:', tagRelation)
+              return null
+            }
+            return {
+              id: tagRelation.practice_tags.id,
+              name: tagRelation.practice_tags.name,
+              color: tagRelation.practice_tags.color
+            }
+          }).filter(tag => tag !== null),
           createdAt: log.created_at,
           updatedAt: log.updated_at
         })),
@@ -1105,6 +1229,18 @@ export const resolvers = {
             createdAt: time.created_at,
             updatedAt: time.updated_at
           })),
+          tags: (log.practice_log_tags || []).map((tagRelation: any) => {
+            // タグ情報が存在しない場合はスキップ
+            if (!tagRelation.practice_tags) {
+              console.warn('practice_tags is undefined for tagRelation:', tagRelation)
+              return null
+            }
+            return {
+              id: tagRelation.practice_tags.id,
+              name: tagRelation.practice_tags.name,
+              color: tagRelation.practice_tags.color
+            }
+          }).filter(tag => tag !== null),
           createdAt: log.created_at,
           updatedAt: log.updated_at
         })),
@@ -1840,6 +1976,92 @@ export const resolvers = {
       } catch (err) {
         console.error('UpdateProfile resolver error:', err)
         throw err
+      }
+    },
+
+    // タグ関連のリゾルバー
+    addPracticeLogTag: async (_: any, { practiceLogId, practiceTagId }: { practiceLogId: string, practiceTagId: string }, context: any) => {
+      const userId = getUserId(context)
+      
+      try {
+        // まず、practiceLogがユーザーのものか確認
+        const { data: practiceLog, error: logError } = await supabase
+          .from('practice_logs')
+          .select('id, user_id')
+          .eq('id', practiceLogId)
+          .eq('user_id', userId)
+          .single()
+        
+        if (logError || !practiceLog) {
+          throw new Error('Practice log not found or access denied')
+        }
+        
+        // タグがユーザーのものか確認
+        const { data: practiceTag, error: tagError } = await supabase
+          .from('practice_tags')
+          .select('id, user_id')
+          .eq('id', practiceTagId)
+          .eq('user_id', userId)
+          .single()
+        
+        if (tagError || !practiceTag) {
+          throw new Error('Practice tag not found or access denied')
+        }
+        
+        // practice_log_tagsテーブルに追加
+        const { error: insertError } = await supabase
+          .from('practice_log_tags')
+          .insert({
+            practice_log_id: practiceLogId,
+            practice_tag_id: practiceTagId
+          })
+        
+        if (insertError) {
+          // 重複エラーの場合は無視（既に存在する場合）
+          if (insertError.code === '23505') {
+            return true
+          }
+          throw new Error(insertError.message)
+        }
+        
+        return true
+      } catch (error) {
+        console.error('addPracticeLogTag error:', error)
+        throw error
+      }
+    },
+
+    removePracticeLogTag: async (_: any, { practiceLogId, practiceTagId }: { practiceLogId: string, practiceTagId: string }, context: any) => {
+      const userId = getUserId(context)
+      
+      try {
+        // まず、practiceLogがユーザーのものか確認
+        const { data: practiceLog, error: logError } = await supabase
+          .from('practice_logs')
+          .select('id, user_id')
+          .eq('id', practiceLogId)
+          .eq('user_id', userId)
+          .single()
+        
+        if (logError || !practiceLog) {
+          throw new Error('Practice log not found or access denied')
+        }
+        
+        // practice_log_tagsテーブルから削除
+        const { error: deleteError } = await supabase
+          .from('practice_log_tags')
+          .delete()
+          .eq('practice_log_id', practiceLogId)
+          .eq('practice_tag_id', practiceTagId)
+        
+        if (deleteError) {
+          throw new Error(deleteError.message)
+        }
+        
+        return true
+      } catch (error) {
+        console.error('removePracticeLogTag error:', error)
+        throw error
       }
     }
   }
