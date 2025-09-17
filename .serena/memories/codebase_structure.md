@@ -1,7 +1,8 @@
 # コードベース構造
 
 ## ディレクトリ構成
-```
+
+```text
 /
 ├── apps/
 │   ├── web/           # Next.jsアプリケーション
@@ -24,6 +25,7 @@
 ```
 
 ## 主要なファイル
+
 - `/apps/web/app/(authenticated)/dashboard/page.tsx` - ダッシュボード メインページ
 - `/apps/web/components/forms/PracticeLogForm.tsx` - 練習記録フォーム
 - `/apps/web/components/forms/TimeInputModal.tsx` - タイム入力モーダル
