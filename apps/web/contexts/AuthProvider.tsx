@@ -5,6 +5,7 @@ import { User, Session, SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase'
 import type { Database } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { apolloClient } from '@/lib/apollo-client'
 
 type UserProfile = Database['public']['Tables']['users']['Row']
 
@@ -70,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           
           try {
-            const { data: newProfile, error: createError } = await supabase
+            const { data: newProfile, error: createError } = await (supabase as any)
               .from('users')
               .insert({
                 id: userId,
@@ -159,6 +160,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         return { error }
+      }
+      
+      // Apollo Clientのキャッシュを全てクリア
+      try {
+        await apolloClient.clearStore()
+        console.log('Apollo Client cache cleared on logout')
+      } catch (cacheError) {
+        console.warn('Failed to clear Apollo Client cache:', cacheError)
       }
       
       return { error: null }
@@ -263,6 +272,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // ログイン/ログアウト時にページをリフレッシュ
         if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+          // ログアウト時にApollo Clientのキャッシュをクリア
+          if (event === 'SIGNED_OUT') {
+            try {
+              await apolloClient.clearStore()
+              console.log('Apollo Client cache cleared on session sign out')
+            } catch (cacheError) {
+              console.warn('Failed to clear Apollo Client cache on sign out:', cacheError)
+            }
+          }
+          
           const currentPath = window.location.pathname
           const authPages = ['/login', '/signup', '/reset-password', '/auth/callback']
           const isAuthPage = authPages.some(page => currentPath.startsWith(page))

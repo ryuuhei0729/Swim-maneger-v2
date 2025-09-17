@@ -120,7 +120,7 @@ export default function TagSelector({
           {selectedTags.map((tag) => (
             <span
               key={tag.id}
-              className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+              className="inline-flex items-center px-3 py-1 rounded-lg text-sm font-medium"
               style={{ 
                 backgroundColor: tag.color,
                 color: getTextColor(tag.color)
@@ -156,15 +156,15 @@ export default function TagSelector({
                 type="button"
                 onClick={() => toggleTag(tag)}
                 disabled={disabled}
-                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
+                className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-medium border transition-colors ${
                   isSelected
-                    ? 'border-transparent'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    ? 'border-transparent shadow-md ring-2 ring-white ring-opacity-50'
+                    : 'border-transparent hover:shadow-sm'
                 } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                style={isSelected ? { 
+                style={{ 
                   backgroundColor: tag.color,
                   color: getTextColor(tag.color)
-                } : {}}
+                }}
               >
                 {tag.name}
               </button>
