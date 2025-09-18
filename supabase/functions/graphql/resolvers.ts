@@ -1447,15 +1447,24 @@ export const resolvers = {
     updatePracticeTime: async (_: any, { id, input }: { id: string, input: any }, context: any) => {
       const userId = getUserId(context)
       
+      // GraphQLのcamelCaseフィールドをデータベースのsnake_caseに変換
+      const updateData: any = {}
+      if (input.time !== undefined) updateData.time = input.time
+      if (input.repNumber !== undefined) updateData.rep_number = input.repNumber
+      if (input.setNumber !== undefined) updateData.set_number = input.setNumber
+      
       const { data, error } = await supabase
         .from('practice_times')
-        .update(input)
+        .update(updateData)
         .eq('id', id)
         .eq('user_id', userId)
         .select()
         .single()
       
-      if (error) throw new Error(error.message)
+      if (error) {
+        throw new Error(error.message)
+      }
+      
       return data
     },
 
@@ -1469,7 +1478,7 @@ export const resolvers = {
         .eq('user_id', userId)
       
       if (error) throw new Error(error.message)
-      return true
+      return { success: true }
     },
 
     // 大会関連

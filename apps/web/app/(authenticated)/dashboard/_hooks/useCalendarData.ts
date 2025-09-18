@@ -79,30 +79,8 @@ export function useCalendarData(currentDate: Date, userId?: string) {
     }
   )
 
-  // エラーログ出力とデバッグ情報（開発環境でのみ）
+  // エラーログ出力
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Calendar data fetch status:', {
-        practicesData: !!practicesData,
-        recordsData: !!recordsData,
-        practiceLoading,
-        recordsLoading,
-        practiceError: !!practiceError,
-        recordsError: !!recordsError
-      })
-
-      if (practicesData) {
-        console.log('Practices data:', practicesData)
-      } else if (!practiceLoading) {
-        console.log('No practices data received')
-      }
-      
-      if (recordsData) {
-        console.log('Records data:', recordsData)
-      } else if (!recordsLoading) {
-        console.log('No records data received')
-      }
-    }
 
     if (calendarError) {
       console.error('Calendar data fetch error:', calendarError)
@@ -255,10 +233,6 @@ export function useCalendarData(currentDate: Date, userId?: string) {
       })
     }
 
-    // 開発環境でのみログ出力
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Generated calendar entries:', entries)
-    }
     return entries
   }, [practicesData, recordsData, currentDate, USE_MOCK_DATA, monthStart, monthEnd])
 

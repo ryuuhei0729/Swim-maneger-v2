@@ -43,6 +43,7 @@ interface PracticeLogFormProps {
   isOpen: boolean
   onClose: () => void
   onSubmit?: (data: PracticeLogFormData) => Promise<void>
+  onDeletePracticeLog?: (practiceLogId: string) => Promise<void> // 個別のPractice_log削除用
   initialDate?: Date
   editData?: any // 編集時のデータ
   isLoading?: boolean
@@ -61,6 +62,7 @@ export default function PracticeLogForm({
   isOpen,
   onClose,
   onSubmit,
+  onDeletePracticeLog,
   initialDate,
   editData,
   isLoading = false
@@ -259,8 +261,26 @@ export default function PracticeLogForm({
     })
   }
 
-  const removeMenu = (id: string) => {
+  const removeMenu = async (id: string) => {
     if (formData.sets.length > 1) {
+      // 編集時で既存のPractice_logの場合、データベースからも削除
+      if (editData?.practiceLogs) {
+        const setToRemove = formData.sets.find(set => set.id === id)
+        if (setToRemove && setToRemove.id.startsWith('existing_')) {
+          const practiceLogId = setToRemove.id.replace('existing_', '')
+          if (onDeletePracticeLog) {
+            try {
+              await onDeletePracticeLog(practiceLogId)
+            } catch (error) {
+              console.error('Practice_logの削除に失敗しました:', error)
+              alert('Practice_logの削除に失敗しました。')
+              return
+            }
+          }
+        }
+      }
+      
+      // フォームの状態からメニューを削除
       setFormData(prev => ({
         ...prev,
         sets: prev.sets.filter(set => set.id !== id)
@@ -451,11 +471,12 @@ export default function PracticeLogForm({
                             {set.times.filter((t: any) => t.time > 0).length}件のタイム記録
                           </div>
                         )}
-                        {formData.sets.length > 1 && !editData?.practiceLogs && (
+                        {formData.sets.length > 1 && (
                           <button
                             type="button"
                             onClick={() => removeMenu(set.id)}
                             className="text-red-600 hover:text-red-800"
+                            title="このメニューを削除"
                           >
                             <TrashIcon className="h-4 w-4" />
                           </button>

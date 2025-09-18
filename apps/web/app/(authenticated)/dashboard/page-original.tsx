@@ -20,6 +20,19 @@ export default function DashboardPage() {
   const [editingEntry, setEditingEntry] = useState<any>(null)
   const [editingData, setEditingData] = useState<any>(null)
 
+  // デバッグ: editingEntryの状態変化を監視（開発環境でのみ）
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Dashboard: editingEntry changed to:', editingEntry)
+    }
+  }, [editingEntry])
+
+  // デバッグ: editingDataの状態変化を監視（開発環境でのみ）
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Dashboard: editingData changed to:', editingData)
+    }
+  }, [editingData])
 
   // スタイルデータを取得
   const { data: stylesData } = useQuery(GET_STYLES)
@@ -407,51 +420,31 @@ export default function DashboardPage() {
 
   // 詳細データが取得されたときにeditingDataを更新
   useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Dashboard: useEffect triggered for editingData:', {
+        editingEntry,
+        practiceData,
+        recordData,
+        hasPractice: !!(practiceData as any)?.practice,
+        hasRecord: !!(recordData as any)?.record
+      })
+    }
+    
     if (editingEntry && editingEntry.entry_type === 'practice' && (practiceData as any)?.practice) {
       const practice = (practiceData as any).practice
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Dashboard: Setting practice data:', practice)
+        console.log('Dashboard: Practice logs:', practice.practiceLogs)
+      }
       
-      // Practice_logの数に応じて適切なデータ構造を設定
-      const practiceLogs = practice.practiceLogs || []
-      let newEditingData: any
-      
-      if (practiceLogs.length > 1) {
-        // 複数のPractice_logを表示するために、Practice全体のデータを渡す
-        newEditingData = {
-          id: practice.id, // Practice ID
-          practiceId: practice.id, // Practice ID
-          date: practice.date || new Date().toISOString().split('T')[0],
-          place: practice.place || '',
-          note: practice.note || '',
-          practiceLogs: practiceLogs // 複数のPractice_logを渡す
-        }
-        console.log('編集時 - 複数Practice_logのタイムデータ:', practiceLogs.map(log => ({ id: log.id, times: log.times })))
-      } else if (practiceLogs.length === 1) {
-        // 単一のPractice_logの場合、従来の構造を維持
-        const practiceLog = practiceLogs[0]
-        newEditingData = {
-          id: practiceLog.id, // Practice_log ID
-          practiceId: practice.id, // Practice ID
-          date: practice.date || new Date().toISOString().split('T')[0],
-          place: practice.place || '',
-          note: practice.note || '',
-          style: practiceLog.style,
-          repCount: practiceLog.repCount,
-          setCount: practiceLog.setCount,
-          distance: practiceLog.distance,
-          circle: practiceLog.circle,
-          times: practiceLog.times || [], // 単一のPractice_logのタイムデータ
-          tags: practiceLog.tags || [] // 単一のPractice_logのタグデータ
-        }
-        console.log('編集時 - 単一Practice_logのタイムデータ:', practiceLog.times)
-      } else {
-        // Practice_logがない場合（通常は発生しない）
-        newEditingData = {
-          id: practice.id,
-          practiceId: practice.id,
-          date: practice.date || new Date().toISOString().split('T')[0],
-          place: practice.place || '',
-          note: practice.note || ''
-        }
+      // 複数のPractice_logを表示するために、Practice全体のデータを渡す
+      const newEditingData = {
+        id: practice.id, // Practice ID
+        practiceId: practice.id, // Practice ID
+        date: practice.date || new Date().toISOString().split('T')[0],
+        place: practice.place || '',
+        note: practice.note || '',
+        practiceLogs: practice.practiceLogs || [] // 複数のPractice_logを渡す
       }
       if (process.env.NODE_ENV === 'development') {
         console.log('Dashboard: New editing data for practice with multiple logs:', newEditingData)
@@ -492,6 +485,19 @@ export default function DashboardPage() {
     }
   }, [editingEntry, practiceData, recordData])
 
+  // デバッグ: PracticeLogFormが開かれる時の状態をログ出力（開発環境でのみ）
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && showPracticeForm) {
+      console.log('Dashboard: PracticeLogForm is opening with editingData:', editingData)
+    }
+  }, [showPracticeForm, editingData])
+
+  // デバッグ: RecordFormが開かれる時の状態をログ出力（開発環境でのみ）
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && showRecordForm) {
+      console.log('Dashboard: RecordForm is opening with editingData:', editingData)
+    }
+  }, [showRecordForm, editingData])
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date)
@@ -509,105 +515,20 @@ export default function DashboardPage() {
   }
 
   const handleEditEntry = (entry: any) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Dashboard: handleEditEntry called with:', entry)
+      console.log('Dashboard: Setting editingEntry to:', entry)
+    }
     setEditingEntry(entry)
     setEditingData(null) // 編集データをリセット
     setSelectedDate(new Date(entry.entry_date))
     if (entry.entry_type === 'practice') {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Dashboard: Opening practice form for editing')
+      }
       setShowPracticeForm(true)
     } else {
       setShowRecordForm(true)
-    }
-  }
-
-  // タイムデータの変更を検知する関数
-  const hasTimeDataChanged = (existingTimes: any[], newTimes: any[]): boolean => {
-    // 長さが違う場合は変更あり
-    if (existingTimes.length !== newTimes.length) {
-      return true
-    }
-
-    // 各タイムを比較
-    for (let i = 0; i < existingTimes.length; i++) {
-      const existing = existingTimes[i]
-      const newTime = newTimes[i]
-      
-      // 時間を数値に変換して比較
-      const existingTimeNum = parseFloat(existing.time)
-      const newTimeNum = parseFloat(newTime.time)
-      
-      if (existingTimeNum !== newTimeNum || 
-          existing.repNumber !== newTime.repNumber || 
-          existing.setNumber !== newTime.setNumber) {
-        return true
-      }
-    }
-
-    return false
-  }
-
-  // タイムデータを更新する関数
-  const updatePracticeTimes = async (practiceLogId: string, existingTimes: any[], newTimes: any[]) => {
-    // 既存のタイムを更新
-    for (let i = 0; i < Math.min(existingTimes.length, newTimes.length); i++) {
-      const existingTime = existingTimes[i]
-      const newTime = newTimes[i]
-      
-      // 時間を数値に変換
-      const newTimeNum = parseFloat(newTime.time)
-      
-      if (newTimeNum > 0) {
-        try {
-          await updatePracticeTime({
-            variables: {
-              id: existingTime.id,
-              input: {
-                time: newTimeNum,
-                repNumber: newTime.repNumber,
-                setNumber: newTime.setNumber
-              }
-            }
-          })
-        } catch (updateError) {
-          console.error('タイム更新でエラーが発生しました:', updateError)
-        }
-      }
-    }
-    
-    // 新しいタイムが既存より多い場合は追加作成
-    if (newTimes.length > existingTimes.length) {
-      for (let i = existingTimes.length; i < newTimes.length; i++) {
-        const newTime = newTimes[i]
-        const newTimeNum = parseFloat(newTime.time)
-        
-        if (newTimeNum > 0) {
-          try {
-            await createPracticeTime({
-              variables: {
-                input: {
-                  practiceLogId,
-                  repNumber: newTime.repNumber,
-                  setNumber: newTime.setNumber,
-                  time: newTimeNum
-                }
-              }
-            })
-          } catch (createError) {
-            console.error('タイム作成でエラーが発生しました:', createError)
-          }
-        }
-      }
-    }
-    
-    // 既存のタイムが新しいタイムより多い場合は削除
-    if (existingTimes.length > newTimes.length) {
-      for (let i = newTimes.length; i < existingTimes.length; i++) {
-        const existingTime = existingTimes[i]
-        try {
-          await deletePracticeTime({ variables: { id: existingTime.id } })
-        } catch (deleteError) {
-          console.error('タイム削除でエラーが発生しました:', deleteError)
-        }
-      }
     }
   }
 
@@ -692,31 +613,6 @@ export default function DashboardPage() {
             const existingTags = existingLog.tags || []
             await savePracticeLogTags(existingLog.id, m?.tags || [], existingTags)
             
-            // タイムデータの変更を確認してから更新処理を実行
-            try {
-              // 最新のPractice_logデータを取得
-              const { data: latestPracticeLogData } = await apolloClient.query({
-                query: GET_PRACTICE_LOG,
-                variables: { id: existingLog.id },
-                fetchPolicy: 'network-only' // キャッシュを無視して最新データを取得
-              })
-              
-              const latestPracticeLog = (latestPracticeLogData as any)?.practiceLog
-              const existingTimes = latestPracticeLog?.times || []
-              const newTimes = m?.times || []
-              
-              // タイムデータに変更があるかチェック
-              const hasChanged = hasTimeDataChanged(existingTimes, newTimes)
-              
-              if (hasChanged) {
-                await updatePracticeTimes(existingLog.id, existingTimes, newTimes)
-              }
-            } catch (fetchError) {
-              console.error('最新のPractice_logデータの取得に失敗しました:', fetchError)
-              // フォールバック: 強制的に更新処理を実行
-              await updatePracticeTimes(existingLog.id, existingLog.times || [], m?.times || [])
-            }
-            
             createdPracticeLogIds.push(existingLog.id)
           }
         } else {
@@ -739,31 +635,6 @@ export default function DashboardPage() {
           // タグの保存
           const existingTags = editingData.tags || []
           await savePracticeLogTags(editingData.id, m?.tags || [], existingTags)
-          
-          // タイムデータの変更を確認してから更新処理を実行
-          try {
-            // 最新のPractice_logデータを取得
-            const { data: latestPracticeLogData } = await apolloClient.query({
-              query: GET_PRACTICE_LOG,
-              variables: { id: editingData.id },
-              fetchPolicy: 'network-only' // キャッシュを無視して最新データを取得
-            })
-            
-            const latestPracticeLog = (latestPracticeLogData as any)?.practiceLog
-            const existingTimes = latestPracticeLog?.times || []
-            const newTimes = m?.times || []
-            
-            // タイムデータに変更があるかチェック
-            const hasChanged = hasTimeDataChanged(existingTimes, newTimes)
-            
-            if (hasChanged) {
-              await updatePracticeTimes(editingData.id, existingTimes, newTimes)
-            }
-          } catch (fetchError) {
-            console.error('最新のPractice_logデータの取得に失敗しました:', fetchError)
-            // フォールバック: 強制的に更新処理を実行
-            await updatePracticeTimes(editingData.id, editingData.times || [], m?.times || [])
-          }
           
           createdPracticeLogIds.push(editingData.id)
         }
@@ -804,8 +675,19 @@ export default function DashboardPage() {
         }
       }
 
-      // タイムデータの管理（新規作成時のみ）
-      if (createdPracticeLogIds.length > 0 && menus.length > 0 && !editingData) {
+      // タイムデータの管理
+      if (createdPracticeLogIds.length > 0 && menus.length > 0) {
+        // 編集時は既存タイムを削除
+        if (editingData && editingData.times && editingData.times.length > 0) {
+          for (const existingTime of editingData.times) {
+            try {
+              await deletePracticeTime({ variables: { id: existingTime.id } })
+            } catch (deleteError) {
+              console.error('既存タイム記録の削除でエラーが発生しました:', deleteError)
+            }
+          }
+        }
+
         // メニューごとに新しいタイムを保存
         for (let i = 0; i < menus.length; i++) {
           const set = menus[i]
@@ -1021,16 +903,6 @@ export default function DashboardPage() {
           setEditingData(null)
         }}
         onSubmit={handlePracticeSubmit}
-        onDeletePracticeLog={async (practiceLogId: string) => {
-          try {
-            await deletePracticeLog({
-              variables: { id: practiceLogId }
-            })
-          } catch (error) {
-            console.error('Practice_logの削除に失敗しました:', error)
-            throw error
-          }
-        }}
         initialDate={selectedDate}
         editData={editingData}
         isLoading={isLoading}

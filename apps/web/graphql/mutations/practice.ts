@@ -191,7 +191,7 @@ export const CREATE_PRACTICE_TIME = gql`
 `
 
 export const UPDATE_PRACTICE_TIME = gql`
-  mutation UpdatePracticeTime($id: ID!, $input: PracticeTimeInput!) {
+  mutation UpdatePracticeTime($id: ID!, $input: UpdatePracticeTimeInput!) {
     updatePracticeTime(id: $id, input: $input) {
       id
       practiceLogId

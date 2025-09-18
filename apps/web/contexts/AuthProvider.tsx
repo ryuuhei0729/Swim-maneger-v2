@@ -43,10 +43,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ユーザープロフィールを取得（完全オプション化）
   const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
     try {
-      // 開発環境でのみログ出力
-      if (process.env.NODE_ENV === 'development') {
-        console.log('AuthProvider: Fetching user profile for:', userId)
-      }
       
       // プロフィール取得はタイムアウト付きで実行
       const profilePromise = supabase
