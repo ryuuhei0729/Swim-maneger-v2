@@ -75,14 +75,16 @@ CREATE TABLE users (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2. Competitionテーブル
+-- 2. Competitionテーブル（共有リソース）
 CREATE TABLE competitions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   date DATE NOT NULL,
   place TEXT NOT NULL,
   pool_type INTEGER DEFAULT 0 CHECK (pool_type IN (0, 1)), -- 0: short, 1: long
-  note TEXT
+  note TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- 3. Recordテーブル
@@ -420,3 +422,142 @@ $$ language 'plpgsql';
 
 CREATE TRIGGER update_practice_updated_at BEFORE UPDATE ON practice
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =============================================================================
+-- 9. セキュリティ強化：適切なRLSポリシーの設定
+-- =============================================================================
+
+-- practiceテーブルにRLSを有効化
+ALTER TABLE practice ENABLE ROW LEVEL SECURITY;
+
+-- 既存の不適切なポリシーを削除（全ユーザーが全データにアクセス可能な状態を修正）
+DROP POLICY IF EXISTS "Everyone can view users" ON users;
+DROP POLICY IF EXISTS "Everyone can insert users" ON users;
+DROP POLICY IF EXISTS "Everyone can update users" ON users;
+DROP POLICY IF EXISTS "Everyone can delete users" ON users;
+
+DROP POLICY IF EXISTS "Everyone can view competitions" ON competitions;
+DROP POLICY IF EXISTS "Everyone can insert competitions" ON competitions;
+DROP POLICY IF EXISTS "Everyone can update competitions" ON competitions;
+DROP POLICY IF EXISTS "Everyone can delete competitions" ON competitions;
+
+DROP POLICY IF EXISTS "Everyone can view records" ON records;
+DROP POLICY IF EXISTS "Everyone can insert records" ON records;
+DROP POLICY IF EXISTS "Everyone can update records" ON records;
+DROP POLICY IF EXISTS "Everyone can delete records" ON records;
+
+DROP POLICY IF EXISTS "Everyone can view split_times" ON split_times;
+DROP POLICY IF EXISTS "Everyone can insert split_times" ON split_times;
+DROP POLICY IF EXISTS "Everyone can update split_times" ON split_times;
+DROP POLICY IF EXISTS "Everyone can delete split_times" ON split_times;
+
+DROP POLICY IF EXISTS "Everyone can view practice_tags" ON practice_tags;
+DROP POLICY IF EXISTS "Everyone can insert practice_tags" ON practice_tags;
+DROP POLICY IF EXISTS "Everyone can update practice_tags" ON practice_tags;
+DROP POLICY IF EXISTS "Everyone can delete practice_tags" ON practice_tags;
+
+DROP POLICY IF EXISTS "Everyone can view practice_logs" ON practice_logs;
+DROP POLICY IF EXISTS "Everyone can insert practice_logs" ON practice_logs;
+DROP POLICY IF EXISTS "Everyone can update practice_logs" ON practice_logs;
+DROP POLICY IF EXISTS "Everyone can delete practice_logs" ON practice_logs;
+
+DROP POLICY IF EXISTS "Everyone can view practice_log_tags" ON practice_log_tags;
+DROP POLICY IF EXISTS "Everyone can insert practice_log_tags" ON practice_log_tags;
+DROP POLICY IF EXISTS "Everyone can update practice_log_tags" ON practice_log_tags;
+DROP POLICY IF EXISTS "Everyone can delete practice_log_tags" ON practice_log_tags;
+
+DROP POLICY IF EXISTS "Everyone can view practice_times" ON practice_times;
+DROP POLICY IF EXISTS "Everyone can insert practice_times" ON practice_times;
+DROP POLICY IF EXISTS "Everyone can update practice_times" ON practice_times;
+DROP POLICY IF EXISTS "Everyone can delete practice_times" ON practice_times;
+
+-- 適切なセキュリティポリシーを設定
+
+-- usersテーブル：自分のデータのみアクセス可能
+CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can insert own profile" ON users FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can delete own profile" ON users FOR DELETE USING (auth.uid() = id);
+
+-- competitionsテーブル：共有リソース（全ユーザーが読み取り可能、認証済みユーザーが作成・更新・削除可能）
+CREATE POLICY "Everyone can view competitions" ON competitions FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can insert competitions" ON competitions FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated users can update competitions" ON competitions FOR UPDATE USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated users can delete competitions" ON competitions FOR DELETE USING (auth.uid() IS NOT NULL);
+
+-- recordsテーブル：自分のデータのみアクセス可能
+CREATE POLICY "Users can view own records" ON records FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own records" ON records FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own records" ON records FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own records" ON records FOR DELETE USING (auth.uid() = user_id);
+
+-- split_timesテーブル：関連するrecordの所有者のみアクセス可能
+CREATE POLICY "Users can view own split_times" ON split_times FOR SELECT 
+    USING (EXISTS (SELECT 1 FROM records WHERE records.id = split_times.record_id AND records.user_id = auth.uid()));
+CREATE POLICY "Users can insert own split_times" ON split_times FOR INSERT 
+    WITH CHECK (EXISTS (SELECT 1 FROM records WHERE records.id = split_times.record_id AND records.user_id = auth.uid()));
+CREATE POLICY "Users can update own split_times" ON split_times FOR UPDATE 
+    USING (EXISTS (SELECT 1 FROM records WHERE records.id = split_times.record_id AND records.user_id = auth.uid()));
+CREATE POLICY "Users can delete own split_times" ON split_times FOR DELETE 
+    USING (EXISTS (SELECT 1 FROM records WHERE records.id = split_times.record_id AND records.user_id = auth.uid()));
+
+-- practice_tagsテーブル：自分のデータのみアクセス可能
+CREATE POLICY "Users can view own practice_tags" ON practice_tags FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own practice_tags" ON practice_tags FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own practice_tags" ON practice_tags FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own practice_tags" ON practice_tags FOR DELETE USING (auth.uid() = user_id);
+
+-- practiceテーブル：自分のデータのみアクセス可能
+CREATE POLICY "Users can view own practice" ON practice FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own practice" ON practice FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own practice" ON practice FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own practice" ON practice FOR DELETE USING (auth.uid() = user_id);
+
+-- practice_logsテーブル：関連するpracticeの所有者のみアクセス可能
+CREATE POLICY "Users can view own practice_logs" ON practice_logs FOR SELECT 
+    USING (EXISTS (SELECT 1 FROM practice WHERE practice.id = practice_logs.practice_id AND practice.user_id = auth.uid()));
+CREATE POLICY "Users can insert own practice_logs" ON practice_logs FOR INSERT 
+    WITH CHECK (EXISTS (SELECT 1 FROM practice WHERE practice.id = practice_logs.practice_id AND practice.user_id = auth.uid()));
+CREATE POLICY "Users can update own practice_logs" ON practice_logs FOR UPDATE 
+    USING (EXISTS (SELECT 1 FROM practice WHERE practice.id = practice_logs.practice_id AND practice.user_id = auth.uid()));
+CREATE POLICY "Users can delete own practice_logs" ON practice_logs FOR DELETE 
+    USING (EXISTS (SELECT 1 FROM practice WHERE practice.id = practice_logs.practice_id AND practice.user_id = auth.uid()));
+
+-- practice_log_tagsテーブル：関連するpractice_logの所有者のみアクセス可能
+CREATE POLICY "Users can view own practice_log_tags" ON practice_log_tags FOR SELECT 
+    USING (EXISTS (SELECT 1 FROM practice_logs pl 
+                   JOIN practice p ON p.id = pl.practice_id 
+                   WHERE pl.id = practice_log_tags.practice_log_id AND p.user_id = auth.uid()));
+CREATE POLICY "Users can insert own practice_log_tags" ON practice_log_tags FOR INSERT 
+    WITH CHECK (EXISTS (SELECT 1 FROM practice_logs pl 
+                        JOIN practice p ON p.id = pl.practice_id 
+                        WHERE pl.id = practice_log_tags.practice_log_id AND p.user_id = auth.uid()));
+CREATE POLICY "Users can update own practice_log_tags" ON practice_log_tags FOR UPDATE 
+    USING (EXISTS (SELECT 1 FROM practice_logs pl 
+                   JOIN practice p ON p.id = pl.practice_id 
+                   WHERE pl.id = practice_log_tags.practice_log_id AND p.user_id = auth.uid()));
+CREATE POLICY "Users can delete own practice_log_tags" ON practice_log_tags FOR DELETE 
+    USING (EXISTS (SELECT 1 FROM practice_logs pl 
+                   JOIN practice p ON p.id = pl.practice_id 
+                   WHERE pl.id = practice_log_tags.practice_log_id AND p.user_id = auth.uid()));
+
+-- practice_timesテーブル：関連するpractice_logの所有者のみアクセス可能
+CREATE POLICY "Users can view own practice_times" ON practice_times FOR SELECT 
+    USING (EXISTS (SELECT 1 FROM practice_logs pl 
+                   JOIN practice p ON p.id = pl.practice_id 
+                   WHERE pl.id = practice_times.practice_log_id AND p.user_id = auth.uid()));
+CREATE POLICY "Users can insert own practice_times" ON practice_times FOR INSERT 
+    WITH CHECK (EXISTS (SELECT 1 FROM practice_logs pl 
+                        JOIN practice p ON p.id = pl.practice_id 
+                        WHERE pl.id = practice_times.practice_log_id AND p.user_id = auth.uid()));
+CREATE POLICY "Users can update own practice_times" ON practice_times FOR UPDATE 
+    USING (EXISTS (SELECT 1 FROM practice_logs pl 
+                   JOIN practice p ON p.id = pl.practice_id 
+                   WHERE pl.id = practice_times.practice_log_id AND p.user_id = auth.uid()));
+CREATE POLICY "Users can delete own practice_times" ON practice_times FOR DELETE 
+    USING (EXISTS (SELECT 1 FROM practice_logs pl 
+                   JOIN practice p ON p.id = pl.practice_id 
+                   WHERE pl.id = practice_times.practice_log_id AND p.user_id = auth.uid()));
+
+-- stylesテーブル：全ユーザーが読み取り専用でアクセス可能（固定データ）
+CREATE POLICY "Everyone can view styles" ON styles FOR SELECT USING (true);

@@ -6,6 +6,96 @@ scalar DateTime
 scalar JSON
 scalar Date
 
+# エラーハンドリング用の型定義
+interface Error {
+  message: String!
+  code: String
+  field: String
+}
+
+type ValidationError implements Error {
+  message: String!
+  code: String
+  field: String
+  details: [ValidationDetail!]
+}
+
+type ValidationDetail {
+  field: String!
+  message: String!
+  value: String
+}
+
+type NetworkError implements Error {
+  message: String!
+  code: String
+  field: String
+  retryable: Boolean!
+}
+
+type AuthenticationError implements Error {
+  message: String!
+  code: String
+  field: String
+  redirectTo: String
+}
+
+union GraphQLError = ValidationError | NetworkError | AuthenticationError
+
+# ページネーション用の型定義
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+  totalCount: Int
+}
+
+interface Connection {
+  pageInfo: PageInfo!
+  edges: [Edge!]!
+}
+
+interface Edge {
+  cursor: String!
+  node: Node!
+}
+
+interface Node {
+  id: ID!
+}
+
+# 具体的なConnection型
+type PracticeConnection implements Connection {
+  pageInfo: PageInfo!
+  edges: [PracticeEdge!]!
+}
+
+type PracticeEdge implements Edge {
+  cursor: String!
+  node: Practice!
+}
+
+type RecordConnection implements Connection {
+  pageInfo: PageInfo!
+  edges: [RecordEdge!]!
+}
+
+type RecordEdge implements Edge {
+  cursor: String!
+  node: Record!
+}
+
+type CompetitionConnection implements Connection {
+  pageInfo: PageInfo!
+  edges: [CompetitionEdge!]!
+}
+
+type CompetitionEdge implements Edge {
+  cursor: String!
+  node: Competition!
+}
+
 # ユーザー関連
 enum UserRole {
   PLAYER
@@ -124,7 +214,7 @@ type PracticeTag {
 }
 
 # 練習（日単位）関連
-type Practice {
+type Practice implements Node {
   id: ID!
   userId: ID!
   date: Date!
@@ -133,6 +223,10 @@ type Practice {
   practiceLogs: [PracticeLog!]!
   createdAt: DateTime!
   updatedAt: DateTime!
+  # 楽観的更新サポート
+  version: Int!
+  optimisticId: String
+  isOptimistic: Boolean!
 }
 
 # 練習記録（メニュー単位）関連
@@ -151,6 +245,10 @@ type PracticeLog {
   tags: [PracticeTag!]
   createdAt: DateTime!
   updatedAt: DateTime!
+  # 楽観的更新サポート
+  version: Int!
+  optimisticId: String
+  isOptimistic: Boolean!
 }
 
 # 練習タイム記録
@@ -166,7 +264,7 @@ type PracticeTime {
 }
 
 # 大会関連（remote_migration.sqlと同じ構造）
-type Competition {
+type Competition implements Node {
   id: ID!
   title: String!
   date: Date!
@@ -177,7 +275,7 @@ type Competition {
 }
 
 # 記録関連（remote_migration.sqlと同じ構造）
-type Record {
+type Record implements Node {
   id: ID!
   userId: ID!
   competitionId: ID
@@ -188,6 +286,10 @@ type Record {
   videoUrl: String
   note: String
   splitTimes: [SplitTime!]!
+  # 楽観的更新サポート
+  version: Int!
+  optimisticId: String
+  isOptimistic: Boolean!
 }
 
 # スプリットタイム（remote_migration.sqlと同じ構造）
@@ -281,6 +383,14 @@ type Query {
 
   # 練習関連（個人利用機能対応）
   myPractices(startDate: Date, endDate: Date): [Practice!]!
+  myPracticesConnection(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    startDate: Date
+    endDate: Date
+  ): PracticeConnection!
   practice(id: ID!): Practice
   practicesByDate(date: Date!): [Practice!]!
   
@@ -291,10 +401,26 @@ type Query {
 
   # 大会関連（個人利用機能対応）
   myCompetitions: [Competition!]!
+  competitionsConnection(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): CompetitionConnection!
   competition(id: ID!): Competition
   
   # 記録関連（個人利用機能対応）
   myRecords(startDate: Date, endDate: Date, styleId: Int, poolType: Int): [Record!]!
+  myRecordsConnection(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    startDate: Date
+    endDate: Date
+    styleId: Int
+    poolType: Int
+  ): RecordConnection!
   record(id: ID!): Record
   recordsByDate(date: Date!): [Record!]!
 
@@ -359,6 +485,11 @@ type Mutation {
   createPractice(input: CreatePracticeInput!): Practice!
   updatePractice(id: ID!, input: UpdatePracticeInput!): Practice!
   deletePractice(id: ID!): Boolean!
+  
+  # バッチ操作用のミューテーション
+  bulkCreatePractices(inputs: [CreatePracticeInput!]!): [Practice!]!
+  bulkUpdatePractices(inputs: [BulkUpdatePracticeInput!]!): [Practice!]!
+  bulkDeletePractices(ids: [ID!]!): [Boolean!]!
 
   # 練習記録（メニュー単位）関連
   createPracticeLog(input: CreatePracticeLogInput!): PracticeLog!
@@ -383,6 +514,11 @@ type Mutation {
   createRecord(input: CreateRecordInput!): Record!
   updateRecord(id: ID!, input: UpdateRecordInput!): Record!
   deleteRecord(id: ID!): Boolean!
+  
+  # 記録のバッチ操作用のミューテーション
+  bulkCreateRecords(inputs: [CreateRecordInput!]!): [Record!]!
+  bulkUpdateRecords(inputs: [BulkUpdateRecordInput!]!): [Record!]!
+  bulkDeleteRecords(ids: [ID!]!): [Boolean!]!
 
   # スプリットタイム関連
   createSplitTime(input: CreateSplitTimeInput!): SplitTime!
@@ -444,6 +580,17 @@ input UpdatePracticeInput {
   date: Date
   place: String
   note: String
+}
+
+# バッチ操作用のInput型
+input BulkUpdatePracticeInput {
+  id: ID!
+  input: UpdatePracticeInput!
+}
+
+input BulkUpdateRecordInput {
+  id: ID!
+  input: UpdateRecordInput!
 }
 
 # 練習記録入力型
@@ -614,4 +761,53 @@ input UpdateAnnouncementInput {
   published: Boolean
   publishedAt: DateTime
 }
+
+# =============================================================================
+# リゾルバー設計の改善提案
+# =============================================================================
+
+# 1. 深いネストを避けるためのリゾルバー設計
+# 
+# 現在の問題：
+# - Practice -> PracticeLogs -> PracticeTimes の深いネスト
+# - Record -> SplitTimes の深いネスト
+# 
+# 改善案：
+# - 各レベルで独立したクエリを提供
+# - DataLoaderパターンの実装
+# - 適切なフィールドレベルのリゾルバー
+#
+# 例：
+# query {
+#   myPractices {
+#     id
+#     date
+#     # 必要に応じて個別にクエリ
+#   }
+#   practiceLogs(practiceId: "xxx") {
+#     id
+#     style
+#   }
+# }
+
+# 2. パフォーマンス最適化
+# 
+# - 不要なフィールドの取得を避ける
+# - 適切なインデックスを使用したクエリ
+# - キャッシュ戦略の実装
+# - N+1問題の解決
+
+# 3. エラーハンドリング
+# 
+# - 統一されたエラーレスポンス
+# - 適切なHTTPステータスコード
+# - ユーザーフレンドリーなエラーメッセージ
+# - ログとモニタリング
+
+# 4. セキュリティ
+# 
+# - 認証・認可の適切な実装
+# - 入力値の検証
+# - SQLインジェクション対策
+# - レート制限の実装
 `;

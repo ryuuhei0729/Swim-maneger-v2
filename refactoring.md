@@ -30,11 +30,8 @@
 ```
 データベーススキーマの最適化をお願いします：
 
-1. テーブル命名規則を統一してください（practice_logs → practices, practice_times → practice_times のまま）
-2. 外部キー制約を適切に設定し、個人練習とチーム練習の両方に対応できるようにしてください
-3. パフォーマンス向上のためのインデックスを追加してください（practice_date, competition_date, user_id, team_id）
-4. データ型を最適化してください（circle: DECIMAL(5,2), time: 統一された精度）
-5. RLS（Row Level Security）ポリシーを全てのテーブルに適用してください
+1. パフォーマンス向上のためのインデックスを追加してください（practice_date, competition_date, user_id, team_id）
+2. RLS（Row Level Security）ポリシーを全てのテーブルに適用してください
 
 対象ファイル: supabase/migrations/20250916000000_initial_schema.sql
 ```
