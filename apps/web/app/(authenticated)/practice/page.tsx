@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
-import { PlusIcon, CalendarDaysIcon, ChartBarIcon, ClockIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, CalendarDaysIcon, ChartBarIcon, ClockIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { Button } from '@/components/ui'
 import PracticeLogForm from '@/components/forms/PracticeLogFormNew'
 import PracticeTimeForm from '@/components/forms/PracticeTimeForm'
-import { useMyPracticeLogs } from '@/hooks/useGraphQL'
+import { useMyPracticeLogs, useDeletePracticeLog } from '@/hooks/useGraphQL'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 
@@ -21,22 +21,14 @@ export default function PracticePage() {
   const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
   const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
   
-  const { data: practiceLogsData, loading, error } = useMyPracticeLogs({
+  const { data: practiceLogsData, loading, error, refetch } = useMyPracticeLogs({
     startDate: format(startOfMonth, 'yyyy-MM-dd'),
     endDate: format(endOfMonth, 'yyyy-MM-dd')
   })
 
-  // TODO: GraphQLクエリを拡張して ($startDate: String, $endDate: String) 変数を受け取るようにする
-  // 現在はサーバー側でフィルタリングされないため、クライアント側でフィルタリングを実行
-  const allPracticeLogs = (practiceLogsData as any)?.myPracticeLogs || []
-  const startDateStr = format(startOfMonth, 'yyyy-MM-dd')
-  const endDateStr = format(endOfMonth, 'yyyy-MM-dd')
-  
-  const practiceLogs = allPracticeLogs.filter((log: any) => {
-    if (!log.date) return false
-    const logDateStr = format(new Date(log.date), 'yyyy-MM-dd')
-    return logDateStr >= startDateStr && logDateStr <= endDateStr
-  })
+  const [deletePracticeLog] = useDeletePracticeLog()
+
+  const practiceLogs = (practiceLogsData as any)?.myPracticeLogs || []
 
   const handleCreateLog = () => {
     setEditingLog(null)
@@ -59,6 +51,8 @@ export default function PracticePage() {
     setIsFormOpen(false)
     setEditingLog(null)
     setSelectedDate(null)
+    // データを再取得
+    refetch()
   }
 
   const handleFormClose = () => {
@@ -70,6 +64,22 @@ export default function PracticePage() {
   const handleTimeFormClose = () => {
     setIsTimeFormOpen(false)
     setSelectedLogForTime(null)
+    // データを再取得
+    refetch()
+  }
+
+  const handleDeleteLog = async (logId: string) => {
+    if (confirm('この練習記録を削除しますか？')) {
+      try {
+        await deletePracticeLog({
+          variables: { id: logId }
+        })
+        // refetchは自動的に実行される
+      } catch (error) {
+        console.error('削除エラー:', error)
+        alert('削除に失敗しました')
+      }
+    }
   }
 
   if (loading) {
@@ -170,7 +180,7 @@ export default function PracticePage() {
         </div>
       </div>
 
-      {/* 練習記録一覧 */}
+      {/* 練習記録一覧（表形式） */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
@@ -192,76 +202,129 @@ export default function PracticePage() {
             </div>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
-            {practiceLogs.map((log: any) => (
-              <div key={log.id} className="p-6 hover:bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <CalendarDaysIcon className="h-5 w-5 text-blue-600" />
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <p className="text-sm font-medium text-gray-900">
-                            {log.date ? format(new Date(log.date), 'yyyy年MM月dd日', { locale: ja }) : '日付未設定'}
-                          </p>
-                          {log.place && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              {log.place}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    日付
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    場所
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    種目
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    距離・本数・セット
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    サークル
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    タグ
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    タイム
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    メモ
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    操作
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {practiceLogs.map((log: any) => (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {log.practice?.date ? format(new Date(log.practice.date), 'MM/dd', { locale: ja }) : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {log.practice?.place || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {log.style}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {log.distance}m × {log.repCount}本 × {log.setCount}セット
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {log.circle ? `${log.circle}秒` : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {log.tags && log.tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {log.tags.map((tag: any) => (
+                            <span
+                              key={tag.id}
+                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                              style={{ 
+                                backgroundColor: tag.color + '20',
+                                color: tag.color
+                              }}
+                            >
+                              {tag.name}
                             </span>
-                          )}
+                          ))}
                         </div>
-                        <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500">
-                          <span>{log.style}</span>
-                          <span>{log.distance}m × {log.repCount}本 × {log.setCount}セット</span>
-                          <span>サークル: {log.circle}秒</span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {log.times && log.times.length > 0 ? (
+                        <div className="text-sm">
+                          {log.times.map((time: any, index: number) => (
+                            <div key={time.id} className="text-gray-900">
+                              {time.time}秒
+                              {index < log.times.length - 1 && <br />}
+                            </div>
+                          ))}
                         </div>
-                        {log.tags && log.tags.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {log.tags.map((tag: any) => (
-                              <span
-                                key={tag.id}
-                                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                                style={{ 
-                                  backgroundColor: tag.color + '20',
-                                  color: tag.color
-                                }}
-                              >
-                                {tag.name}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {log.note && (
-                          <p className="mt-2 text-sm text-gray-600">{log.note}</p>
-                        )}
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                      {log.note || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleTimeLog(log)}
+                          className="flex items-center space-x-1"
+                        >
+                          <ClockIcon className="h-4 w-4" />
+                          <span>タイム</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditLog(log)}
+                          className="flex items-center space-x-1"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                          <span>編集</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteLog(log.id)}
+                          className="flex items-center space-x-1 text-red-600 hover:text-red-700"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                          <span>削除</span>
+                        </Button>
                       </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleTimeLog(log)}
-                      className="flex items-center space-x-1"
-                    >
-                      <ClockIcon className="h-4 w-4" />
-                      <span>タイム</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditLog(log)}
-                    >
-                      編集
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

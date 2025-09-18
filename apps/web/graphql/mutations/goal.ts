@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client'
+import { gql } from '@apollo/client/core'
 
 // 個人目標関連ミューテーション
 export const CREATE_PERSONAL_GOAL = gql`

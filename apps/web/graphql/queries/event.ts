@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client'
+import { gql } from '@apollo/client/core'
 
 // イベント関連クエリ
 export const GET_EVENTS = gql`

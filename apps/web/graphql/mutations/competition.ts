@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client'
+import { gql } from '@apollo/client/core'
 
 // 大会関連ミューテーション
 export const CREATE_COMPETITION = gql`

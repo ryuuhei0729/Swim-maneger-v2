@@ -119,10 +119,10 @@ export const GET_MY_PRACTICE_TAGS = gql`
   }
 `
 
-// 練習関連クエリ
+// 練習記録一覧用クエリ（表形式表示用）
 export const GET_PRACTICE_LOGS = gql`
-  query GetPracticeLogs {
-    myPracticeLogs {
+  query GetPracticeLogs($startDate: Date, $endDate: Date) {
+    myPracticeLogs(startDate: $startDate, endDate: $endDate) {
       id
       userId
       practiceId
@@ -144,6 +144,13 @@ export const GET_PRACTICE_LOGS = gql`
         setNumber
         time
       }
+      tags {
+        id
+        name
+        color
+      }
+      createdAt
+      updatedAt
     }
   }
 `
