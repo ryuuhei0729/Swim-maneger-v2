@@ -1006,8 +1006,8 @@ export default function DashboardPage() {
         <Calendar 
           onDateClick={handleDateClick}
           onAddEntry={handleAddEntry} 
-          onEditEntry={handleEditEntry}
-          onDeleteEntry={handleDeleteEntry}
+          onEditItem={handleEditEntry}
+          onDeleteItem={handleDeleteEntry}
         />
       </div>
 

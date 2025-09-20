@@ -8,7 +8,7 @@ import { useCalendarData } from '../_hooks/useCalendarData'
 import { LoadingSpinner } from '@/components/ui'
 import DayDetailModal from './DayDetailModal'
 
-interface CalendarEntry {
+interface CalendarItem {
   id: string
   entry_type: 'practice' | 'record'
   entry_date: string
@@ -19,11 +19,11 @@ interface CalendarEntry {
 }
 
 interface CalendarProps {
-  entries?: CalendarEntry[]
+  entries?: CalendarItem[]
   onDateClick?: (date: Date) => void
   onAddEntry?: (date: Date, type: 'practice' | 'record') => void
-  onEditEntry?: (entry: CalendarEntry) => void
-  onDeleteEntry?: (entryId: string, entryType: 'practice' | 'record') => void
+  onEditItem?: (item: CalendarItem) => void
+  onDeleteItem?: (itemId: string, itemType: 'practice' | 'record') => void
   isLoading?: boolean
   userId?: string // 特定のユーザーのカレンダーを表示する場合
 }
@@ -34,8 +34,8 @@ export default function Calendar({
   entries: propEntries, 
   onDateClick, 
   onAddEntry,
-  onEditEntry,
-  onDeleteEntry,
+  onEditItem,
+  onDeleteItem,
   isLoading: propLoading = false,
   userId
 }: CalendarProps) {
@@ -46,10 +46,10 @@ export default function Calendar({
   const [showDayDetail, setShowDayDetail] = useState(false)
 
   // GraphQLデータを取得
-  const { calendarEntries, monthlySummary, loading: dataLoading, error, refetch } = useCalendarData(currentDate, userId)
+  const { calendarItems, monthlySummary, loading: dataLoading, error, refetch } = useCalendarData(currentDate, userId)
   
   // プロップスのentriesが指定されている場合はそれを優先、そうでなければGraphQLデータを使用
-  const entries = propEntries && propEntries.length > 0 ? propEntries : calendarEntries
+  const entries = propEntries && propEntries.length > 0 ? propEntries : calendarItems
   const isLoading = propLoading || dataLoading
 
   // 月の日付を取得
@@ -67,13 +67,13 @@ export default function Calendar({
 
   // 日付別のエントリーをマッピング
   const entriesByDate = useMemo(() => {
-    const map = new Map<string, CalendarEntry[]>()
-    entries.forEach(entry => {
-      const dateKey = entry.entry_date
+    const map = new Map<string, CalendarItem[]>()
+    entries.forEach(item => {
+      const dateKey = item.entry_date
       if (!map.has(dateKey)) {
         map.set(dateKey, [])
       }
-      map.get(dateKey)!.push(entry)
+      map.get(dateKey)!.push(item)
     })
     return map
   }, [entries])
@@ -124,7 +124,7 @@ export default function Calendar({
       : 'bg-blue-100 text-blue-800 border-blue-200'
   }
 
-  const getDayStatusIndicator = (entries: CalendarEntry[]) => {
+  const getDayStatusIndicator = (entries: CalendarItem[]) => {
     if (entries.length === 0) return null
     
     const hasPractice = entries.some(e => e.entry_type === 'practice')
@@ -324,23 +324,23 @@ export default function Calendar({
 
                 {/* エントリー表示 */}
                 <div className="space-y-1">
-                  {dayEntries.slice(0, 2).map((entry) => (
+                  {dayEntries.slice(0, 2).map((item) => (
                     <div
-                      key={entry.id}
+                      key={item.id}
                       className={`
                         text-xs px-1 sm:px-2 py-1 rounded-md truncate transition-all duration-200 border
-                        ${getEntryColor(entry.entry_type)}
+                        ${getEntryColor(item.entry_type)}
                         hover:opacity-80 hover:scale-105 cursor-pointer
                       `}
-                      title={entry.title}
+                      title={item.title}
                       onClick={(e) => {
                         e.stopPropagation()
                         // 詳細表示のためのクリック処理
                       }}
                     >
-                      <span className="mr-1">{getEntryIcon(entry.entry_type)}</span>
-                      <span className="hidden sm:inline font-medium">{entry.title}</span>
-                      <span className="sm:hidden font-medium">{entry.title.split(':')[0] || entry.title}</span>
+                      <span className="mr-1">{getEntryIcon(item.entry_type)}</span>
+                      <span className="hidden sm:inline font-medium">{item.title}</span>
+                      <span className="sm:hidden font-medium">{item.title.split(':')[0] || item.title}</span>
                     </div>
                   ))}
                   {dayEntries.length > 2 && (
@@ -591,9 +591,9 @@ export default function Calendar({
           }}
           date={selectedDate}
           entries={getDateEntries(selectedDate)}
-          onEditEntry={onEditEntry}
-          onDeleteEntry={(entryId, entryType) => {
-            onDeleteEntry?.(entryId, entryType)
+          onEditItem={onEditItem}
+          onDeleteItem={(itemId, itemType) => {
+            onDeleteItem?.(itemId, itemType)
             // データを再取得
             refetch()
           }}

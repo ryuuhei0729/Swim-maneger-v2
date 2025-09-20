@@ -5,7 +5,7 @@ import { useAuth } from '../../../../contexts'
 import { GET_CALENDAR_DATA, GET_PRACTICES, GET_RECORDS } from '../../../../graphql/queries'
 import { formatTime } from '../../../../utils/formatters'
 
-interface CalendarEntry {
+interface CalendarItem {
   id: string
   entry_type: 'practice' | 'record'
   entry_date: string
@@ -112,10 +112,10 @@ export function useCalendarData(currentDate: Date, userId?: string) {
   }, [calendarError, practiceError, recordsError, practicesData, recordsData, practiceLoading, recordsLoading])
 
   // データを統合してカレンダー表示用に変換
-  const calendarEntries: CalendarEntry[] = useMemo(() => {
+  const calendarItems: CalendarItem[] = useMemo(() => {
     // モックデータを使用する場合
     if (USE_MOCK_DATA) {
-      const mockEntries: CalendarEntry[] = []
+      const mockItems: CalendarItem[] = []
       
       // 今月の日付でいくつかのモックデータを生成
       const today = new Date()
@@ -124,7 +124,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
       
       // 今月の5日に練習記録
       if (currentMonth === today.getMonth() && currentYear === today.getFullYear()) {
-        mockEntries.push({
+        mockItems.push({
           id: 'mock-practice-1',
           entry_type: 'practice',
           entry_date: format(new Date(currentYear, currentMonth, 5), 'yyyy-MM-dd'),
@@ -133,7 +133,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
         })
         
         // 今月の15日に大会記録
-        mockEntries.push({
+        mockItems.push({
           id: 'mock-record-1',
           entry_type: 'record',
           entry_date: format(new Date(currentYear, currentMonth, 15), 'yyyy-MM-dd'),
@@ -144,7 +144,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
         })
         
         // 今月の20日に練習記録
-        mockEntries.push({
+        mockItems.push({
           id: 'mock-practice-2',
           entry_type: 'practice',
           entry_date: format(new Date(currentYear, currentMonth, 20), 'yyyy-MM-dd'),
@@ -153,7 +153,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
         })
         
         // 今月の25日に大会記録
-        mockEntries.push({
+        mockItems.push({
           id: 'mock-record-2',
           entry_type: 'record',
           entry_date: format(new Date(currentYear, currentMonth, 25), 'yyyy-MM-dd'),
@@ -164,11 +164,11 @@ export function useCalendarData(currentDate: Date, userId?: string) {
         })
       }
       
-      return mockEntries
+      return mockItems
     }
 
     // GraphQLデータを使用する場合
-    const entries: CalendarEntry[] = []
+    const items: CalendarItem[] = []
 
     // 練習記録を追加（新しい正規化構造：Practiceベース）
     if (practicesData && (practicesData as any).myPractices) {
@@ -186,7 +186,7 @@ export function useCalendarData(currentDate: Date, userId?: string) {
             
             const title = `練習: ${uniqueStyles.length > 0 ? uniqueStyles.join(', ') : practicePlace}`
             
-            entries.push({
+            items.push({
               id: practice.id, // Practice ID
               entry_type: 'practice',
               entry_date: practiceDate,
@@ -227,21 +227,21 @@ export function useCalendarData(currentDate: Date, userId?: string) {
               entry.pool_type = record.competition.poolType
             }
 
-            entries.push(entry)
+            items.push(entry)
           }
         }
       })
     }
 
-    return entries
+    return items
   }, [practicesData, recordsData, currentDate, USE_MOCK_DATA, monthStart, monthEnd])
 
   // 月間サマリー
   const monthlySummary: MonthlySummary = useMemo(() => {
     // モックデータを使用する場合
     if (USE_MOCK_DATA) {
-      const practiceCount = calendarEntries.filter(e => e.entry_type === 'practice').length
-      const recordCount = calendarEntries.filter(e => e.entry_type === 'record').length
+      const practiceCount = calendarItems.filter(e => e.entry_type === 'practice').length
+      const recordCount = calendarItems.filter(e => e.entry_type === 'record').length
       
       return {
         practiceCount,
@@ -263,17 +263,17 @@ export function useCalendarData(currentDate: Date, userId?: string) {
     }
 
     // フォールバック: エントリーから計算
-    const practiceCount = calendarEntries.filter(e => e.entry_type === 'practice').length
-    const recordCount = calendarEntries.filter(e => e.entry_type === 'record').length
+    const practiceCount = calendarItems.filter(e => e.entry_type === 'practice').length
+    const recordCount = calendarItems.filter(e => e.entry_type === 'record').length
 
     return {
       practiceCount,
       recordCount
     }
-  }, [calendarData, calendarEntries, USE_MOCK_DATA])
+  }, [calendarData, calendarItems, USE_MOCK_DATA])
 
   return {
-    calendarEntries,
+    calendarItems,
     monthlySummary,
     loading: USE_MOCK_DATA ? false : (calendarLoading || practiceLoading || recordsLoading),
     error: USE_MOCK_DATA ? null : (calendarError || practiceError || recordsError),

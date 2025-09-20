@@ -8,7 +8,7 @@ import { formatTime } from '@/utils/formatters'
 import { useQuery } from '@apollo/client/react'
 import { GET_RECORD, GET_PRACTICE } from '@/graphql/queries'
 
-interface CalendarEntry {
+interface CalendarItem {
   id: string
   entry_type: 'practice' | 'record'
   entry_date: string
@@ -30,9 +30,9 @@ interface DayDetailModalProps {
   isOpen: boolean
   onClose: () => void
   date: Date
-  entries: CalendarEntry[]
-  onEditEntry?: (entry: CalendarEntry) => void
-  onDeleteEntry?: (entryId: string, entryType: 'practice' | 'record') => void
+  entries: CalendarItem[]
+  onEditItem?: (item: CalendarItem) => void
+  onDeleteItem?: (itemId: string, itemType: 'practice' | 'record') => void
   onAddEntry?: (date: Date, type: 'practice' | 'record') => void
 }
 
@@ -41,20 +41,20 @@ export default function DayDetailModal({
   onClose,
   date,
   entries,
-  onEditEntry,
-  onDeleteEntry,
+  onEditItem,
+  onDeleteItem,
   onAddEntry
 }: DayDetailModalProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<{id: string, type: 'practice' | 'record'} | null>(null)
 
   if (!isOpen) return null
 
-  const practiceEntries = entries.filter(e => e.entry_type === 'practice')
-  const recordEntries = entries.filter(e => e.entry_type === 'record')
+  const practiceItems = entries.filter(e => e.entry_type === 'practice')
+  const recordItems = entries.filter(e => e.entry_type === 'record')
 
   const handleDeleteConfirm = async () => {
     if (showDeleteConfirm) {
-      await onDeleteEntry?.(showDeleteConfirm.id, showDeleteConfirm.type)
+      await onDeleteItem?.(showDeleteConfirm.id, showDeleteConfirm.type)
       setShowDeleteConfirm(null)
       
       // 削除後、残りのエントリーがない場合はモーダルを閉じる
@@ -117,26 +117,26 @@ export default function DayDetailModal({
             )}
 
             {/* 練習記録セクション */}
-            {practiceEntries.length > 0 && (
+            {practiceItems.length > 0 && (
               <div className="mb-6">
                 <h4 className="text-md font-semibold text-green-700 mb-3 flex items-center">
                   <span className="mr-2">💪</span>
                   練習記録
                 </h4>
                 <div className="space-y-3">
-                  {practiceEntries.map((entry) => (
-                    <div key={entry.id} className="border border-green-200 rounded-lg p-4 bg-green-50">
+                  {practiceItems.map((item) => (
+                    <div key={item.id} className="border border-green-200 rounded-lg p-4 bg-green-50">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h5 className="font-medium text-gray-900 mb-2">{entry.title}</h5>
-                          {entry.location && (
+                          <h5 className="font-medium text-gray-900 mb-2">{item.title}</h5>
+                          {item.location && (
                             <p className="text-sm text-gray-600 mb-1">
-                              📍 {entry.location}
+                              📍 {item.location}
                             </p>
                           )}
-                          {entry.tags && entry.tags.length > 0 && (
+                          {item.tags && item.tags.length > 0 && (
                             <div className="flex flex-wrap gap-1 mb-2">
-                              {entry.tags.map((tag, index) => (
+                              {item.tags.map((tag, index) => (
                                 <span
                                   key={index}
                                   className="inline-block px-2 py-1 text-xs bg-green-200 text-green-800 rounded-full"
@@ -146,20 +146,20 @@ export default function DayDetailModal({
                               ))}
                             </div>
                           )}
-                          {entry.note && (
+                          {item.note && (
                             <p className="text-sm text-gray-600 mt-2">
-                              💭 {entry.note}
+                              💭 {item.note}
                             </p>
                           )}
                           {/* 練習記録の詳細情報 */}
-                          <PracticeDetails practiceId={entry.id} />
+                          <PracticeDetails practiceId={item.id} />
                         </div>
                         <div className="flex items-center space-x-2 ml-4">
                           <button
                             onClick={() => {
-                              console.log('DayDetailModal: Practice edit button clicked for entry:', entry)
-                              console.log('DayDetailModal: onEditEntry function:', onEditEntry)
-                              onEditEntry?.(entry)
+                              console.log('DayDetailModal: Practice edit button clicked for item:', item)
+                              console.log('DayDetailModal: onEditItem function:', onEditItem)
+                              onEditItem?.(item)
                             }}
                             className="p-2 text-gray-400 hover:text-blue-600 rounded-md hover:bg-blue-50"
                             title="編集"
@@ -167,7 +167,7 @@ export default function DayDetailModal({
                             <PencilIcon className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => setShowDeleteConfirm({id: entry.id, type: entry.entry_type})}
+                            onClick={() => setShowDeleteConfirm({id: item.id, type: item.entry_type})}
                             className="p-2 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
                             title="削除"
                           >
@@ -182,61 +182,61 @@ export default function DayDetailModal({
             )}
 
             {/* 大会記録セクション */}
-            {recordEntries.length > 0 && (
+            {recordItems.length > 0 && (
               <div className="mb-6">
                 <h4 className="text-md font-semibold text-blue-700 mb-3 flex items-center">
                   <span className="mr-2">🏊‍♂️</span>
                   大会記録
                 </h4>
                 <div className="space-y-3">
-                  {recordEntries.map((entry) => (
-                    <div key={entry.id} className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                  {recordItems.map((item) => (
+                    <div key={item.id} className="border border-blue-200 rounded-lg p-4 bg-blue-50">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h5 className="font-medium text-gray-900 mb-2">{entry.title}</h5>
-                          {entry.competition_name && (
+                          <h5 className="font-medium text-gray-900 mb-2">{item.title}</h5>
+                          {item.competition_name && (
                             <p className="text-sm text-gray-600 mb-1">
-                              🏆 {entry.competition_name}
+                              🏆 {item.competition_name}
                             </p>
                           )}
-                          {entry.location && (
+                          {item.location && (
                             <p className="text-sm text-gray-600 mb-1">
-                              📍 {entry.location}
+                              📍 {item.location}
                             </p>
                           )}
-                          {entry.style && (
+                          {item.style && (
                             <p className="text-sm text-gray-600 mb-1">
-                              🏊 {entry.style.name_jp}
+                              🏊 {item.style.name_jp}
                             </p>
                           )}
-                          {entry.time_result && (
+                          {item.time_result && (
                             <p className="text-lg font-semibold text-blue-700 mb-1">
-                              ⏱️ {formatTime(entry.time_result / 100)}
+                              ⏱️ {formatTime(item.time_result / 100)}
                             </p>
                           )}
-                          {entry.pool_type != null && (
+                          {item.pool_type != null && (
                             <p className="text-sm text-gray-600 mb-1">
-                              🏊‍♀️ {getPoolTypeText(entry.pool_type)}
+                              🏊‍♀️ {getPoolTypeText(item.pool_type)}
                             </p>
                           )}
-                          {entry.note && (
+                          {item.note && (
                             <p className="text-sm text-gray-600 mt-2">
-                              💭 {entry.note}
+                              💭 {item.note}
                             </p>
                           )}
                           {/* スプリットタイム */}
-                          <RecordSplitTimes recordId={entry.id} />
+                          <RecordSplitTimes recordId={item.id} />
                         </div>
                         <div className="flex items-center space-x-2 ml-4">
                           <button
-                            onClick={() => onEditEntry?.(entry)}
+                            onClick={() => onEditItem?.(item)}
                             className="p-2 text-gray-400 hover:text-blue-600 rounded-md hover:bg-blue-50"
                             title="編集"
                           >
                             <PencilIcon className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => setShowDeleteConfirm({id: entry.id, type: entry.entry_type})}
+                            onClick={() => setShowDeleteConfirm({id: item.id, type: item.entry_type})}
                             className="p-2 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
                             title="削除"
                           >
