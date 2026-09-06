@@ -1313,8 +1313,27 @@
         "relaying": "R: 이어받기 있음",
         "relayingExcludedFromWaPoints": "이어받기 타임은 WA 포인트 산정에서 제외됩니다"
       },
-      "waPointsToggle": "WA 포인트 표시",
-      "waPointsToggleShort": "WA 포인트"
+      "waPointsToggle": "점수로 환산",
+      "waPointsToggleShort": "점수",
+      "compareMetricLabel": "비교 지표",
+      "compareMetric": {
+        "wa": "WA 포인트",
+        "nr": "일본기록 기준",
+        "age": "연령별기록 기준"
+      },
+      "ageCategoryLabel": "연령 구분",
+      "ageCategoryUnset": "미설정",
+      "ageCategory": {
+        "elementary": "초등부",
+        "juniorHigh": "중등부",
+        "highSchool": "고등부",
+        "university": "대학부",
+        "general": "일반부"
+      },
+      "compareMetricInfoAriaLabel": "비교 지표란?",
+      "compareMetricInfo": "WA 포인트: World Aquatics(세계수영연맹)의 공식 포인트 제도. 세계기록을 기준으로 한 점수\n일본기록 기준: 일본기록 대비 점수\n연령별기록 기준: 초등·중등·고등·대학·일반 연령별 기록 대비 점수",
+      "pointsInfoAriaLabel": "점수 산출 방법",
+      "pointsInfo": "기준 기록과 동일하면 1000점이 됩니다. 「1000×(기준 기록÷기록)³」으로 산출하므로 종목이나 코스가 달라도 비교할 수 있습니다."
     },
     "error": {
       "title": "오류가 발생했습니다",
@@ -2554,7 +2573,7 @@
       "bestTimesEmpty": "기록이 없습니다",
       "bestTimesEmptySubText": "이 멤버는 아직 기록을 등록하지 않았습니다",
       "bestTimesIncludeRelaying": "이어받기 포함",
-      "bestTimesWaPointsToggle": "WA 포인트",
+      "bestTimesWaPointsToggle": "점수",
       "bestTimesAnnotation": "※ L: 장수로, R: 이어받기 있음",
       "groupDisplayLabel": "그룹 표시:",
       "groupAddAria": "그룹 추가",
@@ -2927,7 +2946,26 @@
           "relaying": "R: 이어받기 있음",
           "relayingExcludedFromWaPoints": "이어받기 타임은 WA 포인트 산정에서 제외됩니다"
         },
-        "waPointsToggle": "WA 포인트 표시"
+        "waPointsToggle": "점수로 환산",
+        "compareMetricLabel": "비교 지표",
+        "compareMetric": {
+          "wa": "WA 포인트",
+          "nr": "일본기록 기준",
+          "age": "연령별기록 기준"
+        },
+        "ageCategoryLabel": "연령 구분",
+        "ageCategoryUnset": "미설정",
+        "ageCategory": {
+          "elementary": "초등부",
+          "juniorHigh": "중등부",
+          "highSchool": "고등부",
+          "university": "대학부",
+          "general": "일반부"
+        },
+        "compareMetricInfoAriaLabel": "비교 지표란?",
+        "compareMetricInfo": "WA 포인트: World Aquatics(세계수영연맹)의 공식 포인트 제도. 세계기록을 기준으로 한 점수\n일본기록 기준: 일본기록 대비 점수\n연령별기록 기준: 초등·중등·고등·대학·일반 연령별 기록 대비 점수",
+        "pointsInfoAriaLabel": "점수 산출 방법",
+        "pointsInfo": "기준 기록과 동일하면 1000점이 됩니다. 「1000×(기준 기록÷기록)³」으로 산출하므로 종목이나 코스가 달라도 비교할 수 있습니다."
       }
     },
     "attendance": {

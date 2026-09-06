@@ -100,6 +100,17 @@ function createWrapper(queryClient: QueryClient) {
   );
 }
 
+// トグルのラベル文言 (`mypage.bestTimesTable.waPointsToggleShort`) は文言変更スプリントで
+// 「WAポイント」→「点数化」に変更された。表示文言は今後も変わりうるため、テキストではなく
+// 実装が持つ安定した testID (`best-times-wa-points-toggle-mypage`) で取得する
+// (react-native の `testID` はこのリポジトリの DOM モックでは `data-testid` ではなく
+// 生の `testid` 属性としてそのまま転記される。他ファイルの `getByRawTestId` と同じ理由)。
+function clickWaPointsToggle() {
+  const toggle = document.querySelector('[testid="best-times-wa-points-toggle-mypage"]');
+  if (!toggle) throw new Error('testid="best-times-wa-points-toggle-mypage" の要素が見つかりません');
+  fireEvent.click(toggle);
+}
+
 const FR100_RECORD = {
   id: "rec-1",
   time: 54.97,
@@ -145,7 +156,7 @@ describe("[V-GENDER-WIRING] MyPageScreen は profile.gender をそのまま Best
     const timeCell = await screen.findByText("54.97");
     expect(timeCell).toBeTruthy();
 
-    fireEvent.click(screen.getByText("WAポイント"));
+    clickWaPointsToggle();
 
     await waitFor(() => {
       expect(screen.queryByText("542")).toBeNull();
@@ -157,7 +168,7 @@ describe("[V-GENDER-WIRING] MyPageScreen は profile.gender をそのまま Best
     setup({ gender: 1 });
 
     await screen.findByText("54.97");
-    fireEvent.click(screen.getByText("WAポイント"));
+    clickWaPointsToggle();
 
     await waitFor(() => {
       expect(screen.getByText("763")).toBeTruthy();
@@ -169,7 +180,7 @@ describe("[V-GENDER-WIRING] MyPageScreen は profile.gender をそのまま Best
     setup({ gender: 0 });
 
     await screen.findByText("54.97");
-    fireEvent.click(screen.getByText("WAポイント"));
+    clickWaPointsToggle();
 
     await waitFor(() => {
       expect(screen.getByText("542")).toBeTruthy();

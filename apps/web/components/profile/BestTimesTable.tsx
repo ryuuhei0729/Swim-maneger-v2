@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { CalendarIcon } from "@heroicons/react/24/outline";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { formatTimeBest, formatDate } from "../../utils/formatters";
 import { Tabs } from "../ui/Tabs";
 import { WaPointsInfoTooltip } from "../ui/WaPointsInfoTooltip";
@@ -17,6 +17,12 @@ import {
   type Gender,
   type WaPointsCellCandidate,
 } from "@apps/shared/utils/waPoints";
+import {
+  AGE_CATEGORY_ORDER,
+  getBestDomesticPointsForCandidates,
+  type AgeCategory,
+  type CompareMetric,
+} from "@apps/shared/utils/domesticRecords";
 import { isNewRecord } from "@apps/shared/utils/bestTimeBadge";
 
 export interface BestTime {
@@ -51,19 +57,42 @@ type TabType = "all" | "short" | "long";
 
 interface BestTimesTableProps {
   bestTimes: BestTime[];
-  gender?: number; // 0: 男性, 1: 女性, undefined/その他: 不明 (WAポイントは常に「—」)
+  gender?: number; // 0: 男性, 1: 女性, undefined/その他: 不明 (ポイント表示は常に「—」)
+  // resolveAgeCategory() の判定結果 (呼び出し元で算出)。birthday 自体は渡さない
+  // (必要なのは区分だけ。生年月日は gender より機微度が高い)。null/undefined は「未設定」
+  ageCategory?: AgeCategory | null;
 }
 
 // セルの data-testid を組み立てる (例: 自由形100m -> "best-times-cell-Fr-100")
 const cellTestId = (style: string, distance: number) =>
   `best-times-cell-${STYLE_KEY_MAP[style as keyof typeof STYLE_KEY_MAP]}-${distance}`;
 
-export default function BestTimesTable({ bestTimes, gender }: BestTimesTableProps) {
+export default function BestTimesTable({ bestTimes, gender, ageCategory }: BestTimesTableProps) {
   const t = useTranslations("mypage.bestTimesTable");
   const tStyles = useTranslations("practice.styles");
   const tStyleAbbrev = useTranslations("practice.styleAbbrev");
+  const locale = useLocale();
+  // ja 以外のロケールではプルダウンUI自体を出さない (既存の WA トグルのみ)
+  const showCompareMetricPicker = locale === "ja";
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [includeRelaying, setIncludeRelaying] = useState<boolean>(false);
+  // 比較指標の初期選択は常に WA
+  const [compareMetric, setCompareMetric] = useState<CompareMetric>("wa");
+  // 年齢区分の手動上書き。
+  // undefined = ユーザーがまだ操作していない (prop の自動判定結果に追従し続ける)
+  // null      = ユーザーが明示的に「未設定」を選んだ (以後 prop が変わっても追従しない)
+  // AgeCategory = ユーザーが明示的にいずれかの区分を選んだ
+  // この3値を区別しないと、prop 側 (誕生日の後発設定・修正) が変わっても
+  // セレクトが古い値のまま固まる (未操作なのに「未設定」で固定される) バグになる。
+  const [ageCategoryOverride, setAgeCategoryOverride] = useState<AgeCategory | null | undefined>(
+    undefined,
+  );
+  // ユーザー未操作の間は prop (呼び出し元の自動判定結果) にそのまま追従する。
+  // prop の undefined と null はどちらも「区分不明」を意味し業務的な衝突が無いため、
+  // ここでの `??` は安全 (対して override 自体を `??` で畳むと「未設定を選んだ」と
+  // 「まだ選んでいない」が区別できなくなるため、上の状態変数では undefined/null を分けている)。
+  const effectiveAgeCategory: AgeCategory | null =
+    ageCategoryOverride === undefined ? (ageCategory ?? null) : ageCategoryOverride;
   const [isWaPointsMode, setIsWaPointsMode] = useState<boolean>(false);
 
   const styleHeaderBgClass: Record<string, string> = {
@@ -203,11 +232,11 @@ export default function BestTimesTable({ bestTimes, gender }: BestTimesTableProp
     }
   };
 
-  // WAポイント表示用のセル取得関数
-  // D1: 候補は「非リレー記録のみ」とし、includeRelaying の状態から完全に独立させる
-  //     (getBestTime とは意図的に別関数にし、既存のタイム表示アルゴリズムへの回帰を避ける)
-  // D2: ALLタブでは短水路/長水路を問わず「最高得点」の候補を選ぶ (最速タイムではない)
-  const getWaPointsCell = (
+  // ポイント表示用のセル取得関数 (WA / 日本記録 / 年齢別の3指標に対応)
+  // 候補は「非リレー記録のみ」とし、includeRelaying の状態から完全に独立させる
+  // (getBestTime とは意図的に別関数にし、既存のタイム表示アルゴリズムへの回帰を避ける)。
+  // ALLタブでは短水路/長水路を問わず「最高得点」の候補を選ぶ (最速タイムではない)。
+  const getPointsCell = (
     style: string,
     distance: number,
   ): { points: number; poolType: number } | null => {
@@ -223,9 +252,34 @@ export default function BestTimesTable({ bestTimes, gender }: BestTimesTableProp
       .map((bt) => ({ time: bt.time, poolType: bt.pool_type === 1 ? 1 : 0 }));
 
     const styleKey = STYLE_KEY_MAP[style as keyof typeof STYLE_KEY_MAP];
+
+    if (compareMetric === "nr") {
+      // 「日本記録ポイント」= category="general" のショートカット (別テーブル・別経路は無い)
+      const result = getBestDomesticPointsForCandidates(
+        candidates,
+        "general",
+        gender as Gender,
+        styleKey,
+        distance,
+      );
+      return result === null ? null : { points: result.points, poolType: result.poolType };
+    }
+
+    if (compareMetric === "age") {
+      // birthday 未設定 (区分「未設定」) は既存の「gender undefined なら常に—」と対称に「—」
+      if (effectiveAgeCategory === null) return null;
+      const result = getBestDomesticPointsForCandidates(
+        candidates,
+        effectiveAgeCategory,
+        gender as Gender,
+        styleKey,
+        distance,
+      );
+      return result === null ? null : { points: result.points, poolType: result.poolType };
+    }
+
     const result = getBestWaPointsForCandidates(candidates, gender as Gender, styleKey, distance);
-    if (result === null) return null;
-    return { points: result.points, poolType: result.poolType };
+    return result === null ? null : { points: result.points, poolType: result.poolType };
   };
 
   // タイム表示用のヘルパー関数
@@ -298,7 +352,11 @@ export default function BestTimesTable({ bestTimes, gender }: BestTimesTableProp
             >
               {t("waPointsToggle")}
             </button>
-            <WaPointsInfoTooltip buttonTestId="best-times-wa-points-info-button" />
+            <WaPointsInfoTooltip
+              buttonTestId="best-times-wa-points-info-button"
+              ariaLabel={t("pointsInfoAriaLabel")}
+              tooltipText={t("pointsInfo")}
+            />
           </div>
           <label className="flex items-center space-x-2 cursor-pointer">
             <input
@@ -311,6 +369,65 @@ export default function BestTimesTable({ bestTimes, gender }: BestTimesTableProp
           </label>
         </div>
       </div>
+
+      {/* 比較指標プルダウン (ONのときだけ表示。初期選択は常にWA / jaロケール限定) */}
+      {/*
+        高さ・padding の根拠 (globals.css の `@media (max-width:768px){input,select,textarea{font-size:16px!important}}`
+        との衝突対策。この !important は残す前提でボックス側を合わせる):
+        Tailwind v4 の text-xs/text-sm は line-height をユニットレスの比率で定義する
+        (--text-xs--line-height: calc(1/0.75)=1.333, --text-sm--line-height: calc(1.25/0.875)=1.4286)。
+        比率なので 16px 強制時は font-size と一緒にスケールし、想定より大きい line-height になる。
+        - 〜639px (text-xs, 16px 強制): line-height = 16 * 1.333 ≈ 21.33px
+        - 640〜767px (sm: が効くが 16px 強制はまだ効く text-sm): line-height = 16 * 1.4286 ≈ 22.86px (最大ケース)
+        - 768px〜 (実際の text-sm, 14px): line-height = 14 * 1.4286 = 20px
+        border-box なので box 内の中身が入る余地 = height - border(2px) - padding。
+        py-1 (padding 4px×2=8px) にすると必要高さは最大でも 22.86+8+2=32.86px。
+        h-9 (36px) はどの帯域でも上回る (余裕 3px 以上)。デスクトップは高さ 36px のまま変更なし
+        (padding だけ 8px→4px に縮小。従来は 20+16(旧padding)+2=38px 必要で 36px に対し僅かに超過していた)。
+      */}
+      {isWaPointsMode && showCompareMetricPicker && (
+        <div className="mb-3 sm:mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="relative inline-block shrink-0">
+            <select
+              data-testid="best-times-compare-metric-select"
+              aria-label={t("compareMetricLabel")}
+              value={compareMetric}
+              onChange={(e) => setCompareMetric(e.target.value as CompareMetric)}
+              className="pr-6 h-9 py-1 px-2 sm:px-3 border border-gray-300 rounded-md text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="wa">{t("compareMetric.wa")}</option>
+              <option value="nr">{t("compareMetric.nr")}</option>
+              <option value="age">{t("compareMetric.age")}</option>
+            </select>
+            <WaPointsInfoTooltip
+              buttonTestId="best-times-compare-metric-info-button"
+              ariaLabel={t("compareMetricInfoAriaLabel")}
+              tooltipText={t("compareMetricInfo")}
+            />
+          </div>
+
+          {compareMetric === "age" && (
+            <select
+              data-testid="best-times-age-category-select"
+              aria-label={t("ageCategoryLabel")}
+              value={effectiveAgeCategory ?? "unset"}
+              onChange={(e) =>
+                setAgeCategoryOverride(
+                  e.target.value === "unset" ? null : (e.target.value as AgeCategory),
+                )
+              }
+              className="h-9 py-1 px-2 sm:px-3 border border-gray-300 rounded-md text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="unset">{t("ageCategoryUnset")}</option>
+              {AGE_CATEGORY_ORDER.map((category) => (
+                <option key={category} value={category}>
+                  {t(`ageCategory.${category}`)}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
 
       <div className="bg-white rounded-none sm:rounded-xl shadow border-y sm:border border-gray-300 -mx-4 sm:mx-0">
         <table className="w-full table-fixed border-separate border-spacing-0">
@@ -340,7 +457,7 @@ export default function BestTimesTable({ bestTimes, gender }: BestTimesTableProp
                 </td>
                 {STYLES.map((style) => {
                   const bestTime = !isWaPointsMode ? getBestTime(style, distance) : null;
-                  const waCell = isWaPointsMode ? getWaPointsCell(style, distance) : null;
+                  const pointsCell = isWaPointsMode ? getPointsCell(style, distance) : null;
                   // New 判定は大会実施日が基準。一括登録 (competition なし) は対象外
                   const isNew = isNewRecord(bestTime?.competition?.date);
                   return (
@@ -350,10 +467,10 @@ export default function BestTimesTable({ bestTimes, gender }: BestTimesTableProp
                       className={`px-0.5 sm:px-3 py-1 sm:py-3 text-center text-[9px] sm:text-xs md:text-sm text-gray-900 border-r border-gray-300 last:border-r-0 h-[36px] sm:h-[64px] ${rowIdx > 0 ? "border-t border-gray-300" : ""} ${isInvalidCombination(style, distance) ? "bg-gray-200" : styleCellBgClass[style]}`}
                     >
                       {isWaPointsMode ? (
-                        waCell ? (
+                        pointsCell ? (
                           <span className="font-semibold text-xs sm:text-base md:text-lg text-gray-900">
-                            {waCell.points}
-                            {activeTab === "all" && waCell.poolType === 1 && (
+                            {pointsCell.points}
+                            {activeTab === "all" && pointsCell.poolType === 1 && (
                               <span className="text-[8px] sm:text-xs ml-0.5 sm:ml-1">L</span>
                             )}
                           </span>

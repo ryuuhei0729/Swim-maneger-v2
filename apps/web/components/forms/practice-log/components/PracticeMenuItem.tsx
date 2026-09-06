@@ -164,6 +164,11 @@ export default function PracticeMenuItem({
             })}
             {showCustomDistance ? (
               // 「その他」ボタンがその場で入力欄に変化する
+              //
+              // 高さ・padding の根拠: components/ui/Input.tsx の「16px ズーム防止 box サイズ根拠」参照。
+              // 同じ flex-wrap 行に並ぶ SelectChips (chipClass, h-8 sm:h-10) と高さを揃える必要が
+              // あるため、箱の高さは変えず padding のみ py-0.5 sm:py-1.5 に縮小する
+              // (h-9 等の非レスポンシブ高さにするとプリセットチップと数px ずれる)。
               <input
                 type="number"
                 inputMode="numeric"
@@ -175,7 +180,7 @@ export default function PracticeMenuItem({
                 autoFocus
                 aria-label={t("distanceLabel")}
                 data-testid="practice-distance"
-                className="h-8 sm:h-10 w-20 px-3 rounded-md border border-blue-600 bg-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                className="h-8 sm:h-10 w-20 px-3 py-0.5 sm:py-1.5 rounded-md border border-blue-600 bg-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
             ) : (
               <button

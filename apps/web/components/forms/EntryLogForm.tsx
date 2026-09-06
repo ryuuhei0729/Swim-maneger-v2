@@ -508,10 +508,19 @@ export default function EntryLogForm({
                           <span className="hidden sm:inline">{t("styleLabel")}</span>
                           {" "}<span className="text-red-500">*</span>
                         </label>
+                        {/*
+                          この select には元々 text-sm が無く、デフォルトの font-size(16px)/
+                          line-height(24px) が globals.css の 16px 強制の有無に関わらず常時適用され、
+                          全帯域で必要高さが h-8 sm:h-10 を 2px 超過していた (text-sm 未指定が原因の
+                          別問題)。text-sm を追加した上での高さ・padding の根拠は
+                          components/ui/Input.tsx の「16px ズーム防止 box サイズ根拠」参照。
+                          左隣の label と高さ (h-8 sm:h-10) を揃える必要があるため、
+                          非レスポンシブ高さへの変更ではなく padding 調整で対応する。
+                        */}
                         <select
                           value={entry.styleId}
                           onChange={(e) => updateEntry(entry.id, { styleId: e.target.value })}
-                          className="flex-1 min-w-0 h-8 sm:h-10 px-2 sm:px-3 py-1 sm:py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="flex-1 min-w-0 h-8 sm:h-10 px-2 sm:px-3 py-0.5 sm:py-1.5 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                           disabled={isLoading}
                           data-testid={`entry-style-${index + 1}`}
@@ -594,6 +603,7 @@ export default function EntryLogForm({
                       <label className="text-[10px] sm:text-sm font-medium text-gray-700 whitespace-nowrap shrink-0">
                         {t("noteLabel")}
                       </label>
+                      {/* 高さ・padding の根拠: components/ui/Input.tsx の「16px ズーム防止 box サイズ根拠」参照 */}
                       <input
                         type="text"
                         value={entry.note}
@@ -601,7 +611,7 @@ export default function EntryLogForm({
                         placeholder={t("notePlaceholder")}
                         disabled={isLoading}
                         data-testid={`entry-note-${index + 1}`}
-                        className="flex-1 min-w-0 h-8 sm:h-10 rounded-md border border-gray-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex-1 min-w-0 h-8 sm:h-10 rounded-md border border-gray-300 bg-white px-2 sm:px-3 py-0.5 sm:py-1.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
                       />
                     </div>
                   </div>

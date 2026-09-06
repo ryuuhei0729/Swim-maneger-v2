@@ -16,9 +16,15 @@ import {
   type PoolType,
   type WaPointsCellCandidate,
 } from "@apps/shared/utils/waPoints";
+import {
+  getBestDomesticPointsForCandidates,
+  type AgeCategory,
+  type CompareMetric,
+} from "@apps/shared/utils/domesticRecords";
 import type { BestTime } from "@apps/shared/types/ui";
 import { isNewRecord } from "@apps/shared/utils/bestTimeBadge";
 import { WaPointsInfoTooltip } from "@/components/ui/WaPointsInfoTooltip";
+import { AgeCategoryPickerModal } from "@/components/besttime";
 import { BestTimeDetailSheet, type BestTimeDetail } from "@/components/shared/BestTimeDetailSheet";
 
 type TabType = "all" | "short" | "long";
@@ -39,15 +45,31 @@ interface BestTimesTableProps {
   bestTimes: BestTime[];
   /** 0: 男性, 1: 女性, undefined/その他: 不明 (WAポイントは常に「—」)。`?? 0` でフォールバックしないこと */
   gender?: number;
+  /**
+   * 呼び出し元が `resolveAgeCategory()` で判定済みの年齢区分。生の birthday は渡さない
+   * (必要なのは区分だけ。生年月日は gender より機微度が高い)。null/undefined は「未設定」。
+   */
+  ageCategory?: AgeCategory | null;
 }
 
-export const BestTimesTable: React.FC<BestTimesTableProps> = ({ bestTimes, gender }) => {
-  const { t } = useTranslation();
+export const BestTimesTable: React.FC<BestTimesTableProps> = ({ bestTimes, gender, ageCategory }) => {
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [includeRelaying, setIncludeRelaying] = useState(false);
   const [isWaPointsMode, setIsWaPointsMode] = useState(false);
   const [selectedCellKey, setSelectedCellKey] = useState<string | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<BestTimeDetail | null>(null);
+  // ja ロケールのときだけ比較指標ピッカーを出す。ja 以外は現行の WA のみ
+  const showCompareMetricPicker = i18n.language === "ja";
+  // 比較指標の初期選択は常に WA (既存テストの点数アサーションを壊さないための必須制約)
+  const [compareMetric, setCompareMetric] = useState<CompareMetric>("wa");
+  // 年齢区分の手動上書き (3値設計。詳細は profile/BestTimesTable.tsx の同名コメントを参照)。
+  const [ageCategoryOverride, setAgeCategoryOverride] = useState<AgeCategory | null | undefined>(
+    undefined,
+  );
+  const [isAgeCategoryModalVisible, setIsAgeCategoryModalVisible] = useState(false);
+  const effectiveAgeCategory: AgeCategory | null =
+    ageCategoryOverride === undefined ? (ageCategory ?? null) : ageCategoryOverride;
 
   const filteredBestTimes = useMemo(() => {
     if (activeTab === "short") {
@@ -108,10 +130,10 @@ export const BestTimesTable: React.FC<BestTimesTableProps> = ({ bestTimes, gende
     }
   };
 
-  // WAポイント表示用のセル取得関数
+  // ポイント表示用のセル取得関数 (WA / 日本記録 / 区分記録の3指標に対応)
   // 候補は「非リレー記録のみ」とし、includeRelaying の状態から完全に独立させる
   // (getBestTime とは意図的に別関数にし、既存のタイム表示アルゴリズムへの回帰を避ける)
-  const getWaPointsCell = (
+  const getPointsCell = (
     style: string,
     distance: number,
   ): { points: number; poolType: PoolType } | null => {
@@ -127,6 +149,24 @@ export const BestTimesTable: React.FC<BestTimesTableProps> = ({ bestTimes, gende
       .map((bt) => ({ time: bt.time, poolType: bt.pool_type === 1 ? 1 : 0 }));
 
     const styleKey = STYLE_KEY_MAP[style as keyof typeof STYLE_KEY_MAP];
+
+    if (compareMetric === "nr") {
+      // 「日本記録基準」= category="general" のショートカット (別テーブル・別経路は無い)
+      return getBestDomesticPointsForCandidates(candidates, "general", gender as Gender, styleKey, distance);
+    }
+
+    if (compareMetric === "age") {
+      // 区分「未設定」(birthday 未設定・未選択) は既存の「gender undefined なら常に—」と対称に「—」
+      if (effectiveAgeCategory === null) return null;
+      return getBestDomesticPointsForCandidates(
+        candidates,
+        effectiveAgeCategory,
+        gender as Gender,
+        styleKey,
+        distance,
+      );
+    }
+
     return getBestWaPointsForCandidates(candidates, gender as Gender, styleKey, distance);
   };
 
@@ -206,7 +246,11 @@ export const BestTimesTable: React.FC<BestTimesTableProps> = ({ bestTimes, gende
                 {t("teams.mobile.bestTimesWaPointsToggle")}
               </Text>
             </Pressable>
-            <WaPointsInfoTooltip testID="member-detail-best-times-wa-info" />
+            <WaPointsInfoTooltip
+              testID="member-detail-best-times-wa-info"
+              ariaLabel={t("teams.memberDetail.bestTimesTable.pointsInfoAriaLabel")}
+              tooltipText={t("teams.memberDetail.bestTimesTable.pointsInfo")}
+            />
           </View>
           <Pressable
             style={styles.checkboxContainer}
@@ -219,6 +263,52 @@ export const BestTimesTable: React.FC<BestTimesTableProps> = ({ bestTimes, gende
           </Pressable>
         </View>
       </View>
+
+      {/* 比較指標ピッカー (ポイント表示モードONかつjaロケール限定。別行として追加し、
+          既存の controls 行の構造には影響させない) */}
+      {isWaPointsMode && showCompareMetricPicker && (
+        <View style={styles.compareMetricRow}>
+          <View style={styles.compareMetricSegmentGroup}>
+            <View style={styles.tabs} testID="member-detail-best-times-compare-metric-segment">
+              {(["wa", "nr", "age"] as const).map((metric) => (
+                <Pressable
+                  key={metric}
+                  testID={`member-detail-best-times-compare-metric-${metric}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: compareMetric === metric }}
+                  style={[styles.tab, compareMetric === metric && styles.tabActive]}
+                  onPress={() => setCompareMetric(metric)}
+                >
+                  <Text style={[styles.tabText, compareMetric === metric && styles.tabTextActive]}>
+                    {t(`teams.memberDetail.bestTimesTable.compareMetric.${metric}`)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <WaPointsInfoTooltip
+              testID="member-detail-best-times-compare-metric-info"
+              ariaLabel={t("teams.memberDetail.bestTimesTable.compareMetricInfoAriaLabel")}
+              tooltipText={t("teams.memberDetail.bestTimesTable.compareMetricInfo")}
+            />
+          </View>
+          {compareMetric === "age" && (
+            <Pressable
+              testID="member-detail-best-times-age-category-button"
+              style={styles.ageCategoryButton}
+              onPress={() => setIsAgeCategoryModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t("teams.memberDetail.bestTimesTable.ageCategoryLabel")}
+            >
+              <Text style={styles.ageCategoryButtonText}>
+                {effectiveAgeCategory
+                  ? t(`teams.memberDetail.bestTimesTable.ageCategory.${effectiveAgeCategory}`)
+                  : t("teams.memberDetail.bestTimesTable.ageCategoryUnset")}
+              </Text>
+              <Feather name="chevron-down" size={14} color="#374151" />
+            </Pressable>
+          )}
+        </View>
+      )}
 
       {/* テーブル */}
       <View style={styles.tableContainer}>
@@ -256,7 +346,7 @@ export const BestTimesTable: React.FC<BestTimesTableProps> = ({ bestTimes, gende
                 const cellKey = `${style}_${distance}`;
 
                 if (isWaPointsMode) {
-                  const waCell = getWaPointsCell(style, distance);
+                  const waCell = getPointsCell(style, distance);
                   return (
                     <View
                       key={style}
@@ -351,6 +441,18 @@ export const BestTimesTable: React.FC<BestTimesTableProps> = ({ bestTimes, gende
         onClose={closeDetail}
         noteFallbackLabel={t("teams.memberDetail.bestTimesTable.bulkEntryNote")}
       />
+
+      <AgeCategoryPickerModal
+        visible={isAgeCategoryModalVisible}
+        onClose={() => setIsAgeCategoryModalVisible(false)}
+        onSelect={(category) => {
+          setAgeCategoryOverride(category);
+          setIsAgeCategoryModalVisible(false);
+        }}
+        t={t}
+        messageNamespace="teams.memberDetail.bestTimesTable"
+        testIDPrefix="member-detail-best-times-age-category-option"
+      />
     </View>
   );
 };
@@ -365,6 +467,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexWrap: "wrap",
     gap: 12,
+  },
+  compareMetricRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  compareMetricSegmentGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  ageCategoryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#FFFFFF",
+  },
+  ageCategoryButtonText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#374151",
   },
   tabs: {
     flexDirection: "row",

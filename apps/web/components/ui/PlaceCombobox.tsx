@@ -127,6 +127,7 @@ export default function PlaceCombobox({
         </label>
       )}
       <div className="relative">
+        {/* 高さ・padding の根拠: components/ui/Input.tsx の「16px ズーム防止 box サイズ根拠」参照 */}
         <input
           ref={inputRef}
           id={generatedId}
@@ -138,7 +139,7 @@ export default function PlaceCombobox({
           placeholder={resolvedPlaceholder}
           disabled={disabled}
           className={cn(
-            "flex h-8 sm:h-10 w-full rounded-md border border-gray-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+            "flex h-8 sm:h-10 w-full rounded-md border border-gray-300 bg-white px-2 sm:px-3 py-0.5 sm:py-1.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
             className,
           )}
           role="combobox"

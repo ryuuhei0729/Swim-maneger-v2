@@ -8,6 +8,18 @@ export interface WaPointsInfoTooltipProps {
   /** タップ判定用の testID。呼び出し元(3画面)ごとに一意な値を渡すこと */
   testID?: string;
   style?: StyleProp<ViewStyle>;
+  /**
+   * aria-label の上書き (省略可)。未指定なら `teams.waPointsCompare.infoAriaLabel`
+   * にフォールバックする (後方互換。既存2呼び出し元はこのフォールバックに依存している)。
+   */
+  ariaLabel?: string;
+  /**
+   * ポップアップ本文の上書き (省略可)。未指定なら `teams.waPointsCompare.infoTooltip`
+   * にフォールバックする (後方互換。既存2呼び出し元はこのフォールバックに依存している)。
+   * `\n` を含む文字列を渡した場合、RN の `<Text>` はそのまま改行として描画する
+   * (web 版の `whitespace-pre-line` に相当する追加スタイルは不要)。
+   */
+  tooltipText?: string;
 }
 
 /**
@@ -20,11 +32,19 @@ export interface WaPointsInfoTooltipProps {
  * 挙動になるよう共通の `CenterModal` を使う。
  *
  * 文言は `teams.waPointsCompare` 名前空間 (infoAriaLabel / infoTooltip) を単一ソースとして
- * マイページ・メンバー詳細・メンバー一覧の3画面から共用する。
+ * マイページ・メンバー詳細・メンバー一覧の3画面から共用する。`ariaLabel`/`tooltipText` を
+ * 渡した呼び出し元 (比較指標ピッカーの説明アイコン等) はこのデフォルトを上書きできる。
  */
-export const WaPointsInfoTooltip: React.FC<WaPointsInfoTooltipProps> = ({ testID, style }) => {
+export const WaPointsInfoTooltip: React.FC<WaPointsInfoTooltipProps> = ({
+  testID,
+  style,
+  ariaLabel,
+  tooltipText,
+}) => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
+  const resolvedAriaLabel = ariaLabel ?? t("teams.waPointsCompare.infoAriaLabel");
+  const resolvedTooltipText = tooltipText ?? t("teams.waPointsCompare.infoTooltip");
 
   return (
     <View style={style}>
@@ -35,7 +55,7 @@ export const WaPointsInfoTooltip: React.FC<WaPointsInfoTooltipProps> = ({ testID
         hitSlop={8}
         accessibilityRole="button"
         accessibilityState={{ expanded: visible }}
-        accessibilityLabel={t("teams.waPointsCompare.infoAriaLabel")}
+        accessibilityLabel={resolvedAriaLabel}
       >
         <Feather name="info" size={14} color={visible ? "#2563EB" : "#6B7280"} />
       </Pressable>
@@ -44,8 +64,8 @@ export const WaPointsInfoTooltip: React.FC<WaPointsInfoTooltipProps> = ({ testID
         onClose={() => setVisible(false)}
         closeAccessibilityLabel={t("common.close")}
       >
-        <Text style={styles.title}>{t("teams.waPointsCompare.infoAriaLabel")}</Text>
-        <Text style={styles.body}>{t("teams.waPointsCompare.infoTooltip")}</Text>
+        <Text style={styles.title}>{resolvedAriaLabel}</Text>
+        <Text style={styles.body}>{resolvedTooltipText}</Text>
       </CenterModal>
     </View>
   );

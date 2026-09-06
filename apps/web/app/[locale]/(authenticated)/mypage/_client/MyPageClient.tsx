@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts";
 import { useUserQuery, userKeys, useBestTimesQuery } from "@apps/shared/hooks";
 import { useTeamsQuery } from "@apps/shared/hooks/queries/teams";
 import { teamKeys } from "@apps/shared/hooks/queries/keys";
+import { resolveAgeCategory } from "@apps/shared/utils/domesticRecords";
 import { useQueryClient } from "@tanstack/react-query";
 import { TrophyIcon, DocumentArrowUpIcon, Cog6ToothIcon } from "@heroicons/react/24/outline";
 import BestTimesTable from "@/components/profile/BestTimesTable";
@@ -96,6 +97,10 @@ export default function MyPageClient({ initialProfile, initialBestTimes }: MyPag
         profile_image_path: queryProfile.profile_image_path,
       }
     : null;
+
+  // 年齢別ポイント比較用の区分。生の birthday はテーブルコンポーネントへ渡さない
+  // (必要なのは区分だけ。生年月日は gender より機微度が高い)
+  const ageCategory = useMemo(() => resolveAgeCategory(profile?.birthday), [profile?.birthday]);
 
   const handleProfileUpdate = useCallback(
     async (updatedProfile: Partial<UserProfile>) => {
@@ -234,7 +239,7 @@ export default function MyPageClient({ initialProfile, initialBestTimes }: MyPag
             </Link>
           </div>
 
-          <BestTimesTable bestTimes={bestTimes} gender={profile?.gender} />
+          <BestTimesTable bestTimes={bestTimes} gender={profile?.gender} ageCategory={ageCategory} />
         </div>
       </div>
 

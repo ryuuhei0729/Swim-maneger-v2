@@ -175,6 +175,13 @@ export default function BirthdayInput({
         </legend>
       )}
 
+      {/*
+        高さ・padding の根拠: components/ui/Input.tsx の「16px ズーム防止 box サイズ根拠」参照。
+        年/月/日いずれも隣接する性別トグル (ProfileEditModal.tsx / Step2Profile.tsx の
+        gender グループ) と高さ (h-8 sm:h-10) を揃える必要があるため、箱の高さは変えず
+        padding のみ py-0.5 sm:py-1.5 に縮小する (h-9 等の非レスポンシブ高さにすると
+        640px 以上で性別トグルの sm:h-10(40px) と 4px ずれる)。
+      */}
       <div className="flex items-center gap-1.5 flex-wrap">
         <input
           id={yearId}
@@ -190,7 +197,7 @@ export default function BirthdayInput({
           aria-label={t("yearLabel")}
           aria-invalid={hasError}
           className={cn(
-            "w-16 sm:w-20 h-8 sm:h-10 px-1 sm:px-2 text-sm text-center border rounded-md bg-white transition-colors focus:outline-none focus:ring-2 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed shrink-0",
+            "w-16 sm:w-20 h-8 sm:h-10 px-1 sm:px-2 py-0.5 sm:py-1.5 text-sm text-center border rounded-md bg-white transition-colors focus:outline-none focus:ring-2 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed shrink-0",
             hasError
               ? "border-red-500 focus:ring-red-500"
               : "border-gray-300 focus:ring-blue-500",
@@ -213,7 +220,8 @@ export default function BirthdayInput({
           aria-label={t("monthLabel")}
           aria-invalid={hasError}
           className={cn(
-            "w-10 sm:w-12 h-8 sm:h-10 px-1 sm:px-2 text-sm text-center border rounded-md bg-white transition-colors focus:outline-none focus:ring-2 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed shrink-0",
+            // 高さ・padding の根拠は年入力と同じ (上のコメント参照)
+            "w-10 sm:w-12 h-8 sm:h-10 px-1 sm:px-2 py-0.5 sm:py-1.5 text-sm text-center border rounded-md bg-white transition-colors focus:outline-none focus:ring-2 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed shrink-0",
             hasError
               ? "border-red-500 focus:ring-red-500"
               : "border-gray-300 focus:ring-blue-500",
@@ -236,7 +244,8 @@ export default function BirthdayInput({
           aria-label={t("dayLabel")}
           aria-invalid={hasError}
           className={cn(
-            "w-10 sm:w-12 h-8 sm:h-10 px-1 sm:px-2 text-sm text-center border rounded-md bg-white transition-colors focus:outline-none focus:ring-2 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed shrink-0",
+            // 高さ・padding の根拠は年入力と同じ (上のコメント参照)
+            "w-10 sm:w-12 h-8 sm:h-10 px-1 sm:px-2 py-0.5 sm:py-1.5 text-sm text-center border rounded-md bg-white transition-colors focus:outline-none focus:ring-2 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed shrink-0",
             hasError
               ? "border-red-500 focus:ring-red-500"
               : "border-gray-300 focus:ring-blue-500",

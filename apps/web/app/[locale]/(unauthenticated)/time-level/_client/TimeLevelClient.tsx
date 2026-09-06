@@ -201,11 +201,19 @@ export default function TimeLevelClient() {
               <label htmlFor="time-level-style" className="block text-sm font-medium text-gray-700 mb-2">
                 {t("styleLabel")}
               </label>
+              {/*
+                globals.css の `@media (max-width:768px){input,select,textarea{font-size:16px!important}}` により
+                640〜768px 帯では text-sm (line-height 比率 1.4286) が 16*1.4286≈22.86px まで膨らむ。
+                この select は py 未指定のため既定 padding (8px×2=16px) が付き、
+                必要高さ = 22.86+16+border2=40.86px > h-10(40px) で見切れていた。
+                py-1 (4px×2=8px) に縮小すると必要高さは最大でも 22.86+8+2=32.86px となり、
+                h-10 (40px) はどの帯域でも上回る (余裕 7px 以上)。
+              */}
               <select
                 id="time-level-style"
                 value={styleKey}
                 onChange={(e) => handleStyleChange(e.target.value as StyleTranslationKey)}
-                className="w-full h-10 px-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-10 px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {availableStyles.map((style) => (
                   <option key={style} value={style}>
@@ -218,11 +226,12 @@ export default function TimeLevelClient() {
               <label htmlFor="time-level-distance" className="block text-sm font-medium text-gray-700 mb-2">
                 {t("distanceLabel")}
               </label>
+              {/* 高さ・padding の根拠は上の種目 select と同じ (h-10 + py-1 で全帯域を吸収) */}
               <select
                 id="time-level-distance"
                 value={distance}
                 onChange={(e) => setDistance(Number(e.target.value))}
-                className="w-full h-10 px-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-10 px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {distancesForStyle.map((d) => (
                   <option key={d} value={d}>

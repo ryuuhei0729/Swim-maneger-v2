@@ -12,11 +12,23 @@
  * `apps/web/__tests__/components/member-detail/BestTimesTable.test.tsx` が担当し、
  * 本スプリントで無変更・無編集のまま green であることを別途確認済み。
  *
+ * ## 追記 (文言変更スプリント)
+ * 「WAポイント表示」トグルが「泳力を点数化」に改称され、比較指標プルダウンで
+ * WA/日本記録/区分の3基準が選べるようになったことに伴い、このトグル横の info アイコンは
+ * `teams.waPointsCompare.infoTooltip` (WA固有の説明) への暗黙フォールバックをやめ、
+ * 新設の `teams.memberDetail.bestTimesTable.pointsInfo` / `pointsInfoAriaLabel`
+ * (どの基準でも通用する算出式の一般的な説明) を明示的に渡すよう配線し直された
+ * (`<WaPointsInfoTooltip ariaLabel={t("pointsInfoAriaLabel")} tooltipText={t("pointsInfo")} />`)。
+ * 本ファイルはこの新しい配線を検証する (profile 版と同一観点)。
+ *
  * Sprint Contract 検証観点 (profile 版と同一観点をこのコンポーネントに対して検証):
- *   [V-ICON-09] info アイコンが存在し、aria-label="WAポイントとは" で取得できる
- *               (data-testid="member-detail-best-times-wa-points-info-button")
- *   [V-ICON-10] ツールチップの文言が実際の teams.waPointsCompare.infoTooltip の
- *               翻訳文と一致する (トートロジー回避のため、算出式を含む全文比較)
+ *   [V-ICON-09] info アイコンが存在し、aria-label="点数の算出方法"
+ *               (= teams.memberDetail.bestTimesTable.pointsInfoAriaLabel) で取得できる
+ *               (data-testid="member-detail-best-times-wa-points-info-button")。
+ *               旧フォールバック値 "WAポイントとは" にはならないことも確認する
+ *   [V-ICON-10] ツールチップの文言が実際の pointsInfo の翻訳文と一致する (トートロジー回避のため、
+ *               算出式を含む全文比較)。旧フォールバックの teams.waPointsCompare.infoTooltip
+ *               (WA固有、"World Aquatics" を含む) を表示していないことも確認する
  *   [V-ICON-11] info アイコンをクリックするとツールチップが開き、再クリックで閉じる
  *   [V-ICON-12] info アイコンの onBlur でツールチップが閉じる
  *   [V-ICON-13] info アイコンのクリックが WAポイント表示トグル自体
@@ -39,9 +51,16 @@ import { BestTimesTable } from "@/components/member-detail/BestTimesTable";
 import type { BestTime } from "@/types/member-detail";
 import jaMessages from "@apps/shared/messages/ja.json";
 
-// ja.json teams.waPointsCompare.infoTooltip の実文字列 (このテスト作成時点でハードコード)
+// ja.json teams.memberDetail.bestTimesTable.pointsInfo / pointsInfoAriaLabel の実文字列
+// (このテスト更新時点でハードコード。実装の t() 呼び出し結果はコピーしていない)
 const EXPECTED_JA_TOOLTIP_TEXT =
-  "WAポイントは World Aquatics（世界水泳連盟）の公式ポイント制度です。世界記録級の基準タイムを1000点とし、「1000×(基準タイム÷記録)³」で算出します。種目やコースが異なっても泳力を比較できる指標です。";
+  "基準とする記録と同着で1000点になります。「1000×(基準タイム÷記録)³」で算出するため、種目やコースが異なっても比較できます。";
+const EXPECTED_JA_ARIA_LABEL = "点数の算出方法";
+
+// ja.json teams.waPointsCompare.infoTooltip / infoAriaLabel (旧フォールバック。WA固有の文言)。
+// 「フォールバックに戻っていないこと」の否定 assert 専用に保持する。
+const FALLBACK_WA_TOOLTIP_TEXT = jaMessages.teams.waPointsCompare.infoTooltip;
+const FALLBACK_WA_ARIA_LABEL = jaMessages.teams.waPointsCompare.infoAriaLabel;
 
 function renderWithLocale(bestTimes: BestTime[], props: { gender?: number } = { gender: 0 }) {
   return render(
@@ -68,9 +87,10 @@ const getInfoButton = () => screen.getByTestId("member-detail-best-times-wa-poin
 const getToggle = () => screen.getByTestId("member-detail-best-times-wa-points-toggle");
 
 describe("[V-ICON-09] メンバー詳細: WAポイントトグルに info アイコンが存在する", () => {
-  it("data-testid='member-detail-best-times-wa-points-info-button' が存在し、aria-label='WAポイントとは' を持つ", () => {
+  it("data-testid='member-detail-best-times-wa-points-info-button' が存在し、aria-label='点数の算出方法' を持つ (旧フォールバック値ではない)", () => {
     renderWithLocale([buildBestTime()], { gender: 0 });
-    expect(getInfoButton()).toHaveAttribute("aria-label", "WAポイントとは");
+    expect(getInfoButton()).toHaveAttribute("aria-label", EXPECTED_JA_ARIA_LABEL);
+    expect(getInfoButton().getAttribute("aria-label")).not.toBe(FALLBACK_WA_ARIA_LABEL);
   });
 
   it("gender が undefined の場合でも info アイコンは例外なく描画される (V-D3 との組合せ回帰)", () => {
@@ -89,11 +109,13 @@ describe("[V-ICON-09] メンバー詳細: WAポイントトグルに info アイ
 });
 
 describe("[V-ICON-10] メンバー詳細: info ツールチップの文言が実際の翻訳文と一致する", () => {
-  it("role='tooltip' の要素が1件存在し、算出式を含む実際の infoTooltip 全文を表示する", () => {
+  it("role='tooltip' の要素が1件存在し、算出式を含む実際の pointsInfo 全文を表示する (旧WA専用文言ではない)", () => {
     renderWithLocale([buildBestTime()], { gender: 0 });
     const tooltips = screen.getAllByRole("tooltip");
     expect(tooltips).toHaveLength(1);
     expect(tooltips[0]).toHaveTextContent(EXPECTED_JA_TOOLTIP_TEXT);
+    expect(tooltips[0]!.textContent).not.toBe(FALLBACK_WA_TOOLTIP_TEXT);
+    expect(tooltips[0]!.textContent).not.toContain("World Aquatics");
   });
 
   it("トグルボタン自身の文言とは異なる、説明文特有の内容 (算出式) を含む (トートロジー回避の確認)", () => {

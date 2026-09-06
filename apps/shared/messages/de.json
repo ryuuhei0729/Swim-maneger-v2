@@ -1313,8 +1313,27 @@
         "relaying": "R: Staffelwechsel",
         "relayingExcludedFromWaPoints": "Staffelwechselzeiten sind von den WA-Punkten ausgeschlossen"
       },
-      "waPointsToggle": "WA-Punkte anzeigen",
-      "waPointsToggleShort": "WA-Punkte"
+      "waPointsToggle": "Als Punkte anzeigen",
+      "waPointsToggleShort": "Punkte",
+      "compareMetricLabel": "Vergleichsmaßstab",
+      "compareMetric": {
+        "wa": "WA-Punkte",
+        "nr": "Japan-Rekord-Standard",
+        "age": "Alterskategorie-Standard"
+      },
+      "ageCategoryLabel": "Alterskategorie",
+      "ageCategoryUnset": "Nicht festgelegt",
+      "ageCategory": {
+        "elementary": "Grundschule",
+        "juniorHigh": "Mittelschule",
+        "highSchool": "Oberschule",
+        "university": "Universität",
+        "general": "Allgemein"
+      },
+      "compareMetricInfoAriaLabel": "Was sind Vergleichsmetriken?",
+      "compareMetricInfo": "WA-Punkte: Offizielles Punktesystem von World Aquatics, bewertet gegenüber Weltrekorden\nJapan-Rekord-Standard: Punktzahl gegenüber japanischen Landesrekorden\nAlterskategorie-Standard: Punktzahl gegenüber Rekorden der Alterskategorien Grundschule, Mittelschule, Oberschule, Universität oder Allgemein",
+      "pointsInfoAriaLabel": "Punkteberechnung",
+      "pointsInfo": "Ein Ergebnis gleich dem Referenzrekord ergibt 1000 Punkte. Berechnet als 1000×(Referenzzeit ÷ Ergebnis)³, sodass Leistungen über Disziplinen und Bahnlängen hinweg vergleichbar sind."
     },
     "error": {
       "title": "Ein Fehler ist aufgetreten",
@@ -2554,7 +2573,7 @@
       "bestTimesEmpty": "Noch keine Einträge",
       "bestTimesEmptySubText": "Dieses Mitglied hat noch keine Einträge registriert",
       "bestTimesIncludeRelaying": "Inkl. Wechsel",
-      "bestTimesWaPointsToggle": "WA-Punkte",
+      "bestTimesWaPointsToggle": "Punkte",
       "bestTimesAnnotation": "L: Langbahn, R: Staffelübernahme",
       "groupDisplayLabel": "Gruppieren nach:",
       "groupAddAria": "Gruppe hinzufügen",
@@ -2927,7 +2946,26 @@
           "relaying": "R: Staffel",
           "relayingExcludedFromWaPoints": "Staffelwechselzeiten sind von den WA-Punkten ausgeschlossen"
         },
-        "waPointsToggle": "WA-Punkte anzeigen"
+        "waPointsToggle": "Als Punkte anzeigen",
+        "compareMetricLabel": "Vergleichsmaßstab",
+        "compareMetric": {
+          "wa": "WA-Punkte",
+          "nr": "Japan-Rekord-Standard",
+          "age": "Alterskategorie-Standard"
+        },
+        "ageCategoryLabel": "Alterskategorie",
+        "ageCategoryUnset": "Nicht festgelegt",
+        "ageCategory": {
+          "elementary": "Grundschule",
+          "juniorHigh": "Mittelschule",
+          "highSchool": "Oberschule",
+          "university": "Universität",
+          "general": "Allgemein"
+        },
+        "compareMetricInfoAriaLabel": "Was sind Vergleichsmetriken?",
+        "compareMetricInfo": "WA-Punkte: Offizielles Punktesystem von World Aquatics, bewertet gegenüber Weltrekorden\nJapan-Rekord-Standard: Punktzahl gegenüber japanischen Landesrekorden\nAlterskategorie-Standard: Punktzahl gegenüber Rekorden der Alterskategorien Grundschule, Mittelschule, Oberschule, Universität oder Allgemein",
+        "pointsInfoAriaLabel": "Punkteberechnung",
+        "pointsInfo": "Ein Ergebnis gleich dem Referenzrekord ergibt 1000 Punkte. Berechnet als 1000×(Referenzzeit ÷ Ergebnis)³, sodass Leistungen über Disziplinen und Bahnlängen hinweg vergleichbar sind."
       }
     },
     "attendance": {

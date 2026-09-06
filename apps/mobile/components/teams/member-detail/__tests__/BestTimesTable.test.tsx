@@ -51,7 +51,16 @@ const FR100 = { name_jp: "100m自由形", distance: 100 };
 const FR50 = { name_jp: "50m自由形", distance: 50 };
 const IM100 = { name_jp: "100m個人メドレー", distance: 100 };
 
-const openWaPointsMode = () => fireEvent.click(screen.getByText("WAポイント"));
+// トグルのラベル文言 (`teams.mobile.bestTimesWaPointsToggle`) は文言変更スプリントで
+// 「WAポイント」→「点数化」に変更された。表示文言は今後も変わりうるため、テキストではなく
+// 実装が持つ安定した testID (`member-detail-best-times-wa-points-toggle`) で取得する。
+const openWaPointsMode = () => {
+  const toggle = document.querySelector('[testid="member-detail-best-times-wa-points-toggle"]');
+  if (!toggle) {
+    throw new Error('testid="member-detail-best-times-wa-points-toggle" の要素が見つかりません');
+  }
+  fireEvent.click(toggle);
+};
 
 describe("BestTimesTable (member-detail) - WAポイント計算", () => {
   it("[V-GEN-01] gender が undefined のとき、WAポイントモードでも「—」のままで 542 は出ない", () => {

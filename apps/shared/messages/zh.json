@@ -1313,8 +1313,27 @@
         "relaying": "R：含接力交接",
         "relayingExcludedFromWaPoints": "接力交接成绩不计入WA积分"
       },
-      "waPointsToggle": "显示WA积分",
-      "waPointsToggleShort": "WA积分"
+      "waPointsToggle": "换算为得分",
+      "waPointsToggleShort": "得分",
+      "compareMetricLabel": "比较指标",
+      "compareMetric": {
+        "wa": "WA积分",
+        "nr": "日本纪录基准",
+        "age": "年龄段纪录基准"
+      },
+      "ageCategoryLabel": "年龄段",
+      "ageCategoryUnset": "未设置",
+      "ageCategory": {
+        "elementary": "小学",
+        "juniorHigh": "初中",
+        "highSchool": "高中",
+        "university": "大学",
+        "general": "一般"
+      },
+      "compareMetricInfoAriaLabel": "什么是比较指标？",
+      "compareMetricInfo": "WA积分：World Aquatics（世界水上运动联合会）的官方积分制度，以世界纪录为基准的得分\n日本纪录基准：相对日本纪录的得分\n年龄段纪录基准：相对小学·初中·高中·大学·一般各年龄段纪录的得分",
+      "pointsInfoAriaLabel": "得分的计算方法",
+      "pointsInfo": "与基准纪录同成绩为1000分。按「1000×(基准用时÷成绩)³」计算，因此不同项目和泳池长度之间也可比较。"
     },
     "error": {
       "title": "发生错误",
@@ -2554,7 +2573,7 @@
       "bestTimesEmpty": "暂无记录",
       "bestTimesEmptySubText": "该成员尚未登记任何记录",
       "bestTimesIncludeRelaying": "含接力交接",
-      "bestTimesWaPointsToggle": "WA积分",
+      "bestTimesWaPointsToggle": "得分",
       "bestTimesAnnotation": "※ L：长池，R：含接力交接",
       "groupDisplayLabel": "分组显示：",
       "groupAddAria": "添加分组",
@@ -2927,7 +2946,26 @@
           "relaying": "R：含接力",
           "relayingExcludedFromWaPoints": "接力交接成绩不计入WA积分"
         },
-        "waPointsToggle": "显示WA积分"
+        "waPointsToggle": "换算为得分",
+        "compareMetricLabel": "比较指标",
+        "compareMetric": {
+          "wa": "WA积分",
+          "nr": "日本纪录基准",
+          "age": "年龄段纪录基准"
+        },
+        "ageCategoryLabel": "年龄段",
+        "ageCategoryUnset": "未设置",
+        "ageCategory": {
+          "elementary": "小学",
+          "juniorHigh": "初中",
+          "highSchool": "高中",
+          "university": "大学",
+          "general": "一般"
+        },
+        "compareMetricInfoAriaLabel": "什么是比较指标？",
+        "compareMetricInfo": "WA积分：World Aquatics（世界水上运动联合会）的官方积分制度，以世界纪录为基准的得分\n日本纪录基准：相对日本纪录的得分\n年龄段纪录基准：相对小学·初中·高中·大学·一般各年龄段纪录的得分",
+        "pointsInfoAriaLabel": "得分的计算方法",
+        "pointsInfo": "与基准纪录同成绩为1000分。按「1000×(基准用时÷成绩)³」计算，因此不同项目和泳池长度之间也可比较。"
       }
     },
     "attendance": {

@@ -197,7 +197,7 @@ export default function ProfileEditModal({
                       {t("genderLabel")}
                     </span>
                     <div
-                      className="grid grid-cols-2 h-10 rounded-lg border border-gray-300 overflow-hidden"
+                      className="grid grid-cols-2 h-8 sm:h-10 rounded-lg border border-gray-300 overflow-hidden"
                       role="group"
                       aria-label={t("genderLabel")}
                     >

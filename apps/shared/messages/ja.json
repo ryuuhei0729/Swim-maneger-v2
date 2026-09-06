@@ -1313,8 +1313,27 @@
         "relaying": "R: 引き継ぎあり",
         "relayingExcludedFromWaPoints": "引き継ぎタイムはWAポイント対象外です"
       },
-      "waPointsToggle": "WAポイント表示",
-      "waPointsToggleShort": "WAポイント"
+      "waPointsToggle": "泳力を点数化",
+      "waPointsToggleShort": "点数化",
+      "compareMetricLabel": "比較指標",
+      "compareMetric": {
+        "wa": "WAポイント",
+        "nr": "日本記録基準",
+        "age": "区分記録基準"
+      },
+      "ageCategoryLabel": "年齢区分",
+      "ageCategoryUnset": "未設定",
+      "ageCategory": {
+        "elementary": "学童",
+        "juniorHigh": "中学",
+        "highSchool": "高校",
+        "university": "学生",
+        "general": "一般"
+      },
+      "compareMetricInfoAriaLabel": "比較指標とは",
+      "compareMetricInfo": "WAポイント：World Aquatics（世界水泳連盟）の公式ポイント制度。世界記録を基準にした得点\n日本記録基準：日本記録に対する得点\n区分記録基準：学童・中学・高校・学生・一般の年代別記録に対する得点",
+      "pointsInfoAriaLabel": "点数の算出方法",
+      "pointsInfo": "基準とする記録と同着で1000点になります。「1000×(基準タイム÷記録)³」で算出するため、種目やコースが異なっても比較できます。"
     },
     "error": {
       "title": "エラーが発生しました",
@@ -2554,7 +2573,7 @@
       "bestTimesEmpty": "記録がありません",
       "bestTimesEmptySubText": "このメンバーはまだ記録を登録していません",
       "bestTimesIncludeRelaying": "引き継ぎ含む",
-      "bestTimesWaPointsToggle": "WAポイント",
+      "bestTimesWaPointsToggle": "点数化",
       "bestTimesAnnotation": "※ L: 長水路, R: 引き継ぎあり",
       "groupDisplayLabel": "グループ表示:",
       "groupAddAria": "グループを追加",
@@ -2927,7 +2946,26 @@
           "relaying": "R: 引き継ぎあり",
           "relayingExcludedFromWaPoints": "引き継ぎタイムはWAポイント対象外です"
         },
-        "waPointsToggle": "WAポイント表示"
+        "waPointsToggle": "泳力を点数化",
+        "compareMetricLabel": "比較指標",
+        "compareMetric": {
+          "wa": "WAポイント",
+          "nr": "日本記録基準",
+          "age": "区分記録基準"
+        },
+        "ageCategoryLabel": "年齢区分",
+        "ageCategoryUnset": "未設定",
+        "ageCategory": {
+          "elementary": "学童",
+          "juniorHigh": "中学",
+          "highSchool": "高校",
+          "university": "学生",
+          "general": "一般"
+        },
+        "compareMetricInfoAriaLabel": "比較指標とは",
+        "compareMetricInfo": "WAポイント：World Aquatics（世界水泳連盟）の公式ポイント制度。世界記録を基準にした得点\n日本記録基準：日本記録に対する得点\n区分記録基準：学童・中学・高校・学生・一般の年代別記録に対する得点",
+        "pointsInfoAriaLabel": "点数の算出方法",
+        "pointsInfo": "基準とする記録と同着で1000点になります。「1000×(基準タイム÷記録)³」で算出するため、種目やコースが異なっても比較できます。"
       }
     },
     "attendance": {

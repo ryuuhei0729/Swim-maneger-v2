@@ -462,10 +462,17 @@ export default function CompetitionBasicForm({
                 <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
                   {t("pool_type_label")} <span className="text-red-500">*</span>
                 </label>
+                {/*
+                  この select には元々 text-sm が無く、デフォルトの font-size(16px)/
+                  line-height(24px) が globals.css の 16px 強制の有無に関わらず常時適用され、
+                  全帯域で必要高さが h-8 sm:h-10 を 2px 超過していた (text-sm 未指定が原因の
+                  別問題)。text-sm を追加した上での高さ・padding の根拠は
+                  components/ui/Input.tsx の「16px ズーム防止 box サイズ根拠」参照。
+                */}
                 <select
                   value={formData.poolType}
                   onChange={(e) => setFormData({ ...formData, poolType: parseInt(e.target.value) })}
-                  className="w-full h-8 sm:h-10 px-2 sm:px-3 py-1 sm:py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full h-8 sm:h-10 px-2 sm:px-3 py-0.5 sm:py-1.5 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                   data-testid="competition-pool-type"
                 >
