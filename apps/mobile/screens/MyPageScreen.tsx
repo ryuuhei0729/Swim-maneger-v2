@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { View, Text, ScrollView, StyleSheet, Pressable, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { useUserQuery } from "@apps/shared/hooks/queries/user";
 import { useBestTimesQuery } from "@apps/shared/hooks/queries/records";
 import { toUserFacingMessage } from "@apps/shared/utils/userFacingError";
+import { resolveAgeCategory } from "@apps/shared/utils/domesticRecords";
 import { ProfileDisplay, ProfileEditModal, BestTimesTable } from "@/components/profile";
 import { WaPointsInfoTooltip } from "@/components/ui/WaPointsInfoTooltip";
 import { LoadingSpinner } from "@/components/layout/LoadingSpinner";
@@ -58,6 +59,8 @@ export const MyPageScreen: React.FC = () => {
   const bestTimesErrorMessage = bestTimesErrorObj
     ? toUserFacingMessage(bestTimesErrorObj, t("mypage.mobile.bestTimesFetchFailed"))
     : undefined;
+  // 区分記録基準の初期選択に使う年齢区分 (生年月日そのものは BestTimesTable に渡さない)
+  const ageCategory = useMemo(() => resolveAgeCategory(profile?.birthday), [profile?.birthday]);
 
   // この画面が依存する全クエリ(プロフィール + ベストタイム)を尽くす
   const refreshAll = useCallback(async () => {
@@ -222,7 +225,11 @@ export const MyPageScreen: React.FC = () => {
                     {t("mypage.bestTimesTable.waPointsToggleShort")}
                   </Text>
                 </Pressable>
-                <WaPointsInfoTooltip testID="best-times-wa-info-mypage" />
+                <WaPointsInfoTooltip
+                  testID="best-times-wa-info-mypage"
+                  ariaLabel={t("mypage.bestTimesTable.pointsInfoAriaLabel")}
+                  tooltipText={t("mypage.bestTimesTable.pointsInfo")}
+                />
               </View>
             </View>
           </View>
@@ -237,6 +244,7 @@ export const MyPageScreen: React.FC = () => {
               bestTimes={bestTimes}
               gender={profile?.gender}
               isWaPointsMode={isWaPointsMode}
+              ageCategory={ageCategory}
             />
           )}
         </View>

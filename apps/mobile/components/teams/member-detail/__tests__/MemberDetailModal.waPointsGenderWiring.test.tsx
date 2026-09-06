@@ -72,6 +72,19 @@ vi.mock("@apps/shared/hooks/queries/records", () => ({
 
 import { MemberDetailModal } from "../MemberDetailModal";
 
+// トグルのラベル文言 (`teams.mobile.bestTimesWaPointsToggle`) は文言変更スプリントで
+// 「WAポイント」→「点数化」に変更された。表示文言は今後も変わりうるため、テキストではなく
+// 実装が持つ安定した testID (`member-detail-best-times-wa-points-toggle`) で取得する
+// (react-native の `testID` はこのリポジトリの DOM モックでは `data-testid` ではなく
+// 生の `testid` 属性としてそのまま転記される)。
+function clickWaPointsToggle() {
+  const toggle = document.querySelector('[testid="member-detail-best-times-wa-points-toggle"]');
+  if (!toggle) {
+    throw new Error('testid="member-detail-best-times-wa-points-toggle" の要素が見つかりません');
+  }
+  fireEvent.click(toggle);
+}
+
 const buildMember = (gender: number | undefined): TeamMembershipWithUser =>
   ({
     id: "m-1",
@@ -100,7 +113,7 @@ describe("[V-GENDER-WIRING] MemberDetailModal は member.users.gender をその�
     );
 
     await screen.findByText("54.97");
-    fireEvent.click(screen.getByText("WAポイント"));
+    clickWaPointsToggle();
 
     await waitFor(() => {
       expect(screen.queryByText("542")).toBeNull();
@@ -120,7 +133,7 @@ describe("[V-GENDER-WIRING] MemberDetailModal は member.users.gender をその�
     );
 
     await screen.findByText("54.97");
-    fireEvent.click(screen.getByText("WAポイント"));
+    clickWaPointsToggle();
 
     await waitFor(() => {
       expect(screen.getByText("763")).toBeTruthy();
@@ -140,7 +153,7 @@ describe("[V-GENDER-WIRING] MemberDetailModal は member.users.gender をその�
     );
 
     await screen.findByText("54.97");
-    fireEvent.click(screen.getByText("WAポイント"));
+    clickWaPointsToggle();
 
     await waitFor(() => {
       expect(screen.getByText("542")).toBeTruthy();

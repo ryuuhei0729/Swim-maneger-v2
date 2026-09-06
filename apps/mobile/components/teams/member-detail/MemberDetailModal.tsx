@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import {
   useRemoveMemberMutation,
 } from "@apps/shared/hooks/queries/teams";
 import { useBestTimesQuery } from "@apps/shared/hooks/queries/records";
+import { resolveAgeCategory } from "@apps/shared/utils/domesticRecords";
 import type { TeamMembershipWithUser } from "@swim-hub/shared/types";
 import { toUserFacingMessage } from "@apps/shared/utils/userFacingError";
 import { ProfileSection } from "./ProfileSection";
@@ -60,6 +61,11 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
 
   const isCurrentUser = member?.user_id === currentUserId;
   const canManage = isCurrentUserAdmin && !isCurrentUser;
+  // 区分記録基準の初期選択に使う年齢区分 (生年月日そのものは BestTimesTable に渡さない)
+  const ageCategory = useMemo(
+    () => resolveAgeCategory(member?.users.birthday),
+    [member?.users.birthday],
+  );
 
   // ロール変更
   const handleRoleChangeClick = useCallback(
@@ -213,7 +219,11 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                 <Text style={styles.loadingText}>{t("teams.mobile.bestTimeLoading")}</Text>
               </View>
             ) : (
-              <BestTimesTable bestTimes={bestTimes} gender={member.users.gender} />
+              <BestTimesTable
+                bestTimes={bestTimes}
+                gender={member.users.gender}
+                ageCategory={ageCategory}
+              />
             )}
           </View>
 

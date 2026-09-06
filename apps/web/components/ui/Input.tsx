@@ -162,11 +162,27 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           </label>
         )}
         <div className="relative">
+          {/*
+            === 「16px ズーム防止 box サイズ根拠」(正典。他ファイルはここを参照すること) ===
+            globals.css の `@media (max-width:768px){input,select,textarea{font-size:16px!important}}`
+            (iOS/Android の自動ズーム防止。削除禁止) により、640〜768px 帯では
+            text-sm の line-height (Tailwind v4 ではユニットレス比率 1.4286) が
+            16*1.4286≈22.86px まで膨らむ (768px〜 は実際の 14px なので 14*1.4286=20px)。
+            border は上下1pxずつで計2px。
+            - 〜639px: font-size 16px(強制), line-height 22.86px, 箱 h-8=32px
+            - 640〜767px: font-size 16px(強制), line-height 22.86px, 箱 sm:h-10=40px ← 最も厳しい帯域
+            - 768px〜: font-size 14px, line-height 20px, 箱 sm:h-10=40px
+            この箱の高さ (h-8 / sm:h-10) は兄弟要素 (例: 性別トグルボタン、SelectChips の
+            プリセットチップ) と揃える必要があるため変更しない。padding のみ
+            py-0.5 sm:py-1.5 (4px/12px) に縮小すると、必要高さ (line-height+padding+border) は
+            最大でも 22.86+12+2=36.86px となり、どの帯域でも h-8(32px)/sm:h-10(40px) を
+            上回らない (余裕 3px 以上)。
+          */}
           <input
             type={type}
             id={inputId}
             className={cn(
-              "flex h-8 sm:h-10 w-full rounded-md border bg-white px-2 sm:px-3 py-1 sm:py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+              "flex h-8 sm:h-10 w-full rounded-md border bg-white px-2 sm:px-3 py-0.5 sm:py-1.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
               hasError && "border-red-500 focus:ring-red-500 pr-10",
               !hasError &&
                 isValidState &&

@@ -1313,8 +1313,27 @@
         "relaying": "R: 引き継ぎあり",
         "relayingExcludedFromWaPoints": "引き継ぎタイムはWAポイント対象外です"
       },
-      "waPointsToggle": "WAポイント表示",
-      "waPointsToggleShort": "WAポイント"
+      "waPointsToggle": "泳力を点数化",
+      "waPointsToggleShort": "点数化",
+      "compareMetricLabel": "比較指標",
+      "compareMetric": {
+        "wa": "WAポイント",
+        "nr": "日本記録基準",
+        "age": "区分記録基準"
+      },
+      "ageCategoryLabel": "年齢区分",
+      "ageCategoryUnset": "未設定",
+      "ageCategory": {
+        "elementary": "学童",
+        "juniorHigh": "中学",
+        "highSchool": "高校",
+        "university": "学生",
+        "general": "一般"
+      },
+      "compareMetricInfoAriaLabel": "比較指標とは",
+      "compareMetricInfo": "WAポイント：World Aquatics（世界水泳連盟）の公式ポイント制度。世界記録を基準にした得点\n日本記録基準：日本記録に対する得点\n区分記録基準：学童・中学・高校・学生・一般の年代別記録に対する得点",
+      "pointsInfoAriaLabel": "点数の算出方法",
+      "pointsInfo": "基準とする記録と同着で1000点になります。「1000×(基準タイム÷記録)³」で算出するため、種目やコースが異なっても比較できます。"
     },
     "error": {
       "title": "エラーが発生しました",
@@ -2554,7 +2573,7 @@
       "bestTimesEmpty": "記録がありません",
       "bestTimesEmptySubText": "このメンバーはまだ記録を登録していません",
       "bestTimesIncludeRelaying": "引き継ぎ含む",
-      "bestTimesWaPointsToggle": "WAポイント",
+      "bestTimesWaPointsToggle": "点数化",
       "bestTimesAnnotation": "※ L: 長水路, R: 引き継ぎあり",
       "groupDisplayLabel": "グループ表示:",
       "groupAddAria": "グループを追加",
@@ -2927,7 +2946,26 @@
           "relaying": "R: 引き継ぎあり",
           "relayingExcludedFromWaPoints": "引き継ぎタイムはWAポイント対象外です"
         },
-        "waPointsToggle": "WAポイント表示"
+        "waPointsToggle": "泳力を点数化",
+        "compareMetricLabel": "比較指標",
+        "compareMetric": {
+          "wa": "WAポイント",
+          "nr": "日本記録基準",
+          "age": "区分記録基準"
+        },
+        "ageCategoryLabel": "年齢区分",
+        "ageCategoryUnset": "未設定",
+        "ageCategory": {
+          "elementary": "学童",
+          "juniorHigh": "中学",
+          "highSchool": "高校",
+          "university": "学生",
+          "general": "一般"
+        },
+        "compareMetricInfoAriaLabel": "比較指標とは",
+        "compareMetricInfo": "WAポイント：World Aquatics（世界水泳連盟）の公式ポイント制度。世界記録を基準にした得点\n日本記録基準：日本記録に対する得点\n区分記録基準：学童・中学・高校・学生・一般の年代別記録に対する得点",
+        "pointsInfoAriaLabel": "点数の算出方法",
+        "pointsInfo": "基準とする記録と同着で1000点になります。「1000×(基準タイム÷記録)³」で算出するため、種目やコースが異なっても比較できます。"
       }
     },
     "attendance": {
@@ -4238,6 +4276,39 @@
       "videoUpload": "動画の添付は Premium 会員限定です",
       "splitTimeLimit": "Freeプランでは{limit}個まで登録できます。Premiumにアップグレードすると無制限に",
       "practiceTimeLimit": "Freeプランでは{limit}個まで登録できます。Premiumにアップグレードすると無制限に"
+    }
+  },
+  "timeLevel": {
+    "metaTitle": "タイムレベル判定 | SwimHub",
+    "metaDesc": "性別・水路・種目・距離・タイムを入力するだけで、WAポイント・都中ポイント・都高ポイントの3つの指標で自分の泳力レベルを確認できます。",
+    "title": "タイムレベル判定",
+    "description": "性別・水路・種目・距離・タイムを入力すると、WAポイント・都中ポイント・都高ポイントの3つの指標でレベルを確認できます。",
+    "genderLabel": "性別",
+    "genderMale": "男性",
+    "genderFemale": "女性",
+    "poolTypeLabel": "水路",
+    "styleLabel": "種目",
+    "distanceLabel": "距離",
+    "timeLabel": "タイム",
+    "timePlaceholder": "1:23.45",
+    "invalidTimeFormat": "タイムの形式が正しくありません（例: 1:23.45 または 83.45）",
+    "emptyEnterTime": "タイムを入力してください",
+    "noStandardTime": "この種目・距離の基準タイムはありません",
+    "lcmOnly": "長水路のみ対応しています",
+    "pointsUnit": "点",
+    "baseTimeLabel": "基準タイム",
+    "cleared": "突破",
+    "notCleared": "未突破",
+    "wa": {
+      "title": "WAポイント"
+    },
+    "tochu": {
+      "title": "都中ポイント",
+      "note": "「都中ポイント」は東京都中学校体育連盟の公式得点制度ではありません。都選手権大会の参加標準記録を1000点とみなしてSwimHubが独自に換算した指標です。"
+    },
+    "toko": {
+      "title": "都高ポイント",
+      "note": "「都高ポイント」は東京都高等学校体育連盟の公式得点制度ではありません。都高校大会の出場制限タイムを1000点とみなしてSwimHubが独自に換算した指標です。"
     }
   }
 }

@@ -1310,8 +1310,27 @@
         "relaying": "R: Relay",
         "relayingExcludedFromWaPoints": "Relay times are excluded from WA Points"
       },
-      "waPointsToggle": "Show WA Points",
-      "waPointsToggleShort": "WA Points"
+      "waPointsToggle": "Show as points",
+      "waPointsToggleShort": "Points",
+      "compareMetricLabel": "Compare by",
+      "compareMetric": {
+        "wa": "WA Points",
+        "nr": "Japan Record Standard",
+        "age": "Age Category Standard"
+      },
+      "ageCategoryLabel": "Age Category",
+      "ageCategoryUnset": "Not set",
+      "ageCategory": {
+        "elementary": "Elementary",
+        "juniorHigh": "Junior High",
+        "highSchool": "High School",
+        "university": "University",
+        "general": "General"
+      },
+      "compareMetricInfoAriaLabel": "What are comparison metrics?",
+      "compareMetricInfo": "WA Points: World Aquatics' official points system, scored against world records\nJapan Record Standard: score against Japan national records\nAge Category Standard: score against elementary, junior high, high school, university, or general age-group records",
+      "pointsInfoAriaLabel": "How points are calculated",
+      "pointsInfo": "Matching the reference record scores 1000 points. Calculated as 1000×(reference time ÷ record)³, so performances can be compared across events and courses."
     },
     "error": {
       "title": "An error occurred",
@@ -2551,7 +2570,7 @@
       "bestTimesEmpty": "No records yet",
       "bestTimesEmptySubText": "This member hasn't registered any records",
       "bestTimesIncludeRelaying": "Incl. relay",
-      "bestTimesWaPointsToggle": "WA Points",
+      "bestTimesWaPointsToggle": "Points",
       "bestTimesAnnotation": "L: Long course, R: Relay takeover",
       "groupDisplayLabel": "Group by:",
       "groupAddAria": "Add group",
@@ -2921,7 +2940,26 @@
           "relaying": "R: Relay",
           "relayingExcludedFromWaPoints": "Relay times are excluded from WA Points"
         },
-        "waPointsToggle": "Show WA Points"
+        "waPointsToggle": "Show as points",
+        "compareMetricLabel": "Compare by",
+        "compareMetric": {
+          "wa": "WA Points",
+          "nr": "Japan Record Standard",
+          "age": "Age Category Standard"
+        },
+        "ageCategoryLabel": "Age Category",
+        "ageCategoryUnset": "Not set",
+        "ageCategory": {
+          "elementary": "Elementary",
+          "juniorHigh": "Junior High",
+          "highSchool": "High School",
+          "university": "University",
+          "general": "General"
+        },
+        "compareMetricInfoAriaLabel": "What are comparison metrics?",
+        "compareMetricInfo": "WA Points: World Aquatics' official points system, scored against world records\nJapan Record Standard: score against Japan national records\nAge Category Standard: score against elementary, junior high, high school, university, or general age-group records",
+        "pointsInfoAriaLabel": "How points are calculated",
+        "pointsInfo": "Matching the reference record scores 1000 points. Calculated as 1000×(reference time ÷ record)³, so performances can be compared across events and courses."
       }
     },
     "attendance": {
@@ -4235,6 +4273,39 @@
       "videoUpload": "Video attachments are a Premium feature",
       "splitTimeLimit": "Free plan allows up to {limit} entries. Upgrade to Premium for unlimited",
       "practiceTimeLimit": "Free plan allows up to {limit} entries. Upgrade to Premium for unlimited"
+    }
+  },
+  "timeLevel": {
+    "metaTitle": "Time Level Checker | SwimHub",
+    "metaDesc": "Enter your gender, pool type, event, distance, and time to see your swimming level across three indicators: WA Points, Tochu Points, and Toko Points.",
+    "title": "Time Level Checker",
+    "description": "Enter your gender, pool type, event, distance, and time to check your level across three indicators: WA Points, Tochu Points, and Toko Points.",
+    "genderLabel": "Gender",
+    "genderMale": "Male",
+    "genderFemale": "Female",
+    "poolTypeLabel": "Pool Type",
+    "styleLabel": "Event",
+    "distanceLabel": "Distance",
+    "timeLabel": "Time",
+    "timePlaceholder": "1:23.45",
+    "invalidTimeFormat": "Invalid time format (e.g. 1:23.45 or 83.45)",
+    "emptyEnterTime": "Please enter a time",
+    "noStandardTime": "No standard time is available for this event/distance",
+    "lcmOnly": "Only available for long course (LCM)",
+    "pointsUnit": "pts",
+    "baseTimeLabel": "Standard time",
+    "cleared": "Cleared",
+    "notCleared": "Not cleared",
+    "wa": {
+      "title": "WA Points"
+    },
+    "tochu": {
+      "title": "Tochu Points",
+      "note": "“Tochu Points” is not an official scoring system of the Tokyo Junior High School Athletic Federation. It is SwimHub's own conversion that treats the qualifying standard time for the Tokyo Championship as 1000 points."
+    },
+    "toko": {
+      "title": "Toko Points",
+      "note": "“Toko Points” is not an official scoring system of the Tokyo Senior High School Athletic Federation. It is SwimHub's own conversion that treats the entry-restriction time for the Tokyo High School Championship as 1000 points."
     }
   }
 }

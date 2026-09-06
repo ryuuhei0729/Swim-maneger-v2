@@ -202,24 +202,26 @@ export interface WaPointsCellResult {
 
 /**
  * 1つの style/distance について、候補群 (呼び出し側が既に非リレーに絞り込んだもの)
- * の中から WA ポイントが最大の1件を返す。
+ * の中から「基準タイムに対するポイント」が最大の1件を返す。
+ *
+ * 基準タイムの取得元 (WA / 日本記録 / 年齢別記録 等) を `resolveBaseTime` に
+ * 委譲することで、「候補から最高得点を選ぶ」ループ自体は指標に依存しない共通処理として
+ * 一本化している (二重管理を避けるため。CLAUDE.md: 同一ロジックを2箇所に書くな)。
  *
  * - candidates が空 → null
- * - base time が存在しない候補 (getWaBaseTime が null を返す組合せ) は除外する
- * - base time のある候補が1件も無い場合 → null
- * - 絶対タイムが最速の候補ではなく、WA ポイントが最大の候補を採用する
+ * - resolveBaseTime が null を返す候補 (基準タイムが存在しない組合せ) は除外する
+ * - 基準タイムのある候補が1件も無い場合 → null
+ * - 絶対タイムが最速の候補ではなく、ポイントが最大の候補を採用する
  *   (ALLタブで短水路/長水路が混在する場合、タイムが遅くても得点が高い方を選ぶ)
  */
-export function getBestWaPointsForCandidates(
+export function getBestPointsForCandidates(
   candidates: WaPointsCellCandidate[],
-  gender: Gender,
-  styleKey: StyleTranslationKey,
-  distance: number,
+  resolveBaseTime: (poolType: PoolType) => number | null,
 ): WaPointsCellResult | null {
   let best: WaPointsCellResult | null = null;
 
   for (const candidate of candidates) {
-    const baseTime = getWaBaseTime(candidate.poolType, gender, styleKey, distance);
+    const baseTime = resolveBaseTime(candidate.poolType);
     if (baseTime === null) continue;
 
     const points = calculateWaPoints(baseTime, candidate.time);
@@ -229,6 +231,22 @@ export function getBestWaPointsForCandidates(
   }
 
   return best;
+}
+
+/**
+ * `getBestPointsForCandidates` を WA ポイント固定で呼び出す薄いラッパー。
+ * シグネチャ・挙動は既存のまま (既存テスト waPoints.test.ts / waPointsCellCandidate.test.ts
+ * が green であることが挙動保存の証拠になる)。
+ */
+export function getBestWaPointsForCandidates(
+  candidates: WaPointsCellCandidate[],
+  gender: Gender,
+  styleKey: StyleTranslationKey,
+  distance: number,
+): WaPointsCellResult | null {
+  return getBestPointsForCandidates(candidates, (poolType) =>
+    getWaBaseTime(poolType, gender, styleKey, distance),
+  );
 }
 
 export interface MemberWaPointsInput {

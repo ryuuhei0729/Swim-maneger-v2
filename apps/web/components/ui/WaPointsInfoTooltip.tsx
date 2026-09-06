@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useId, useState } from "react";
+import React, { useId, useLayoutEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { InformationCircleIcon } from "@heroicons/react/24/outline";
 
@@ -9,6 +9,16 @@ interface WaPointsInfoTooltipProps {
   buttonTestId: string;
   /** デスクトップ用ツールチップ (hover/focus 対象) の data-testid (省略可) */
   tooltipTestId?: string;
+  /**
+   * aria-label の上書き (省略可)。未指定なら `teams.waPointsCompare.infoAriaLabel`
+   * にフォールバックする (後方互換。既存2呼び出し元はこのフォールバックに依存している)。
+   */
+  ariaLabel?: string;
+  /**
+   * ツールチップ本文の上書き (省略可)。未指定なら `teams.waPointsCompare.infoTooltip`
+   * にフォールバックする (後方互換。既存2呼び出し元はこのフォールバックに依存している)。
+   */
+  tooltipText?: string;
 }
 
 /**
@@ -25,19 +35,65 @@ interface WaPointsInfoTooltipProps {
 export const WaPointsInfoTooltip: React.FC<WaPointsInfoTooltipProps> = ({
   buttonTestId,
   tooltipTestId,
+  ariaLabel,
+  tooltipText,
 }) => {
   const t = useTranslations("teams.waPointsCompare");
   const [showInfo, setShowInfo] = useState(false);
   // インスタンスごとに一意な id (同一ページに複数配置されても aria-describedby の参照先が衝突しない)
   const reactId = useId();
   const tooltipId = `wa-points-info-tooltip-${reactId}`;
+  const resolvedAriaLabel = ariaLabel ?? t("infoAriaLabel");
+  const resolvedTooltipText = tooltipText ?? t("infoTooltip");
+
+  // モバイル用タップツールチップがビューポート外にはみ出さないよう水平方向にクランプする。
+  const mobileTooltipRef = useRef<HTMLDivElement>(null);
+  const [shiftX, setShiftX] = useState(0);
+
+  useLayoutEffect(() => {
+    if (!showInfo) {
+      setShiftX(0);
+      return;
+    }
+    const el = mobileTooltipRef.current;
+    if (!el) return;
+
+    const clamp = () => {
+      const rect = el.getBoundingClientRect();
+      // jsdom などレイアウトが無い環境では全ての値が 0 になる。
+      // その場合はシフトを計算しない (テスト環境で不要な transform が付くのを防ぐ)。
+      if (rect.width === 0) {
+        setShiftX(0);
+        return;
+      }
+      const margin = 8;
+      const vw = window.innerWidth;
+      setShiftX((prevShift) => {
+        // 現在の transform を除いた素の位置で判定するため、shiftX を差し引いて基準位置を求める
+        // (差し引かないと、シフト後の rect を基準に再計算してしまい振動する)
+        const baseLeft = rect.left - prevShift;
+        const baseRight = rect.right - prevShift;
+        if (baseLeft < margin) {
+          return margin - baseLeft;
+        }
+        if (baseRight > vw - margin) {
+          return vw - margin - baseRight;
+        }
+        return 0;
+      });
+    };
+
+    clamp();
+    window.addEventListener("resize", clamp);
+    return () => window.removeEventListener("resize", clamp);
+  }, [showInfo]);
 
   return (
     <div className="absolute -top-1.5 -right-1.5 group/wainfo">
       <button
         type="button"
         data-testid={buttonTestId}
-        aria-label={t("infoAriaLabel")}
+        aria-label={resolvedAriaLabel}
         aria-describedby={tooltipId}
         onClick={() => setShowInfo((v) => !v)}
         onBlur={() => setShowInfo(false)}
@@ -57,18 +113,20 @@ export const WaPointsInfoTooltip: React.FC<WaPointsInfoTooltipProps> = ({
         id={tooltipId}
         role="tooltip"
         data-testid={tooltipTestId}
-        className="hidden group-hover/wainfo:sm:block group-focus-within/wainfo:sm:block absolute z-20 top-full right-0 mt-1.5 w-64 max-w-[calc(100vw-2rem)] p-2.5 bg-gray-900 text-white text-xs rounded-md shadow-lg leading-relaxed"
+        className="hidden group-hover/wainfo:sm:block group-focus-within/wainfo:sm:block absolute z-20 top-full right-0 mt-1.5 w-64 max-w-[calc(100vw-2rem)] p-2.5 bg-gray-900 text-white text-xs rounded-md shadow-lg leading-relaxed whitespace-pre-line"
       >
-        {t("infoTooltip")}
+        {resolvedTooltipText}
       </div>
 
       {/* モバイル: タップトグル */}
       {showInfo && (
         <div
+          ref={mobileTooltipRef}
           role="tooltip"
-          className="sm:hidden absolute z-20 top-full right-0 mt-1.5 w-64 max-w-[calc(100vw-2rem)] p-2.5 bg-gray-900 text-white text-xs rounded-md shadow-lg leading-relaxed"
+          className="sm:hidden absolute z-20 top-full right-0 mt-1.5 w-64 max-w-[calc(100vw-2rem)] p-2.5 bg-gray-900 text-white text-xs rounded-md shadow-lg leading-relaxed whitespace-pre-line"
+          style={{ transform: shiftX ? `translateX(${shiftX}px)` : undefined }}
         >
-          {t("infoTooltip")}
+          {resolvedTooltipText}
         </div>
       )}
     </div>

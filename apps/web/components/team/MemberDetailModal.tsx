@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
 import BaseModal from "@/components/ui/BaseModal";
 import { useTranslations } from "next-intl";
@@ -11,6 +11,7 @@ import { ProfileSection } from "@/components/member-detail/ProfileSection";
 import { AdminControls } from "@/components/member-detail/AdminControls";
 import { BestTimesTable } from "@/components/member-detail/BestTimesTable";
 import { RoleChangeModal } from "@/components/member-detail/RoleChangeModal";
+import { resolveAgeCategory } from "@apps/shared/utils/domesticRecords";
 import type { MemberDetail } from "@/types/member-detail";
 
 // 型を再エクスポート（後方互換性のため）
@@ -47,6 +48,13 @@ export default function MemberDetailModal({
     onMembershipChange,
   );
   const { bestTimes, loading, error: bestTimesError, loadBestTimes } = useBestTimes(supabase);
+
+  // 年齢別ポイント比較用の区分。生の birthday はテーブルコンポーネントへ渡さない
+  // (必要なのは区分だけ。生年月日は gender より機微度が高い)
+  const ageCategory = useMemo(
+    () => resolveAgeCategory(member?.users.birthday),
+    [member?.users.birthday],
+  );
 
   useEffect(() => {
     if (isOpen && member) {
@@ -136,7 +144,11 @@ export default function MemberDetailModal({
                 <div className="bg-gray-200 rounded-lg h-64"></div>
               </div>
             ) : bestTimes.length > 0 ? (
-              <BestTimesTable bestTimes={bestTimes} gender={member.users.gender} />
+              <BestTimesTable
+                bestTimes={bestTimes}
+                gender={member.users.gender}
+                ageCategory={ageCategory}
+              />
             ) : (
               <div className="text-center py-8">
                 <TrophyIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
