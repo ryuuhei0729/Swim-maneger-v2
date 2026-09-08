@@ -947,6 +947,7 @@ export const TeamPracticeLogBulkFormScreen: React.FC = () => {
                                             "teams.record.timePlaceholder",
                                           )}
                                           placeholderTextColor="#9CA3AF"
+                                          keyboardType="decimal-pad"
                                         />
                                       </View>
                                     );

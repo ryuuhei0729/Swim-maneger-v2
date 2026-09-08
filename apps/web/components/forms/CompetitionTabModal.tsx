@@ -1290,6 +1290,7 @@ export default function CompetitionTabModal({
                               <div className="flex-1 min-w-0">
                                 <Input
                                   type="text"
+                                  inputMode="decimal"
                                   value={entry.entryTimeDisplayValue}
                                   onChange={(e) => {
                                     // 構造ガード: "1.23.45" 等はクイック解釈で受理。解釈不能なら 0 のまま

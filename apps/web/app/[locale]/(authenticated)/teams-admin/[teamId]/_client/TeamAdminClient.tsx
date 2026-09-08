@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts";
 import TeamAdminTabs from "@/components/team/TeamAdminTabs";
-import type { TeamAdminTabType } from "@/components/team/TeamAdminTabs";
+import { isTeamAdminTabType } from "@/components/team/TeamAdminTabs";
 import MemberDetailModal from "@/components/team/MemberDetailModal";
 
 // タブコンテンツは一度に1つしか表示されないため遅延読み込み
@@ -17,6 +17,7 @@ const TeamAnnouncements = dynamic(() =>
 const TeamMemberManagement = dynamic(() => import("@/components/team/TeamMemberManagement"));
 const TeamPractices = dynamic(() => import("@/components/team/TeamPractices"));
 const TeamCompetitions = dynamic(() => import("@/components/team/TeamCompetitions"));
+const TeamRankings = dynamic(() => import("@/components/team/rankings/TeamRankings"));
 const TeamSettings = dynamic(() => import("@/components/team/TeamSettings"));
 const TeamBulkRegister = dynamic(() => import("@/components/team/TeamBulkRegister"));
 const AdminMonthlyAttendance = dynamic(() => import("@/components/team/AdminMonthlyAttendance"));
@@ -78,23 +79,29 @@ export default function TeamAdminClient({
   const displayTeam = team || initialTeam;
   const displayMembership = membership || initialMembership;
 
-  // URLパラメータからタブを取得
+  // URLパラメータからタブを取得。
+  //
+  // ref の目的は「同じ URL 値を再適用しないこと」。ユーザーがタブをクリックした後に
+  // 同じ値の effect が再実行されると、選んだタブが URL の値へ引き戻されてしまう。
+  //
+  // ⚠️ 観測した値は **空 (クエリなし) も含めて必ず記録する**。空を記録せず早期 return すると
+  // 「?tab=V → クエリなしのリンク → 戻るで ?tab=V」の3手目で ref がまだ "V" のままになり、
+  // URL は V を指しているのに画面が別タブのままになる (同一ルートのクエリ変化では
+  // アンマウントしないため ref も初期化されない)。
+  //
+  // 許可判定は TeamAdminTabs.tsx の定義配列から導出した isTeamAdminTabType が
+  // 唯一の定義元。
+  //
+  // ⚠️ 残債務「タブクリックで URL を更新する」を実装する場合は必ず `router.replace(?tab=X)`
+  // を使うこと。`history.pushState` は Next の canonicalUrl を更新しないため
+  // `useSearchParams()` がその変化を一切見ず、URL と表示タブが乖離する。
+  const appliedTabParamRef = useRef<string | null>(null);
   useEffect(() => {
-    const tabParam = searchParams.get("tab") || initialTab;
-    if (
-      tabParam &&
-      [
-        "announcements",
-        "members",
-        "groups",
-        "practices",
-        "competitions",
-        "attendance",
-        "bulk-register",
-        "settings",
-      ].includes(tabParam)
-    ) {
-      setActiveTab(tabParam as TeamAdminTabType);
+    const tabParam = searchParams.get("tab") || initialTab || null;
+    if (appliedTabParamRef.current === tabParam) return;
+    appliedTabParamRef.current = tabParam;
+    if (tabParam && isTeamAdminTabType(tabParam)) {
+      setActiveTab(tabParam);
     }
   }, [searchParams, initialTab, setActiveTab]);
 
@@ -187,6 +194,8 @@ export default function TeamAdminClient({
         return <TeamPractices teamId={teamId} isAdmin={true} />;
       case "competitions":
         return <TeamCompetitions teamId={teamId} isAdmin={true} />;
+      case "rankings":
+        return <TeamRankings teamId={teamId} />;
       case "attendance":
         return <AdminMonthlyAttendance teamId={teamId} />;
       case "bulk-register":

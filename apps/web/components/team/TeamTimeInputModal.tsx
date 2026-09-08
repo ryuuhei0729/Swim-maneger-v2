@@ -290,6 +290,7 @@ export default function TeamTimeInputModal({
                             <td key={timeIndex} className="px-3 py-3 text-center">
                               <input
                                 type="text"
+                                inputMode="decimal"
                                 placeholder="31-2"
                                 value={memberTimes[timeIndex]?.displayValue || ""}
                                 onChange={(e) =>

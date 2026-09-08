@@ -2395,6 +2395,7 @@
       "tabGroups": "グループ",
       "tabPractices": "練習",
       "tabCompetitions": "大会",
+      "tabRankings": "ランキング",
       "tabAttendance": "出欠",
       "memberLoading": "メンバーを読み込み中...",
       "memberFetchFailed": "メンバー一覧の取得に失敗しました",
@@ -2765,7 +2766,8 @@
       "attendance": "出欠",
       "members": "メンバー",
       "practices": "練習",
-      "competitions": "大会"
+      "competitions": "大会",
+      "rankings": "ランキング"
     },
     "createModal": {
       "errorTitle": "エラーが発生しました",
@@ -2884,6 +2886,100 @@
         "time": "タイム",
         "competition": "大会",
         "date": "日付"
+      }
+    },
+    "ranking": {
+      "title": "チーム記録ランキング",
+      "filter": {
+        "style": "種目",
+        "distance": "距離",
+        "poolType": "水路",
+        "gender": "性別",
+        "scope": "対象",
+        "period": "期間",
+        "aggregation": "集計"
+      },
+      "gender": {
+        "male": "男子",
+        "female": "女子"
+      },
+      "scope": {
+        "teamCompetitions": "チームの大会",
+        "allCompetitions": "すべての大会",
+        "allCompetitionsNote": "メンバーが他チームや個人で出場した大会の記録も含みます。"
+      },
+      "period": {
+        "allTime": "通算",
+        "fiscalYear": "{year}年度",
+        "fiscalYearOrEarlier": "{year}年度以前",
+        "fiscalYearNote": "年度を選ぶと、大会に紐づかない記録 (一括登録) は含まれません。"
+      },
+      "aggregation": {
+        "personalBest": "各自のベスト",
+        "allRaces": "全レース"
+      },
+      "col": {
+        "name": "メンバー",
+        "time": "タイム",
+        "competition": "大会",
+        "date": "日付"
+      },
+      "empty": {
+        "noMatchTitle": "該当する記録がありません",
+        "noMatchBody": "選択した種目・距離・水路・性別に一致する記録が見つかりませんでした。条件を変えてお試しください。",
+        "noRecordsTitle": "チームに大会記録がありません",
+        "noRecordsBody": "メンバーが大会記録を登録すると、ここにランキングが表示されます。"
+      },
+      "error": "ランキングの取得に失敗しました",
+      "retry": "再試行",
+      "individualUnavailable": {
+        "fetchFailed": "種目マスターの取得に失敗したため、個人種目のランキングを表示できません。リレーのランキングは表示できます。",
+        "empty": "種目マスターが登録されていないため、個人種目のランキングを表示できません。リレーのランキングは表示できます。"
+      },
+      "loading": "読み込み中...",
+      "showMore": "さらに表示",
+      "resultCount": "{count}件",
+      "truncatedNote": "取得上限の{limit}件に達しました。これより遅い記録は表示されていない可能性があります。条件を絞り込んでください。",
+      "relay": {
+        "filter": {
+          "genderCategory": "性別区分"
+        },
+        "kind": {
+          "free": "フリーリレー",
+          "medley": "メドレーリレー"
+        },
+        "genderCategory": {
+          "male": "男子",
+          "female": "女子",
+          "mixed": "混合"
+        },
+        "col": {
+          "event": "種目",
+          "time": "総合タイム",
+          "competition": "大会",
+          "date": "日付",
+          "legs": "ラップ"
+        },
+        "eventLabel": "{distance}m×{legCount} {kind}",
+        "legDistanceOption": "{distance}m × {legCount}",
+        "legLabel": "第{num}泳者",
+        "legHeader": {
+          "swimmer": "泳者",
+          "style": "種目",
+          "legTime": "区間",
+          "cumulative": "通算"
+        },
+        "expand": "ラップタイムを表示",
+        "collapse": "ラップタイムを閉じる",
+        "retiredMember": "退会したメンバー",
+        "noLegs": "この記録には泳者の情報が登録されていません",
+        "empty": {
+          "noMatchTitle": "該当するリレー記録がありません",
+          "noMatchBody": "選択した種類・距離・水路・性別区分に一致するリレー記録が見つかりませんでした。条件を変えてお試しください。",
+          "noRecordsTitle": "チームにリレー記録がありません",
+          "noRecordsBody": "大会の記録入力でリレー種目を登録すると、ここにランキングが表示されます。"
+        },
+        "error": "リレーランキングの取得に失敗しました"
       }
     },
     "memberDetail": {
@@ -3380,6 +3476,7 @@
       "groups": "グループ",
       "practices": "練習",
       "competitions": "大会",
+      "rankings": "ランキング",
       "bulkRegister": "一括登録",
       "settings": "設定"
     },

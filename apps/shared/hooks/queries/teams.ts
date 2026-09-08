@@ -15,8 +15,16 @@ import { useEffect, useMemo } from "react";
 import { TeamAnnouncementsAPI, TeamCoreAPI, TeamMembersAPI } from "../../api/teams";
 import { TeamPracticesAPI } from "../../api/teams/practices";
 import { TeamRecordsAPI } from "../../api/teams/records";
+import { TeamRankingsAPI } from "../../api/teams/rankings";
+import { TeamRelayRankingsAPI } from "../../api/teams/relayRankings";
 import { TeamAttendancesAPI } from "../../api/teams/attendances";
-import type { AttendanceStatusType } from "../../types";
+import type {
+  AttendanceStatusType,
+  TeamRankingFilters,
+  TeamRankingRecord,
+  TeamRelayRankingFilters,
+  TeamRelayRankingRecord,
+} from "../../types";
 import type {
   Team,
   TeamAnnouncement,
@@ -28,7 +36,7 @@ import type {
   TeamUpdate,
   TeamWithMembers,
 } from "../../types";
-import { teamKeys } from "./keys";
+import { invalidateTeamRankings, teamKeys } from "./keys";
 
 export interface UseTeamsQueryOptions {
   teamId?: string;
@@ -568,7 +576,139 @@ export function useDeleteTeamCompetitionMutation(
     },
     onSuccess: (_: void, variables: { id: string; teamId: string }) => {
       queryClient.invalidateQueries({ queryKey: teamKeys.competitions(variables.teamId) });
+      // 大会を消すと records_competition_id_fkey (ON DELETE SET NULL) で
+      // records.competition_id が NULL 化される。teamCompetitions スコープからは
+      // その大会の全行が消え、allCompetitions では大会名が「なし」に変わるため
+      // ランキングの内容が変わる。
+      // teamKeys.competitions(teamId) = ["teams","detail",id,"competitions"] は
+      // ["teams","detail",id,"rankings",filters] に前方一致しないので個別に落とす。
+      invalidateTeamRankings(queryClient);
     },
+  });
+}
+
+export interface UseTeamRankingsQueryOptions {
+  /** false の間はフェッチしない (タブが非表示のとき等)。既定は true */
+  enabled?: boolean;
+  /** テスト・DI 用。省略時は supabase から生成する */
+  api?: TeamRankingsAPI;
+}
+
+/**
+ * チーム記録ランキング取得クエリ。
+ *
+ * SECURITY DEFINER RPC を叩くので、認可 (承認済みかつアクティブなメンバーか) は
+ * サーバー側で判定される。絞り込み条件ごとに別のサーバー結果になるため、
+ * queryKey には filters をそのまま含める (クライアント側での再絞り込みはしない)。
+ */
+export function useTeamRankingsQuery(
+  supabase: SupabaseClient,
+  teamId: string,
+  filters: TeamRankingFilters | undefined,
+  options: UseTeamRankingsQueryOptions = {},
+) {
+  const { enabled = true, api } = options;
+  const rankingsApi = useMemo(() => api ?? new TeamRankingsAPI(supabase), [supabase, api]);
+
+  return useQuery<TeamRankingRecord[]>({
+    queryKey: teamKeys.rankings(teamId, filters),
+    queryFn: async () => {
+      // enabled で弾いているので通常到達しない。到達したら握り潰さず落とす
+      if (!filters) throw new Error("filters is required");
+      return await rankingsApi.getRankings(teamId, filters);
+    },
+    enabled: !!filters && enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * チームに大会記録が1件でも存在するかの判定クエリ。
+ *
+ * 空状態の文言を「絞り込み条件に一致する記録が0件」と「チームに大会記録が1件もない」に
+ * 分けるためだけに使う。ランキングが0件だったときにのみ enabled を立てること。
+ */
+export function useTeamHasAnyRecordQuery(
+  supabase: SupabaseClient,
+  teamId: string,
+  options: UseTeamRankingsQueryOptions = {},
+) {
+  const { enabled = true, api } = options;
+  const rankingsApi = useMemo(() => api ?? new TeamRankingsAPI(supabase), [supabase, api]);
+
+  return useQuery<boolean>({
+    queryKey: teamKeys.hasAnyRecord(teamId),
+    queryFn: async () => {
+      return await rankingsApi.hasAnyRecord(teamId);
+    },
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export interface UseTeamRelayRankingsQueryOptions {
+  /** false の間はフェッチしない (リレーのサブビューが非表示のとき等)。既定は true */
+  enabled?: boolean;
+  /** テスト・DI 用。省略時は supabase から生成する */
+  api?: TeamRelayRankingsAPI;
+}
+
+/**
+ * チームのリレー記録ランキング取得クエリ。
+ *
+ * SECURITY DEFINER RPC `get_team_relay_rankings` を叩くので、認可 (承認済みかつ
+ * アクティブなメンバーか) はサーバー側で判定される。絞り込み条件ごとに別の
+ * サーバー結果になるため queryKey には filters をそのまま含める
+ * (クライアント側での再絞り込みはしない)。第1弾の `useTeamRankingsQuery` と同型。
+ */
+export function useTeamRelayRankingsQuery(
+  supabase: SupabaseClient,
+  teamId: string,
+  filters: TeamRelayRankingFilters | undefined,
+  options: UseTeamRelayRankingsQueryOptions = {},
+) {
+  const { enabled = true, api } = options;
+  const relayRankingsApi = useMemo(
+    () => api ?? new TeamRelayRankingsAPI(supabase),
+    [supabase, api],
+  );
+
+  return useQuery<TeamRelayRankingRecord[]>({
+    queryKey: teamKeys.relayRankings(teamId, filters),
+    queryFn: async () => {
+      // enabled で弾いているので通常到達しない。到達したら握り潰さず落とす
+      if (!filters) throw new Error("filters is required");
+      return await relayRankingsApi.getRelayRankings(teamId, filters);
+    },
+    enabled: !!filters && enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * チームにリレー記録が1件でも存在するかの判定クエリ。
+ *
+ * 空状態の文言を「絞り込み条件に一致するリレー記録が0件」と「チームにリレー記録が
+ * 1件もない」に分けるためだけに使う。ランキングが0件だったときにのみ enabled を立てること。
+ */
+export function useTeamHasAnyRelayRecordQuery(
+  supabase: SupabaseClient,
+  teamId: string,
+  options: UseTeamRelayRankingsQueryOptions = {},
+) {
+  const { enabled = true, api } = options;
+  const relayRankingsApi = useMemo(
+    () => api ?? new TeamRelayRankingsAPI(supabase),
+    [supabase, api],
+  );
+
+  return useQuery<boolean>({
+    queryKey: teamKeys.hasAnyRelayRecord(teamId),
+    queryFn: async () => {
+      return await relayRankingsApi.hasAnyRelayRecord(teamId);
+    },
+    enabled,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

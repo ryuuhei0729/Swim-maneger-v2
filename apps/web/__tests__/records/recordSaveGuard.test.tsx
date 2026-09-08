@@ -25,6 +25,10 @@ import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Style } from "@apps/shared/types";
+import {
+  buildRecordSaveSupabaseMock,
+  type RecordSaveSupabaseMock,
+} from "../utils/supabaseRecordSaveMock";
 import RecordClient from "../../app/[locale]/(authenticated)/teams/[teamId]/competitions/[competitionId]/records/_client/RecordClient";
 
 vi.mock("@/components/video/TeamVideoUploader", () => ({
@@ -47,48 +51,28 @@ vi.mock("next-intl", async (importOriginal) => {
   };
 });
 
-const mocks = vi.hoisted(() => {
-  const insertCalls: Array<{ table: string; payload: unknown }> = [];
+// ---------------------------------------------------------------------------
+// supabase フェイク
+//
+// 従来このファイルは `vi.hoisted` 内に自前のフェイクを持っていたが、
+// そのフェイクの `eq` は `Promise.resolve()` を返しており **2 段目の `.eq()` が
+// 存在しなかった**。リレーのチーム記録化 (第3弾) で `replaceRelayRecords` が
+//     .select(...).eq("team_id", ...).eq("competition_id", ...)
+// を要求した時点で `TypeError: ....eq is not a function` になった。
+//
+// 🚨 `.eq()` を 1 段に減らす (= `competition_id` をクライアント側 filter に落とす)
+//    方向では直さない。サーバー絞り込みとクライアント filter を区別できなくなる
+//    既知のアンチパターンである。共通モック
+//    `__tests__/utils/supabaseRecordSaveMock.ts` に差し替え、`.eq()` を任意段
+//    チェーンできるようにしたうえで **引数を捨てず** `eqCalls` に記録する。
+// ---------------------------------------------------------------------------
+const mocks = vi.hoisted(() => ({ push: vi.fn() }));
 
-  /**
-   * テーブルごとの insert() 呼び出しを payload ごと記録する最小限の supabase フェイク。
-   * insert().select("id").single() のチェーンと、delete().eq()/.in() のチェーンの両方を
-   * サポートする。records の insert には連番 id を払い出す。
-   */
-  function makeFakeSupabase() {
-    let insertedRecordSeq = 0;
-    return {
-      from: (table: string) => {
-        const builder = {
-          insert: (payload: unknown) => {
-            insertCalls.push({ table, payload });
-            return builder;
-          },
-          select: () => builder,
-          single: () =>
-            Promise.resolve(
-              table === "records"
-                ? { data: { id: `new-record-${++insertedRecordSeq}` }, error: null }
-                : { data: null, error: null },
-            ),
-          delete: () => builder,
-          eq: () => Promise.resolve({ error: null }),
-          in: () => Promise.resolve({ error: null }),
-        };
-        return builder;
-      },
-    };
-  }
-
-  return {
-    push: vi.fn(),
-    insertCalls,
-    supabase: makeFakeSupabase(),
-  };
-});
+/** 各テストの beforeEach で作り直す (呼び出し記録がテスト間で漏れないように) */
+let fake: RecordSaveSupabaseMock;
 
 vi.mock("@/contexts/AuthProvider", () => ({
-  useAuth: () => ({ supabase: mocks.supabase, subscription: null }),
+  useAuth: () => ({ supabase: fake.supabase, subscription: null }),
 }));
 
 const STYLE_FREE_50: Style = {
@@ -115,8 +99,8 @@ const baseCompetition = {
 };
 
 const activeMembers = [
-  { id: "user-1", user_id: "user-1", role: "admin", users: { id: "user-1", name: "太郎" } },
-  { id: "user-2", user_id: "user-2", role: "user", users: { id: "user-2", name: "次郎" } },
+  { id: "user-1", user_id: "user-1", role: "admin", users: { id: "user-1", name: "太郎", gender: 0 } },
+  { id: "user-2", user_id: "user-2", role: "user", users: { id: "user-2", name: "次郎", gender: 0 } },
 ];
 
 function renderRecordClient(existingRecords: Parameters<typeof RecordClient>[0]["existingRecords"]) {
@@ -136,7 +120,7 @@ function renderRecordClient(existingRecords: Parameters<typeof RecordClient>[0][
 
 describe("RecordClient — 空タイム行は保存されない (仕様#3の回帰確認)", () => {
   beforeEach(() => {
-    mocks.insertCalls.length = 0;
+    fake = buildRecordSaveSupabaseMock();
     mocks.push.mockClear();
   });
 
@@ -159,7 +143,7 @@ describe("RecordClient — 空タイム行は保存されない (仕様#3の回�
           pool_type: null,
           team_id: "team-1",
           split_times: [],
-          users: { id: "user-1", name: "太郎" },
+          users: { id: "user-1", name: "太郎", gender: 0 },
           styles: { id: 2, name_jp: "自由形50m", distance: 50 },
         },
         {
@@ -174,7 +158,7 @@ describe("RecordClient — 空タイム行は保存されない (仕様#3の回�
           pool_type: null,
           team_id: "team-1",
           split_times: [],
-          users: { id: "user-2", name: "次郎" },
+          users: { id: "user-2", name: "次郎", gender: 0 },
           styles: { id: 2, name_jp: "自由形50m", distance: 50 },
         },
       ];
@@ -189,7 +173,7 @@ describe("RecordClient — 空タイム行は保存されない (仕様#3の回�
         expect(mocks.push).toHaveBeenCalledWith("/teams-admin/team-1?tab=competitions");
       });
 
-      const recordInserts = mocks.insertCalls.filter((c) => c.table === "records");
+      const recordInserts = fake.insertCalls.filter((c) => c.table === "records");
       expect(recordInserts).toHaveLength(1);
       const insertedUserIds = recordInserts.map(
         (c) => (c.payload as { user_id: string }).user_id,
@@ -218,7 +202,7 @@ describe("RecordClient — 空タイム行は保存されない (仕様#3の回�
           pool_type: null,
           team_id: "team-1",
           split_times: [],
-          users: { id: "user-1", name: "太郎" },
+          users: { id: "user-1", name: "太郎", gender: 0 },
           styles: { id: 2, name_jp: "自由形50m", distance: 50 },
         },
       ];
@@ -230,7 +214,7 @@ describe("RecordClient — 空タイム行は保存されない (仕様#3の回�
       await waitFor(() => {
         expect(alertSpy).toHaveBeenCalledWith("validation.atLeastOneRecord");
       });
-      expect(mocks.insertCalls).toHaveLength(0);
+      expect(fake.insertCalls).toHaveLength(0);
       expect(mocks.push).not.toHaveBeenCalled();
 
       alertSpy.mockRestore();
@@ -240,7 +224,7 @@ describe("RecordClient — 空タイム行は保存されない (仕様#3の回�
 
 describe("RecordClient — リレー検出された StyleEntry の構造保持 (仕様#2 前提の回帰確認)", () => {
   beforeEach(() => {
-    mocks.insertCalls.length = 0;
+    fake = buildRecordSaveSupabaseMock();
     mocks.push.mockClear();
   });
 
@@ -267,7 +251,7 @@ describe("RecordClient — リレー検出された StyleEntry の構造保持 (
       pool_type: null,
       team_id: "team-1",
       split_times: [],
-      users: { id: r.user_id, name: `選手${idx}` },
+      users: { id: r.user_id, name: `選手${idx}`, gender: 0 },
       styles: { id: 2, name_jp: "自由形50m", distance: 50 },
     }));
 
@@ -308,15 +292,42 @@ describe("RecordClient — リレー検出された StyleEntry の構造保持 (
         expect(mocks.push).toHaveBeenCalledWith("/teams-admin/team-1?tab=competitions");
       });
 
-      const recordInserts = mocks.insertCalls.filter((c) => c.table === "records");
+      const recordInserts = fake.insertCalls.filter((c) => c.table === "records");
       expect(recordInserts).toHaveLength(4);
+    },
+  );
+
+  it(
+    "リレーの差し替え前に行う relay_records の取得は team_id と competition_id の" +
+      "**両方をサーバー側の絞り込み条件として渡している** " +
+      "(片方だけにしてクライアント側で filter する形になっていないこと。" +
+      "サーバー絞り込みを緩めると他チーム・他大会のリレー記録が一旦クライアントに" +
+      "届いてしまい、テストからは区別できないまま情報露出が通り抜ける)",
+    async () => {
+      renderWithRelay();
+
+      fireEvent.click(screen.getByRole("button", { name: "record.saveButton" }));
+
+      await waitFor(() => {
+        expect(mocks.push).toHaveBeenCalledWith("/teams-admin/team-1?tab=competitions");
+      });
+
+      const relaySelectEqs = fake.eqCalls.filter(
+        (c) => c.table === "relay_records" && c.op === "select",
+      );
+
+      // 列名と値の対応まで見る (列名だけの検査だと値がテンプレート化していても通る)
+      expect(relaySelectEqs.map((c) => [c.column, c.value])).toEqual([
+        ["team_id", "team-1"],
+        ["competition_id", "comp-1"],
+      ]);
     },
   );
 });
 
 describe("RecordClient — 戻るボタンの遷移先 (V-01 方式E: 2026-08-25確定)", () => {
   beforeEach(() => {
-    mocks.insertCalls.length = 0;
+    fake = buildRecordSaveSupabaseMock();
     mocks.push.mockClear();
   });
 

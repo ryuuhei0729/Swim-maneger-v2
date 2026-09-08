@@ -6,11 +6,14 @@ import {
   Pressable,
   Modal,
   StyleSheet,
-  SafeAreaView,
   Alert,
   ActivityIndicator,
   Platform,
 } from "react-native";
+// SafeAreaView は必ず react-native-safe-area-context のものを使う。
+// react-native の同名コンポーネントは iOS 専用で Android では何もしないため、
+// Edge-to-Edge 強制下の Android ではフッターがシステムナビゲーションバーに埋まる。
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import type { PracticeTag } from "@apps/shared/types";

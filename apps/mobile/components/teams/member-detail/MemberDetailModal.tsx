@@ -9,8 +9,14 @@ import {
   Alert,
   Platform,
   ActivityIndicator,
-  SafeAreaView,
 } from "react-native";
+// SafeAreaView は必ず react-native-safe-area-context のものを使う。
+// react-native の同名コンポーネントは iOS 専用で Android では何もしないため、
+// Edge-to-Edge 強制下の Android では上下端のコンテンツがステータスバー/
+// システムナビゲーションバーに埋まる。
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeInsets } from "@/hooks/useSafeInsets";
+import { getSafeFooterPadding } from "@/utils/safeFooterPadding";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -45,6 +51,11 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
 }) => {
   const { supabase } = useAuth();
   const { t } = useTranslation();
+  // Android edge-to-edge: 最下部の「閉じる」ボタンがシステムナビゲーションバーに
+  // 埋没する。下端はスクロール内容なので SafeAreaView(上端のみ)ではなく、
+  // 既存のデザイン値 40 と inset の大きい方をスクロール余白に使う (パターンB)。
+  // SafeAreaView に bottom を含めると 40 + inset の二重加算になり余白が過大になる。
+  const insets = useSafeInsets();
   const updateRoleMutation = useUpdateMemberRoleMutation(supabase);
   const removeMemberMutation = useRemoveMemberMutation(supabase);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -162,7 +173,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
         {/* ヘッダー */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{t("teams.mobile.memberDetailTitle")}</Text>
@@ -173,7 +184,10 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: getSafeFooterPadding(40, insets.bottom) },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           {/* エラー表示 */}

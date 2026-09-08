@@ -2392,6 +2392,7 @@
       "tabGroups": "Groups",
       "tabPractices": "Practices",
       "tabCompetitions": "Competitions",
+      "tabRankings": "Rankings",
       "tabAttendance": "Attendance",
       "memberLoading": "Loading members...",
       "memberFetchFailed": "Failed to fetch members",
@@ -2762,7 +2763,8 @@
       "attendance": "Attendance",
       "members": "Members",
       "practices": "Practices",
-      "competitions": "Competitions"
+      "competitions": "Competitions",
+      "rankings": "Rankings"
     },
     "createModal": {
       "errorTitle": "An error occurred",
@@ -2878,6 +2880,100 @@
         "time": "Time",
         "competition": "Competition",
         "date": "Date"
+      }
+    },
+    "ranking": {
+      "title": "Team Record Rankings",
+      "filter": {
+        "style": "Stroke",
+        "distance": "Distance",
+        "poolType": "Pool Type",
+        "gender": "Gender",
+        "scope": "Scope",
+        "period": "Period",
+        "aggregation": "Aggregation"
+      },
+      "gender": {
+        "male": "Men",
+        "female": "Women"
+      },
+      "scope": {
+        "teamCompetitions": "Team competitions",
+        "allCompetitions": "All competitions",
+        "allCompetitionsNote": "Includes records from competitions members entered with other teams or individually."
+      },
+      "period": {
+        "allTime": "All time",
+        "fiscalYear": "FY{year}",
+        "fiscalYearOrEarlier": "FY{year} and earlier",
+        "fiscalYearNote": "Records not linked to a competition (bulk-registered) are excluded when a fiscal year is selected."
+      },
+      "aggregation": {
+        "personalBest": "Personal best",
+        "allRaces": "All races"
+      },
+      "col": {
+        "name": "Member",
+        "time": "Time",
+        "competition": "Competition",
+        "date": "Date"
+      },
+      "empty": {
+        "noMatchTitle": "No matching records",
+        "noMatchBody": "No records matched the selected stroke, distance, pool type or gender. Try changing the filters.",
+        "noRecordsTitle": "No race records in this team",
+        "noRecordsBody": "Rankings appear here once members add their race records."
+      },
+      "error": "Failed to load rankings",
+      "retry": "Retry",
+      "individualUnavailable": {
+        "fetchFailed": "Individual event rankings are unavailable because the stroke data could not be loaded. Relay rankings are still available.",
+        "empty": "Individual event rankings are unavailable because no stroke data was found. Relay rankings are still available."
+      },
+      "loading": "Loading...",
+      "showMore": "Show more",
+      "resultCount": "{count} results",
+      "truncatedNote": "Reached the fetch limit of {limit} results. Slower records may not be shown — narrow the filters.",
+      "relay": {
+        "filter": {
+          "genderCategory": "Category"
+        },
+        "kind": {
+          "free": "Freestyle relay",
+          "medley": "Medley relay"
+        },
+        "genderCategory": {
+          "male": "Men",
+          "female": "Women",
+          "mixed": "Mixed"
+        },
+        "col": {
+          "event": "Event",
+          "time": "Total time",
+          "competition": "Competition",
+          "date": "Date",
+          "legs": "Splits"
+        },
+        "eventLabel": "{distance}m×{legCount} {kind}",
+        "legDistanceOption": "{distance}m × {legCount}",
+        "legLabel": "Leg {num}",
+        "legHeader": {
+          "swimmer": "Swimmer",
+          "style": "Stroke",
+          "legTime": "Leg",
+          "cumulative": "Cumulative"
+        },
+        "expand": "Show leg times",
+        "collapse": "Hide leg times",
+        "retiredMember": "Former member",
+        "noLegs": "No swimmer details were saved for this record",
+        "empty": {
+          "noMatchTitle": "No matching relay records",
+          "noMatchBody": "No relay records matched the selected relay type, distance, pool type or category. Try changing the filters.",
+          "noRecordsTitle": "No relay records in this team",
+          "noRecordsBody": "Rankings appear here once a relay event is saved from a competition record entry."
+        },
+        "error": "Failed to load relay rankings"
       }
     },
     "memberDetail": {
@@ -3377,6 +3473,7 @@
       "groups": "Groups",
       "practices": "Practices",
       "competitions": "Competitions",
+      "rankings": "Rankings",
       "bulkRegister": "Bulk Register",
       "settings": "Settings"
     },

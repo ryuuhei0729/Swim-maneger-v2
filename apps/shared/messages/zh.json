@@ -2395,6 +2395,7 @@
       "tabGroups": "分组",
       "tabPractices": "训练",
       "tabCompetitions": "比赛",
+      "tabRankings": "排行榜",
       "tabAttendance": "出勤",
       "memberLoading": "正在加载成员...",
       "memberFetchFailed": "获取成员列表失败",
@@ -2765,7 +2766,8 @@
       "attendance": "出勤",
       "members": "成员",
       "practices": "训练",
-      "competitions": "比赛"
+      "competitions": "比赛",
+      "rankings": "排行榜"
     },
     "createModal": {
       "errorTitle": "发生错误",
@@ -2884,6 +2886,100 @@
         "time": "成绩",
         "competition": "比赛",
         "date": "日期"
+      }
+    },
+    "ranking": {
+      "title": "团队成绩排行榜",
+      "filter": {
+        "style": "泳姿",
+        "distance": "距离",
+        "poolType": "泳道类型",
+        "gender": "性别",
+        "scope": "范围",
+        "period": "期间",
+        "aggregation": "统计方式"
+      },
+      "gender": {
+        "male": "男子",
+        "female": "女子"
+      },
+      "scope": {
+        "teamCompetitions": "团队比赛",
+        "allCompetitions": "所有比赛",
+        "allCompetitionsNote": "包含成员以其他团队或个人身份参赛的比赛成绩。"
+      },
+      "period": {
+        "allTime": "总计",
+        "fiscalYear": "{year}年度",
+        "fiscalYearOrEarlier": "{year}年度及以前",
+        "fiscalYearNote": "选择年度后，未关联比赛的记录（批量登记）不会被计入。"
+      },
+      "aggregation": {
+        "personalBest": "各自最佳",
+        "allRaces": "全部比赛"
+      },
+      "col": {
+        "name": "成员",
+        "time": "成绩",
+        "competition": "比赛",
+        "date": "日期"
+      },
+      "empty": {
+        "noMatchTitle": "没有符合条件的成绩",
+        "noMatchBody": "未找到与所选泳姿、距离、泳道类型或性别匹配的成绩。请更改筛选条件。",
+        "noRecordsTitle": "团队暂无比赛成绩",
+        "noRecordsBody": "成员登记比赛成绩后，这里将显示排行榜。"
+      },
+      "error": "获取排行榜失败",
+      "retry": "重试",
+      "individualUnavailable": {
+        "fetchFailed": "泳姿主数据加载失败，无法显示个人项目排行。接力排行仍可使用。",
+        "empty": "未找到泳姿主数据，无法显示个人项目排行。接力排行仍可使用。"
+      },
+      "loading": "正在加载...",
+      "showMore": "显示更多",
+      "resultCount": "{count} 条",
+      "truncatedNote": "已达到 {limit} 条的获取上限。更慢的记录可能未显示，请缩小筛选范围。",
+      "relay": {
+        "filter": {
+          "genderCategory": "性别组别"
+        },
+        "kind": {
+          "free": "自由泳接力",
+          "medley": "混合泳接力"
+        },
+        "genderCategory": {
+          "male": "男子",
+          "female": "女子",
+          "mixed": "混合"
+        },
+        "col": {
+          "event": "项目",
+          "time": "总成绩",
+          "competition": "比赛",
+          "date": "日期",
+          "legs": "分段"
+        },
+        "eventLabel": "{distance}m×{legCount} {kind}",
+        "legDistanceOption": "{distance}m × {legCount}",
+        "legLabel": "第{num}棒",
+        "legHeader": {
+          "swimmer": "选手",
+          "style": "泳姿",
+          "legTime": "分段",
+          "cumulative": "累计"
+        },
+        "expand": "显示分段成绩",
+        "collapse": "收起分段成绩",
+        "retiredMember": "已退出的成员",
+        "noLegs": "该成绩未登记选手信息",
+        "empty": {
+          "noMatchTitle": "没有符合条件的接力成绩",
+          "noMatchBody": "未找到与所选类型、距离、泳道类型或性别组别匹配的接力成绩。请更改筛选条件。",
+          "noRecordsTitle": "团队暂无接力成绩",
+          "noRecordsBody": "在比赛成绩录入中登记接力项目后，这里将显示排行榜。"
+        },
+        "error": "获取接力排行榜失败"
       }
     },
     "memberDetail": {
@@ -3380,6 +3476,7 @@
       "groups": "分组",
       "practices": "训练",
       "competitions": "比赛",
+      "rankings": "排行榜",
       "bulkRegister": "批量登记",
       "settings": "设置"
     },

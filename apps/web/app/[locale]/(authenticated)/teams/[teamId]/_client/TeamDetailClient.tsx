@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
@@ -13,9 +13,10 @@ import MemberDetailModal from "@/components/team/MemberDetailModal";
 const TeamMemberManagement = dynamic(() => import("@/components/team/TeamMemberManagement"));
 const TeamPractices = dynamic(() => import("@/components/team/TeamPractices"));
 const TeamCompetitions = dynamic(() => import("@/components/team/TeamCompetitions"));
+const TeamRankings = dynamic(() => import("@/components/team/rankings/TeamRankings"));
 const MyMonthlyAttendance = dynamic(() => import("@/components/team/MyMonthlyAttendance"));
 import type { MemberDetail } from "@/components/team/MemberDetailModal";
-import type { TeamTabType } from "@/components/team/TeamTabs";
+import { isTeamTabType } from "@/components/team/TeamTabs";
 import { TeamMembership, TeamWithMembers } from "@swim-hub/shared/types";
 import { useTeamDetailStore } from "@/stores/form/teamDetailStore";
 import { ClipboardDocumentIcon, CheckIcon } from "@heroicons/react/24/outline";
@@ -64,11 +65,28 @@ export default function TeamDetailClient({
     setLoading(false);
   }, [initialTeam, initialMembership, setTeam, setMembership, setLoading]);
 
-  // URLパラメータからタブを取得
+  // URLパラメータからタブを取得。
+  //
+  // ref の目的は「同じ URL 値を再適用しないこと」。ユーザーがタブをクリックした後に
+  // 同じ値の effect が再実行されると、選んだタブが URL の値へ引き戻されてしまう。
+  //
+  // ⚠️ 観測した値は **空 (クエリなし) も含めて必ず記録する**。空を記録せず早期 return すると
+  // 「?tab=V → クエリなしのリンク → 戻るで ?tab=V」の3手目で ref がまだ "V" のままになり、
+  // URL は V を指しているのに画面が別タブのままになる (同一ルートのクエリ変化では
+  // アンマウントしないため ref も初期化されない)。
+  //
+  // 許可判定は TeamTabs.tsx の定義配列から導出した isTeamTabType が唯一の定義元。
+  //
+  // ⚠️ 残債務「タブクリックで URL を更新する」を実装する場合は必ず `router.replace(?tab=X)`
+  // を使うこと。`history.pushState` は Next の canonicalUrl を更新しないため
+  // `useSearchParams()` がその変化を一切見ず、URL と表示タブが乖離する。
+  const appliedTabParamRef = useRef<string | null>(null);
   useEffect(() => {
-    const tabParam = searchParams.get("tab") || initialTab;
-    if (tabParam && ["members", "practices", "competitions", "attendance"].includes(tabParam)) {
-      setActiveTab(tabParam as TeamTabType);
+    const tabParam = searchParams.get("tab") || initialTab || null;
+    if (appliedTabParamRef.current === tabParam) return;
+    appliedTabParamRef.current = tabParam;
+    if (tabParam && isTeamTabType(tabParam)) {
+      setActiveTab(tabParam);
     }
   }, [searchParams, initialTab, setActiveTab]);
 
@@ -127,6 +145,8 @@ export default function TeamDetailClient({
         return <TeamPractices teamId={teamId} isAdmin={false} />;
       case "competitions":
         return <TeamCompetitions teamId={teamId} isAdmin={false} />;
+      case "rankings":
+        return <TeamRankings teamId={teamId} />;
       case "attendance":
         return <MyMonthlyAttendance teamId={teamId} />;
       default:

@@ -384,6 +384,7 @@ export default function RecordLogEntry({
           </label>
           <Input
             type="text"
+            inputMode="decimal"
             value={formData.timeDisplayValue}
             onChange={(e) => onTimeChange(e.target.value)}
             onBlur={(e) => {
@@ -483,6 +484,7 @@ export default function RecordLogEntry({
                 <div className="flex-1">
                   <Input
                     type="text"
+                    inputMode="decimal"
                     value={st.splitTimeDisplayValue || ""}
                     onChange={(e) => onSplitTimeChange(originalIndex, "splitTime", e.target.value)}
                     onBlur={(e) => {

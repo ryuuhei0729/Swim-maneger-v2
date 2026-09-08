@@ -19,6 +19,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Competition, Style } from "@apps/shared/types";
 import { FREE_PLAN_LIMITS } from "@apps/shared/constants/premium";
+import { useInvalidateTeamRankings } from "@apps/shared/hooks/queries/useInvalidateTeamRankings";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { formatTimeBest, parseTimeToSeconds } from "@/utils/formatters";
@@ -34,6 +35,11 @@ import {
   getLegStartCumulative,
   toLegRelativeSplitTime,
 } from "./relayEvents";
+import {
+  resolveRelayGenderCategory,
+  type RelaySavePlan,
+} from "@apps/shared/utils/relayRecordSave";
+import { TeamRelayRecordsAPI } from "@apps/shared/api/teams/relayRecords";
 import {
   buildStyleEntriesFromExisting,
   applyEntryAdditionsToStyleEntries,
@@ -62,6 +68,18 @@ interface TeamMember {
   users: {
     id: string;
     name: string;
+    /**
+     * `users.gender` (0=男性 / 1=女性)。DB は integer NOT NULL DEFAULT 0 + CHECK(0,1)。
+     * `relay_records.gender_category` の prefill に使う。
+     *
+     * **optional にしてはいけない。** 唯一の呼び出し元 `_server/RecordDataLoader.tsx`
+     * は select に `gender` を入れて必ず渡している。optional にすると、将来 select から
+     * `gender` が落ちたときに `memberGenderByUserId` が空の Map になり、
+     * **全リレーが静かに `mixed` で保存されて男子/女子フィルタから消える**
+     * (例外もログも出ない)。必須にしておけばその変更は型で落ちる。
+     * ⚠️ `?? 0` で埋めてはいけない (「不明」が「男性」として静かに確定する)。
+     */
+    gender: number;
   };
 }
 
@@ -144,6 +162,24 @@ export default function RecordClient({
   const tRecordLog = useTranslations("forms.recordLog");
   const locale = useLocale();
   const { supabase, subscription } = useAuth();
+  const invalidateRankings = useInvalidateTeamRankings();
+
+  /**
+   * リレーのチーム記録の書き込み API。差し替えの手順は shared 側が持つ
+   * (web/mobile で同じ実装を複製しないため)。
+   */
+  const relayRecordsApi = useMemo(() => new TeamRelayRecordsAPI(supabase), [supabase]);
+
+  /**
+   * `user_id` → `users.gender`。リレーのチーム記録の性別区分 prefill にのみ使う。
+   * `TeamMember.users.gender` が必須なので欠損は型で起こらない。
+   * (メンバー一覧に居ない user_id は `resolveRelayGenderCategory` が
+   *  「不明」として `mixed` に寄せる。0 で埋めない)
+   */
+  const memberGenderByUserId = useMemo(
+    () => new Map(members.map((member) => [member.user_id, member.users.gender])),
+    [members],
+  );
 
   /** style_id から翻訳済み種目ラベルを組み立てる。未知種目は name_jp をそのまま返す */
   const styleOptionLabel = (style: Style): string => {
@@ -946,6 +982,11 @@ export default function RecordClient({
         splitTimes: SplitTimeEntry[];
       }> = [];
 
+      // リレーのチーム記録 (relay_records / relay_record_legs) を書くための計画。
+      // ここでは1件も書き込まず、`records` への書き込みが**全て成功した後**に
+      // まとめて実行する (理由は下の「リレー側の書き込みタイミング」コメント)。
+      const relayPlans: RelaySavePlan[] = [];
+
       for (const entry of styleEntries) {
         if (entry.styleId === "") continue;
 
@@ -1016,6 +1057,30 @@ export default function RecordClient({
           }
         }
 
+        // リレーのチーム記録の計画を1本ぶん用意する。レグを1件も保存しない場合
+        // (全レグ未入力) はこの計画に legs が入らないので、後段で捨てられる。
+        // ⚠️ **既存の `records` への書き込みは一切変えない。** ここは同じループで
+        // 収集した情報を relay_records 側にも写すためだけの追加である。
+        const relayPlanIndex = entry.relayEventId ? relayPlans.length : null;
+        if (entry.relayEventId && relayPlanIndex !== null) {
+          const totalTime = legCumulativeTimes.at(-1);
+          relayPlans.push({
+            relayEventId: entry.relayEventId,
+            // 総合タイムは通算タイムの最終要素。**レグの和をここで再計算し直さない**
+            // (calcCumulativeTimes が小数第2位で丸めながら積み上げた値をそのまま使う)。
+            // 全レグ未入力のときは undefined になるので 0 を入れ、legs が空の計画として
+            // 後段で捨てる (0 は CHECK (total_time > 0) にも弾かれる値なので、
+            // 万一書き込もうとしても静かには通らない)。
+            totalTime: totalTime ?? 0,
+            legCount: entry.memberRecords.length,
+            genderCategory: resolveRelayGenderCategory(
+              entry.memberRecords.map((mr) => mr.memberUserId),
+              memberGenderByUserId,
+            ),
+            legs: [],
+          });
+        }
+
         for (let legIdx = 0; legIdx < entry.memberRecords.length; legIdx++) {
           const mr = entry.memberRecords[legIdx];
           if (!mr) continue; // entry.memberRecords.length に基づく for ループのため型上のみの防御
@@ -1069,6 +1134,27 @@ export default function RecordClient({
               reactionTime: mr.reactionTime || "",
               splitTimes,
             });
+
+            // リレーのレグを計画に積む。
+            // `legTime` は **区間タイム** (`mr.time`)。通算タイムではない。
+            // 通算は relayEvents.ts の calcCumulativeTimes() で導出する
+            // (過去に通算値が混入して lap が崩れた前科があるため DB に入れない)。
+            if (relayPlanIndex !== null) {
+              const plan = relayPlans[relayPlanIndex];
+              if (plan) {
+                plan.legs.push({
+                  legIndex: legIdx,
+                  userId: mr.memberUserId,
+                  styleId,
+                  legTime: mr.time,
+                  reactionTime:
+                    mr.reactionTime && mr.reactionTime.trim() !== ""
+                      ? parseFloat(mr.reactionTime)
+                      : null,
+                  validRecordIndex: validRecords.length - 1,
+                });
+              }
+            }
           }
         }
       }
@@ -1112,7 +1198,13 @@ export default function RecordClient({
       }
 
       // 新規レコードを作成
-      for (const record of validRecords) {
+      // insert した records.id を validRecords の添字と同じ位置に記録する
+      // (relay_record_legs.record_id へ写すため)。insert が失敗した位置は null。
+      const insertedRecordIds: Array<string | null> = validRecords.map(() => null);
+
+      for (let recordIdx = 0; recordIdx < validRecords.length; recordIdx++) {
+        const record = validRecords[recordIdx];
+        if (!record) continue; // validRecords.length に基づく for ループのため型上のみの防御
         const { data: newRecord, error: recordError } = await supabase
           .from("records")
           .insert({
@@ -1136,6 +1228,10 @@ export default function RecordClient({
           console.error(`Record作成エラー (${record.memberName}):`, recordError);
           hasError = true;
           continue;
+        }
+
+        if (newRecord) {
+          insertedRecordIds[recordIdx] = newRecord.id;
         }
 
         // 種目の距離と同じ距離のsplit_timeは保存しない
@@ -1162,6 +1258,54 @@ export default function RecordClient({
           }
         }
       }
+
+      // ---------------------------------------------------------------------
+      // リレーのチーム記録 (relay_records / relay_record_legs) を書く
+      //
+      // 実際の書き込み手順 (insert → 古い行の delete、巻き戻し、
+      // 「全成功時のみ削除」) は `TeamRelayRecordsAPI.replace()` が唯一の実装元。
+      // web と mobile が同じ実装を複製しないよう shared に集約してある。
+      //
+      // 【リレー側を書く条件】
+      // `records` への書き込みが1件でも失敗していたら (`hasError`) リレー側は
+      // **1件も書かない**。`relay_records.total_time` はランキングの並び順その
+      // ものになる値で、4レグのうち一部しか `records` に書けていない状態で
+      // 総合タイムを書くと「実在しない記録に基づく順位」がエラーなしで出来上がる
+      // (書けなかったぶんは `record_id` が NULL になるだけで行としては完全に
+      //  見えてしまう = 静かに壊れる形)。
+      // リレー側を書かなければ既存の relay_records 行がそのまま残り、
+      // その行のタイムは過去に実際に泳がれた値なので嘘ではない。
+      // ユーザーには既存の `error.saveFailed` が出るので再試行できる。
+      // ---------------------------------------------------------------------
+      const savableRelayPlans = relayPlans.filter((plan) => plan.legs.length > 0);
+
+      // リレーに関係しない保存では relay_records に**一切触れない**。
+      // 「消すべき古い行が存在しうる」のは、この (competition_id, team_id) に
+      // is_relaying の records があった場合だけ (relay_records はこの画面の保存か
+      // is_relaying records からのバックフィルでしか作られない)。
+      const needsRelayWork =
+        savableRelayPlans.length > 0 || existingRecords.some((record) => record.is_relaying);
+
+      if (needsRelayWork && !hasError) {
+        const { failed: relayWriteFailed } = await relayRecordsApi.replace(
+          { teamId, competitionId, poolType: competition.pool_type },
+          savableRelayPlans,
+          insertedRecordIds,
+        );
+        if (relayWriteFailed) hasError = true;
+      } else if (needsRelayWork && hasError) {
+        console.error("records の書き込みに失敗したため relay_records の差し替えを中止しました");
+      }
+
+      // 代理入力はチームメンバー全員の records を delete + insert で置き換えるため、
+      // チーム記録ランキングのキャッシュ (staleTime 5分) を落とす。
+      // この画面は React Query を経由しない生の from("records") 書き込みで、
+      // useRecordsQuery の realtime も subscribeToRecords(cb, 自分の user_id) の
+      // フィルタ付きなので他メンバーの行では発火しない。ここで落とさないと
+      // 「入力 → 大会タブへ戻る → ランキング」で最大5分間、入力前の順位表が出る。
+      // hasError の早期 return より前に置く: 一部の行だけ書き込めた場合もキャッシュは古い。
+      // (Provider が無い環境では no-op。理由は useInvalidateTeamRankings の docstring)
+      invalidateRankings();
 
       // エラーが発生した場合はリダイレクトしない
       if (hasError) {
@@ -1459,6 +1603,7 @@ export default function RecordClient({
                         </label>
                         <input
                           type="text"
+                          inputMode="decimal"
                           value={entry.memberRecords[3]?.timeDisplayValue ?? ""}
                           onChange={(e) => handleRelayTotalTimeChange(entry.id, e.target.value)}
                           placeholder={tRecords("relayTimePlaceholder")}
@@ -1564,6 +1709,7 @@ export default function RecordClient({
                               <span className="text-gray-500 text-sm">m:</span>
                               <input
                                 type="text"
+                                inputMode="decimal"
                                 value={split.displayValue}
                                 onChange={(e) =>
                                   handleRelaySplitTimeChange(entry.id, split.id, "splitTime", e.target.value)
@@ -1633,6 +1779,7 @@ export default function RecordClient({
                               </label>
                               <input
                                 type="text"
+                                inputMode="decimal"
                                 value={mr.timeDisplayValue}
                                 onChange={(e) => handleTimeChange(entry.id, mr.memberUserId, e.target.value)}
                                 placeholder={tRecords("timePlaceholder")}
@@ -1770,6 +1917,7 @@ export default function RecordClient({
                                   <span className="text-gray-500 text-sm">m:</span>
                                   <input
                                     type="text"
+                                    inputMode="decimal"
                                     value={split.displayValue}
                                     onChange={(e) =>
                                       updateSplitTime(

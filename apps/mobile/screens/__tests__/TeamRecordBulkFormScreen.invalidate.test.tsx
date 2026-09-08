@@ -25,6 +25,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import { beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import { recordKeys, teamKeys } from "@apps/shared/hooks/queries/keys";
+import { Alert } from "react-native";
 
 // react-native の静的モックには KeyboardAvoidingView が含まれないため、
 // この画面専用に補完する (RecordFormScreen.standalone.test.tsx と同じ方針。
@@ -243,5 +244,131 @@ describe("TeamRecordBulkFormScreen — 保存成功後のキャッシュ無効�
       });
       expect(invalidatedTeamCompetitions).toBe(true);
     });
+  });
+
+});
+
+// =============================================================================
+// [V-M32] 部分失敗でもランキングのキャッシュを落とす (M-1)
+//
+// この画面は編集時に「既存 records を delete → 代理 insert をループ」する。
+// 途中の insert が失敗すると `hasError = true` になり Alert を出して早期 return するが、
+// **delete と成功した分の insert は既に DB に効いている**。
+// つまり部分失敗こそキャッシュが最も古くなる状態で、
+// 「もう存在しない記録」と「入った行の欠落」が同時に順位表に出る。
+// 「失敗したから無効化を飛ばす」は逆で、無効化は hasError の早期 return より
+// **前**に置く必要がある (web の RecordClient.tsx と同じ判断)。
+//
+// 🚨 「失敗したから呼ばれない」を pin してはいけない。それが修正対象の不具合。
+//
+// 対で「delete 自体が失敗して throw する経路では呼ばない」も押さえる。
+// そこは records を1行も変更していないので、落とさないのが正しい。
+//
+// ランキングの無効化は `invalidateTeamRankings()` = `invalidateQueries({ predicate })`
+// で行われる。他の無効化 (`queryKey` 指定) と区別するため、
+// **predicate を持つ呼び出しで、かつその predicate がランキングのキーに一致する**
+// ことを確認する (「predicate 付きの呼び出しがあった」だけでは別物を拾いうる)。
+// =============================================================================
+describe("[V-M32] 部分失敗時のランキングキャッシュ無効化 (M-1)", () => {
+  let queryClient: QueryClient;
+  let invalidateSpy: MockInstance<QueryClient["invalidateQueries"]>;
+
+  /** ランキングのキーに一致する predicate 付き invalidateQueries が呼ばれた回数 */
+  const rankingInvalidateCount = () =>
+    invalidateSpy.mock.calls.filter(([arg]) => {
+      const predicate = (arg as { predicate?: (q: unknown) => boolean } | undefined)?.predicate;
+      if (typeof predicate !== "function") return false;
+      // predicate が実際にランキング系のキーだけを拾うことまで確認する
+      const hitsRankings = predicate({ queryKey: teamKeys.rankings("team-1", undefined) });
+      const hitsHasAnyRecord = predicate({ queryKey: teamKeys.hasAnyRecord("team-1") });
+      const skipsPractices = !predicate({ queryKey: teamKeys.practices("team-1") });
+      return hitsRankings && hitsHasAnyRecord && skipsPractices;
+    }).length;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    mocks.getStyles.mockResolvedValue([mocks.style]);
+    mocks.responses["select:competitions"] = {
+      data: { id: "comp-1", title: "テスト大会", pool_type: 0 },
+      error: null,
+    };
+    mocks.responses["select:records"] = { data: [mocks.existingRecord], error: null };
+    mocks.responses["delete:records"] = { data: null, error: null };
+    mocks.responses["insert:records"] = { data: { id: "new-record-1" }, error: null };
+  });
+
+  const save = async () => {
+    render(<TeamRecordBulkFormScreen />, { wrapper: createWrapper(queryClient) });
+    await waitFor(() => {
+      expect(screen.getByText("記録を保存")).toBeDefined();
+    });
+    fireEvent.click(screen.getByText("記録を保存"));
+  };
+
+  it("[V-M32] 保存成功時にランキングのキャッシュが落ちる (前提の確認)", async () => {
+    await save();
+
+    await waitFor(() => expect(rankingInvalidateCount()).toBeGreaterThanOrEqual(1));
+  });
+
+  it("[V-M32] delete 成功 + insert 失敗 (部分失敗) でもランキングのキャッシュが落ちる", async () => {
+    // delete は成功、insert が失敗 → hasError = true → Alert → 早期 return の経路
+    mocks.responses["insert:records"] = {
+      data: null,
+      error: { code: "23503", message: "insert failed" },
+    };
+
+    await save();
+
+    // まず「部分失敗の経路を実際に通った」ことを Alert で確認する。
+    // これを確認しないと、成功経路を測って緑になっているのと区別できない
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
+    // その上で、無効化が飛ばされていないこと
+    expect(rankingInvalidateCount()).toBeGreaterThanOrEqual(1);
+    // 画面に留まる (リダイレクトしない) のも Web 準拠の既存挙動
+    expect(mocks.goBack).not.toHaveBeenCalled();
+  });
+
+  it("[V-M32] 部分失敗時は記録一覧・大会・カレンダーのキャッシュも一緒に落ちる", async () => {
+    mocks.responses["insert:records"] = {
+      data: null,
+      error: { code: "23503", message: "insert failed" },
+    };
+
+    await save();
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
+
+    const invalidatedKeys = invalidateSpy.mock.calls
+      .map(([arg]) => (arg as { queryKey?: unknown[] } | undefined)?.queryKey)
+      .filter(Array.isArray)
+      .map((key) => JSON.stringify(key));
+    expect(invalidatedKeys).toContain(JSON.stringify(["calendar"]));
+    expect(invalidatedKeys).toContain(JSON.stringify(teamKeys.competitions("team-1")));
+    expect(invalidatedKeys).toContain(JSON.stringify(recordKeys.lists()));
+  });
+
+  it("[V-M32] 対: delete 自体が失敗して throw する経路ではランキングを落とさない", async () => {
+    // records を1行も変更していないので、キャッシュを落とす必要が無い
+    mocks.responses["delete:records"] = {
+      data: null,
+      error: { code: "42501", message: "delete failed" },
+    };
+
+    await save();
+
+    // エラー経路を通ったことを確認 (通っていなければこのテストは無意味)
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
+    expect(rankingInvalidateCount()).toBe(0);
+    // insert 前に抜けるので他のキャッシュも落ちない
+    const invalidatedKeys = invalidateSpy.mock.calls
+      .map(([arg]) => (arg as { queryKey?: unknown[] } | undefined)?.queryKey)
+      .filter(Array.isArray)
+      .map((key) => JSON.stringify(key));
+    expect(invalidatedKeys).not.toContain(JSON.stringify(["calendar"]));
   });
 });

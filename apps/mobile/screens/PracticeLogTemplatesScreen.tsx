@@ -14,6 +14,8 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useSafeInsets } from "@/hooks/useSafeInsets";
+import { getSafeFooterPadding } from "@/utils/safeFooterPadding";
 import { useAuth } from "@/contexts/AuthProvider";
 import {
   usePracticeLogTemplatesQuery,
@@ -91,6 +93,10 @@ function formStateFromTemplate(template: PracticeLogTemplate): TemplateFormState
  */
 export const PracticeLogTemplatesScreen: React.FC = () => {
   const { t } = useTranslation();
+  // Android の Edge-to-Edge 強制下ではシステムナビゲーションバー(3ボタン)の領域まで
+  // 描画されるため、一覧最下部のテンプレートカード(編集/削除ボタンを含む)が
+  // ナビゲーションバーの背後に隠れる。下部インセットをスクロール余白に加算する。
+  const insets = useSafeInsets();
   const { supabase } = useAuth();
 
   const { data: templates, isLoading, error } = usePracticeLogTemplatesQuery(supabase);
@@ -253,7 +259,13 @@ export const PracticeLogTemplatesScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: getSafeFooterPadding(32, insets.bottom) },
+        ]}
+      >
         {/* 保存数 */}
         <Text style={styles.savedCount}>
           {t("practiceLogTemplates.list.savedCount", { count: count || 0, max: MAX_TEMPLATES })}

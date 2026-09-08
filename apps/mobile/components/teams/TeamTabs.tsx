@@ -1,9 +1,16 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
-export type TeamTabType = "members" | "groups" | "practices" | "competitions" | "attendance" | "announcements";
+export type TeamTabType =
+  | "members"
+  | "groups"
+  | "practices"
+  | "competitions"
+  | "attendance"
+  | "rankings"
+  | "announcements";
 
 export interface TeamTabsProps {
   activeTab: TeamTabType;
@@ -19,13 +26,21 @@ const BASE_TABS: { id: TeamTabType; nameKey: string; icon: keyof typeof Feather.
   { id: "practices", nameKey: "teams.mobile.tabPractices", icon: "clock" },
   { id: "competitions", nameKey: "teams.mobile.tabCompetitions", icon: "award" },
   { id: "attendance", nameKey: "teams.mobile.tabAttendance", icon: "clipboard" },
+  // ランキングは一般メンバーも閲覧するため adminOnly を付けない
+  { id: "rankings", nameKey: "teams.mobile.tabRankings", icon: "bar-chart-2" },
   { id: "announcements", nameKey: "teams.mobile.tabAnnouncements", icon: "bell", adminOnly: true },
 ];
 
 /**
  * チームタブコンポーネント
- * メンバー、練習、大会、出欠、お知らせのタブ切り替え
- * お知らせタブは管理者ビュー時のみ表示
+ * メンバー、練習、大会、出欠、ランキング、お知らせのタブ切り替え
+ * お知らせ・グループタブは管理者ビュー時のみ表示
+ *
+ * タブは横スクロールさせる。非管理者5タブ/管理者7タブを幅 360dp の端末に
+ * 均等割り (flex:1) で詰め込むと1タブ約51dp になりラベルが読めなくなるため、
+ * 各タブは内容に応じた幅にして溢れた分は横スクロールで見せる
+ * (web の components/team/TeamTabs.tsx が `overflow-x-auto` + `whitespace-nowrap`
+ * で解決しているのと同じ方針)。
  */
 export const TeamTabs: React.FC<TeamTabsProps> = ({
   activeTab,
@@ -38,7 +53,15 @@ export const TeamTabs: React.FC<TeamTabsProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.tabList}>
+      {/* 下線 (borderBottom) はスクロールする中身ではなく ScrollView 自体に付ける。
+          こうするとスクロール位置に関わらず可視領域の全幅に線が引かれる
+          (web が `overflow-x-auto` の親 div 側に `border-b` を置いているのと同じ) */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabList}
+        contentContainerStyle={styles.tabListContent}
+      >
         {visibleTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const showBadge = tab.id === "members" && pendingCount > 0;
@@ -60,7 +83,7 @@ export const TeamTabs: React.FC<TeamTabsProps> = ({
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -79,18 +102,25 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   tabList: {
-    flexDirection: "row",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
+  tabListContent: {
+    // タブが画面幅に収まる場合 (非管理者・大画面) に左へ寄って詰まって見えないよう、
+    // 中身を可視領域まで伸ばして等間隔に配置する。溢れる場合は中身が可視領域より
+    // 大きくなるため justifyContent は効かず、各タブは自然幅のまま横スクロールになる
+    flexGrow: 1,
+    justifyContent: "space-between",
+  },
   tab: {
-    flex: 1,
+    // flex:1 の均等割りは廃止。タブ数が増えるとラベルが潰れるため、
+    // 内容に応じた幅にして溢れた分を横スクロールで見せる
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 8,
-    paddingHorizontal: 6,
-    gap: 3,
+    paddingHorizontal: 12,
+    gap: 4,
     position: "relative",
   },
   tabActive: {

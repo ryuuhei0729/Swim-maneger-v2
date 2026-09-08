@@ -18,6 +18,11 @@ interface TeamMember {
   users: {
     id: string;
     name: string;
+    /**
+     * `users.gender` (0=男性 / 1=女性)。DB は integer NOT NULL DEFAULT 0 + CHECK(0,1)。
+     * リレーのチーム記録 (`relay_records.gender_category`) の prefill にのみ使う。
+     */
+    gender: number;
   };
 }
 
@@ -132,7 +137,8 @@ export default async function RecordDataLoader({ teamId, competitionId }: Record
         role,
         users!team_memberships_user_id_fkey (
           id,
-          name
+          name,
+          gender
         )
       `,
         )

@@ -21,6 +21,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useSafeInsets } from "@/hooks/useSafeInsets";
 import { useAuth } from "@/contexts/AuthProvider";
 import {
   useCreateRecordMutation,
@@ -81,6 +82,7 @@ export const RecordLogFormScreen: React.FC = () => {
   const isPremium = checkIsPremium(subscription);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const insets = useSafeInsets();
 
   // ベストタイム参照バッジ用 (web useBestTimes 相当)
   const { data: bestTimesData } = useBestTimesQuery(supabase, {});
@@ -557,6 +559,9 @@ export const RecordLogFormScreen: React.FC = () => {
   // ドロップダウンを開く
   const screenHeight = Dimensions.get("window").height;
   const DROPDOWN_MAX_HEIGHT = 260;
+  // ドロップダウン下端とシステムバー上端のあいだに残す隙間 (dp)。
+  // 実際の下端余白は これ + 下部 inset で決まる (Android edge-to-edge 対応)。
+  const DROPDOWN_BOTTOM_GAP = 8;
 
   const openStylePicker = useCallback(
     (index: number) => {
@@ -564,7 +569,8 @@ export const RecordLogFormScreen: React.FC = () => {
       const buttonRef = styleButtonRefs.current.get(index);
       buttonRef?.measureInWindow((x, y, width, height) => {
         const top = y + height + 4;
-        const fitsBelow = top + DROPDOWN_MAX_HEIGHT < screenHeight - 40;
+        const fitsBelow =
+          top + DROPDOWN_MAX_HEIGHT < screenHeight - DROPDOWN_BOTTOM_GAP - insets.bottom;
         setDropdownLayout({
           top: fitsBelow ? top : y - DROPDOWN_MAX_HEIGHT - 4,
           left: x,
@@ -574,7 +580,7 @@ export const RecordLogFormScreen: React.FC = () => {
         setShowStylePicker(true);
       });
     },
-    [screenHeight],
+    [screenHeight, insets.bottom],
   );
 
   // バリデーション

@@ -12,6 +12,8 @@ import {
 import { useRoute, useNavigation, RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
+import { useSafeInsets } from "@/hooks/useSafeInsets";
+import { getSafeFooterPadding } from "@/utils/safeFooterPadding";
 import { usePracticeTimeStore } from "@/stores/practiceTimeStore";
 import { useAuth } from "@/contexts/AuthProvider";
 import { PremiumBadge } from "@/components/shared/PremiumBadge";
@@ -49,6 +51,12 @@ export const PracticeTimeFormScreen: React.FC = () => {
   const totalTimes = setCount * repCount;
   const practiceTimeLimitExceeded = !isPremium && totalTimes > FREE_PLAN_LIMITS.PRACTICE_TIMES_PER_LOG;
   const { t } = useTranslation();
+  // Android の Edge-to-Edge 強制下ではシステムナビゲーションバー(3ボタン)の領域まで
+  // 描画されるため、ScrollView 最下部の保存ボタンがナビゲーションバーの背後に隠れる。
+  // contentContainerStyle に下部インセットを加算して回避する (パターンB:
+  // KeyboardAvoidingView の外側を SafeAreaView で包むとキーボード表示時に
+  // インセットぶんの隙間が空くため、スクロール余白として足す方式を採る)。
+  const insets = useSafeInsets();
 
   // クイック入力フック
   const { parseInput, resetContext } = useQuickTimeInput();
@@ -185,7 +193,10 @@ export const PracticeTimeFormScreen: React.FC = () => {
     >
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: getSafeFooterPadding(16, insets.bottom) },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
       <View style={styles.header}>

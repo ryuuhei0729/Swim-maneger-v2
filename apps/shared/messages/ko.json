@@ -2395,6 +2395,7 @@
       "tabGroups": "그룹",
       "tabPractices": "연습",
       "tabCompetitions": "대회",
+      "tabRankings": "랭킹",
       "tabAttendance": "출결",
       "memberLoading": "멤버를 불러오는 중...",
       "memberFetchFailed": "멤버 목록을 불러오지 못했습니다",
@@ -2765,7 +2766,8 @@
       "attendance": "출결",
       "members": "멤버",
       "practices": "연습",
-      "competitions": "대회"
+      "competitions": "대회",
+      "rankings": "랭킹"
     },
     "createModal": {
       "errorTitle": "오류가 발생했습니다",
@@ -2884,6 +2886,100 @@
         "time": "타임",
         "competition": "대회",
         "date": "날짜"
+      }
+    },
+    "ranking": {
+      "title": "팀 기록 랭킹",
+      "filter": {
+        "style": "종목",
+        "distance": "거리",
+        "poolType": "수영장 종류",
+        "gender": "성별",
+        "scope": "범위",
+        "period": "기간",
+        "aggregation": "집계"
+      },
+      "gender": {
+        "male": "남자",
+        "female": "여자"
+      },
+      "scope": {
+        "teamCompetitions": "팀 대회",
+        "allCompetitions": "모든 대회",
+        "allCompetitionsNote": "멤버가 다른 팀이나 개인으로 출전한 대회의 기록도 포함됩니다."
+      },
+      "period": {
+        "allTime": "통산",
+        "fiscalYear": "{year}년도",
+        "fiscalYearOrEarlier": "{year}년도 이전",
+        "fiscalYearNote": "연도를 선택하면 대회에 연결되지 않은 기록(일괄 등록)은 포함되지 않습니다."
+      },
+      "aggregation": {
+        "personalBest": "개인 최고 기록",
+        "allRaces": "모든 레이스"
+      },
+      "col": {
+        "name": "멤버",
+        "time": "타임",
+        "competition": "대회",
+        "date": "날짜"
+      },
+      "empty": {
+        "noMatchTitle": "해당하는 기록이 없습니다",
+        "noMatchBody": "선택한 종목・거리・수영장 종류・성별에 일치하는 기록을 찾을 수 없습니다. 조건을 변경해 보세요.",
+        "noRecordsTitle": "팀에 대회 기록이 없습니다",
+        "noRecordsBody": "멤버가 대회 기록을 등록하면 여기에 랭킹이 표시됩니다."
+      },
+      "error": "랭킹을 불러오지 못했습니다",
+      "retry": "다시 시도",
+      "individualUnavailable": {
+        "fetchFailed": "종목 마스터를 불러오지 못해 개인 종목 랭킹을 표시할 수 없습니다. 계영 랭킹은 이용할 수 있습니다.",
+        "empty": "종목 마스터가 등록되어 있지 않아 개인 종목 랭킹을 표시할 수 없습니다. 계영 랭킹은 이용할 수 있습니다."
+      },
+      "loading": "불러오는 중...",
+      "showMore": "더 보기",
+      "resultCount": "{count}건",
+      "truncatedNote": "조회 상한 {limit}건에 도달했습니다. 더 느린 기록은 표시되지 않을 수 있습니다. 조건을 좁혀 주세요.",
+      "relay": {
+        "filter": {
+          "genderCategory": "성별 구분"
+        },
+        "kind": {
+          "free": "자유형 계영",
+          "medley": "혼계영"
+        },
+        "genderCategory": {
+          "male": "남자",
+          "female": "여자",
+          "mixed": "혼성"
+        },
+        "col": {
+          "event": "종목",
+          "time": "종합 타임",
+          "competition": "대회",
+          "date": "날짜",
+          "legs": "랩"
+        },
+        "eventLabel": "{distance}m×{legCount} {kind}",
+        "legDistanceOption": "{distance}m × {legCount}",
+        "legLabel": "{num}번째 영자",
+        "legHeader": {
+          "swimmer": "영자",
+          "style": "종목",
+          "legTime": "구간",
+          "cumulative": "누적"
+        },
+        "expand": "랩 타임 표시",
+        "collapse": "랩 타임 닫기",
+        "retiredMember": "탈퇴한 멤버",
+        "noLegs": "이 기록에는 영자 정보가 등록되지 않았습니다",
+        "empty": {
+          "noMatchTitle": "해당하는 계영 기록이 없습니다",
+          "noMatchBody": "선택한 종류・거리・수영장 종류・성별 구분에 일치하는 계영 기록을 찾을 수 없습니다. 조건을 변경해 보세요.",
+          "noRecordsTitle": "팀에 계영 기록이 없습니다",
+          "noRecordsBody": "대회 기록 입력에서 계영 종목을 등록하면 여기에 랭킹이 표시됩니다."
+        },
+        "error": "계영 랭킹을 불러오지 못했습니다"
       }
     },
     "memberDetail": {
@@ -3380,6 +3476,7 @@
       "groups": "그룹",
       "practices": "연습",
       "competitions": "대회",
+      "rankings": "랭킹",
       "bulkRegister": "일괄 등록",
       "settings": "설정"
     },

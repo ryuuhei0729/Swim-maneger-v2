@@ -10,4 +10,5 @@ export { TeamItem } from "./TeamItem";
 export { TeamJoinModal } from "./TeamJoinModal";
 export { TeamMemberGroupFilter } from "./TeamMemberGroupFilter";
 export { TeamMemberList } from "./TeamMemberList";
+export { TeamRankings } from "./rankings";
 export { TeamTabs, type TeamTabType } from "./TeamTabs";

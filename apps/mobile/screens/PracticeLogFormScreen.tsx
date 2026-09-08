@@ -15,6 +15,8 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useSafeInsets } from "@/hooks/useSafeInsets";
+import { getSafeFooterPadding } from "@/utils/safeFooterPadding";
 import { useAuth } from "@/contexts/AuthProvider";
 import { uploadVideo } from "@/utils/videoUpload";
 import {
@@ -75,6 +77,12 @@ export const PracticeLogFormScreen: React.FC = () => {
   const isEditMode = practiceLogId !== undefined;
   const isPremium = checkIsPremium(subscription);
   const { t } = useTranslation();
+  // Android の Edge-to-Edge 強制下ではシステムナビゲーションバー(3ボタン)の領域まで
+  // 描画されるため、ScrollView 最下部の保存ボタンがナビゲーションバーの背後に隠れる。
+  // contentContainerStyle に下部インセットを加算して回避する (パターンB:
+  // KeyboardAvoidingView の外側を SafeAreaView で包むとキーボード表示時に
+  // インセットぶんの隙間が空くため、スクロール余白として足す方式を採る)。
+  const insets = useSafeInsets();
 
   // 動画の状態管理
   const [existingVideoPath, setExistingVideoPath] = useState<string | null>(null);
@@ -559,7 +567,10 @@ export const PracticeLogFormScreen: React.FC = () => {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.container} contentContainerStyle={[
+          styles.content,
+          { paddingBottom: getSafeFooterPadding(16, insets.bottom) },
+        ]}>
       <View style={styles.form}>
         {/* メニューセクション */}
         <View style={styles.menuSection}>

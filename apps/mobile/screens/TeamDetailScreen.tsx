@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useLayoutEffect, useRef } from "react";
 import { View, Text, StyleSheet, Pressable, Alert, Platform } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 import { Feather } from "@expo/vector-icons";
 import { useRoute, useNavigation, RouteProp } from "@react-navigation/native";
@@ -26,6 +27,7 @@ import { TeamAnnouncementList } from "@/components/teams/TeamAnnouncementList";
 import { TeamAnnouncementForm } from "@/components/teams/TeamAnnouncementForm";
 import { TeamPracticeList } from "@/components/teams/TeamPracticeList";
 import { TeamCompetitionList } from "@/components/teams/TeamCompetitionList";
+import { TeamRankings } from "@/components/teams/rankings";
 import { LoadingSpinner } from "@/components/layout/LoadingSpinner";
 import { ErrorView } from "@/components/layout/ErrorView";
 import { resolveActiveTabOnAdminViewToggle } from "@/utils/teamAdminView";
@@ -291,6 +293,9 @@ export const TeamDetailScreen: React.FC = () => {
             <TeamCompetitionList teamId={teamId} isAdmin={effectiveIsAdminView} />
           </View>
         );
+      case "rankings":
+        // 管理者専用ではない (一般メンバーも閲覧する)
+        return <TeamRankings teamId={teamId} />;
       case "attendance":
         return effectiveIsAdminView ? (
           <AdminMonthlyAttendance teamId={teamId} />
@@ -334,8 +339,12 @@ export const TeamDetailScreen: React.FC = () => {
     }
   };
 
+  // Android の Edge-to-Edge 強制下ではシステムナビゲーションバー(3ボタン)の領域まで
+  // 描画される。この画面はタブごとに別コンポーネントが独自のスクロールビューを持つため、
+  // 個々のスクロール余白ではなく画面ルートで下部インセットを消費する
+  // (ネイティブ経路の SafeAreaView。タブが増えても自動的に保護されるようにするため)。
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       {/* チーム情報（固定） */}
       <View style={styles.teamInfo}>
         <View style={styles.teamInfoRow}>
@@ -392,7 +401,7 @@ export const TeamDetailScreen: React.FC = () => {
         teamDescription={currentTeam.description}
         onSuccess={() => refetch()}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 

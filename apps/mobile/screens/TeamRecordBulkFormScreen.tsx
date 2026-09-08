@@ -20,7 +20,7 @@ import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useTeamsQuery } from "@apps/shared/hooks/queries/teams";
-import { teamKeys, recordKeys } from "@apps/shared/hooks/queries/keys";
+import { teamKeys, recordKeys, invalidateTeamRankings } from "@apps/shared/hooks/queries/keys";
 import { UserFacingError, toUserFacingMessage } from "@apps/shared/utils/userFacingError";
 import { StyleAPI } from "@apps/shared/api/styles";
 import { checkIsPremium } from "@swim-hub/shared/utils/premium";
@@ -61,6 +61,11 @@ import {
   getLegStartCumulative,
   toLegRelativeSplitTime,
 } from "./teamRecordBulk/relayEvents";
+import {
+  resolveRelayGenderCategory,
+  type RelaySavePlan,
+} from "@apps/shared/utils/relayRecordSave";
+import { TeamRelayRecordsAPI } from "@apps/shared/api/teams/relayRecords";
 import {
   buildStyleEntriesFromExisting,
   applyEntryAdditionsToStyleEntries,
@@ -121,6 +126,37 @@ export const TeamRecordBulkFormScreen: React.FC = () => {
     if (!user || !members) return false;
     return members.some((m) => m.user_id === user.id && m.role === "admin");
   }, [user, members]);
+
+  /**
+   * `user_id` → `users.gender`。リレーのチーム記録 (`relay_records.gender_category`) の
+   * prefill にのみ使う。web の RecordClient.tsx と同じ組み立て方。
+   *
+   * 性別が取れていないメンバーは**エントリを作らない** (`?? 0` で埋めない)。
+   * `resolveRelayGenderCategory` は map に無い user_id を「不明」として `mixed` に
+   * 寄せるので、「不明」が「男性」として静かに確定することがない。
+   *
+   * `member.users?.gender` のガードの根拠は **型が信用できないから**の一点である。
+   * `TeamMembersAPI.list()` は `select("*, users:users(*), ...")` の結果を
+   * `as unknown as TeamMembershipWithUser[]` でキャストしており、実際の応答形状は
+   * 型検査を通っていない。
+   *
+   * ⚠️ 「to-one join が null を返しうるから」ではない。この経路では null にならない
+   *    ことが実測で確認されている: `team_memberships.user_id` は NOT NULL かつ
+   *    `users(id)` への FK で行が必ず存在し、`list()` の
+   *    `.eq("status","approved").eq("is_active",true)` は `users` の SELECT RLS の
+   *    `shares_active_team()` 枝の条件 (双方の membership が is_active) を必ず満たす。
+   *    `UserProfile.gender` も非 optional なので `typeof` 判定は型上も常に真になる。
+   *    **この誤った根拠を他所へコピーして死んだガードを増やさないこと。**
+   */
+  const memberGenderByUserId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const member of members) {
+      const gender = member.users?.gender;
+      if (typeof gender !== "number") continue;
+      map.set(member.user_id, gender);
+    }
+    return map;
+  }, [members]);
 
   const [styles_, setStyles] = useState<Style[]>([]);
   const [competition, setCompetition] = useState<CompetitionInfo | null>(null);
@@ -975,6 +1011,11 @@ export const TeamRecordBulkFormScreen: React.FC = () => {
         videoAsset?: { uri: string; mimeType?: string } | null;
       }> = [];
 
+      // リレーのチーム記録 (relay_records / relay_record_legs) を書くための計画。
+      // ここでは1件も書き込まず、`records` への書き込みが**全て成功した後**に
+      // まとめて実行する (理由は下の「リレー側の書き込みタイミング」コメント)。
+      const relayPlans: RelaySavePlan[] = [];
+
       for (const entry of styleEntries) {
         if (entry.styleId === "") continue;
 
@@ -1059,6 +1100,30 @@ export const TeamRecordBulkFormScreen: React.FC = () => {
           }
         }
 
+        // リレーのチーム記録の計画を1本ぶん用意する。レグを1件も保存しない場合
+        // (全レグ未入力) はこの計画に legs が入らないので、後段で捨てられる。
+        // ⚠️ **既存の `records` への書き込みは一切変えない。** ここは同じループで
+        // 収集した情報を relay_records 側にも写すためだけの追加である。
+        const relayPlanIndex = entry.relayEventId ? relayPlans.length : null;
+        if (entry.relayEventId && relayPlanIndex !== null) {
+          const totalTime = legCumulativeTimes.at(-1);
+          relayPlans.push({
+            relayEventId: entry.relayEventId,
+            // 総合タイムは通算タイムの最終要素。**レグの和をここで再計算し直さない**
+            // (calcCumulativeTimes が小数第2位で丸めながら積み上げた値をそのまま使う)。
+            // 全レグ未入力のときは undefined になるので 0 を入れ、legs が空の計画として
+            // 後段で捨てる (0 は CHECK (total_time > 0) にも弾かれる値なので、
+            // 万一書き込もうとしても静かには通らない)。
+            totalTime: totalTime ?? 0,
+            legCount: entry.memberRecords.length,
+            genderCategory: resolveRelayGenderCategory(
+              entry.memberRecords.map((mr) => mr.memberUserId),
+              memberGenderByUserId,
+            ),
+            legs: [],
+          });
+        }
+
         for (let legIdx = 0; legIdx < entry.memberRecords.length; legIdx++) {
           const mr = entry.memberRecords[legIdx];
           if (!mr) continue; // legIdx < entry.memberRecords.length なので理論上ここに来ないが防御的に扱う
@@ -1112,6 +1177,26 @@ export const TeamRecordBulkFormScreen: React.FC = () => {
             splitTimes,
             videoAsset: mr.videoAsset ?? null,
           });
+
+          // リレーのレグを計画に積む。
+          // `legTime` は **区間タイム** (`mr.time`)。通算タイムではない。
+          // 通算は relayEvents.ts の calcCumulativeTimes() で導出する
+          // (過去に通算値が混入して lap が崩れた前科があるため DB に入れない)。
+          if (relayPlanIndex !== null) {
+            const plan = relayPlans[relayPlanIndex];
+            if (plan) {
+              plan.legs.push({
+                legIndex: legIdx,
+                userId: mr.memberUserId,
+                styleId,
+                legTime: mr.time,
+                // `records.reaction_time` と同じ正規化を通す (mobile は
+                // 全角・区切り文字を許容する入力なので parseFloat 直叩きにしない)
+                reactionTime: toReactionTimeValue(mr.reactionTime),
+                validRecordIndex: validRecords.length - 1,
+              });
+            }
+          }
         }
       }
 
@@ -1156,7 +1241,15 @@ export const TeamRecordBulkFormScreen: React.FC = () => {
         recordId: string;
         record: (typeof validRecords)[number];
       }> = [];
-      for (const record of validRecords) {
+      // insert した records.id を validRecords の添字と**同じ位置**に記録する
+      // (relay_record_legs.record_id へ写すため)。insert が失敗した位置は null。
+      // savedRecordIds は成功分だけを push する動画アップロード用の配列なので
+      // 添字が validRecords とずれる。両者を兼用しない。
+      const insertedRecordIds: Array<string | null> = validRecords.map(() => null);
+
+      for (let recordIdx = 0; recordIdx < validRecords.length; recordIdx++) {
+        const record = validRecords[recordIdx];
+        if (!record) continue; // validRecords.length に基づく for ループのため型上のみの防御
         const insertPayload: RecordInsert = {
           competition_id: competitionId,
           user_id: record.memberUserId,
@@ -1184,6 +1277,7 @@ export const TeamRecordBulkFormScreen: React.FC = () => {
         }
 
         savedRecordIds.push({ recordId: newRecord.id, record });
+        insertedRecordIds[recordIdx] = newRecord.id;
 
         // 種目距離と同 distance の split は除外（ゴールタイム = split ではない）
         const raceDistance = styles_.find(
@@ -1213,6 +1307,86 @@ export const TeamRecordBulkFormScreen: React.FC = () => {
           }
         }
       }
+
+      // ---------------------------------------------------------------------
+      // リレーのチーム記録 (relay_records / relay_record_legs) を書く
+      //
+      // 差し替えの実装は `TeamRelayRecordsAPI.replace()` (shared) が唯一の定義元。
+      // insert → delete の順序・レグ失敗時の巻き戻し・「全計画が成功したときだけ
+      // 古い行を消す」といった**いちばん壊れると痛い判断**は web と共通で、
+      // ここには持たない (以前は web/mobile に有意行95行の完全複製があった)。
+      //
+      // 【リレー側の書き込みタイミング】
+      // `records` への書き込みが1件でも失敗していたら (`hasError`)、リレー側は
+      // **1件も書かない**。`relay_records.total_time` はランキングの並び順その
+      // ものになる値で、4レグのうち一部しか `records` に書けていない状態で総合
+      // タイムを書くと「実在しない記録に基づく順位」がエラーなしで出来上がる
+      // (書けなかったぶんは `record_id` が NULL になるだけで、行としては完全に
+      //  見えてしまう = 静かに壊れる形)。書かなければ既存行がそのまま残り、
+      // リンクが切れるだけで済む。**見える壊れ方より静かな壊れ方を避ける。**
+      // ---------------------------------------------------------------------
+      const savableRelayPlans = relayPlans.filter((plan) => plan.legs.length > 0);
+
+      // リレーに関係しない保存では relay_records に**一切触れない**。
+      // 「消すべき古い行が存在しうる」のは、この (competition_id, team_id) に
+      // is_relaying の records があった場合だけ (relay_records はこの画面 / web の
+      // 保存か is_relaying records からのバックフィルでしか作られない)。
+      // ここを常に実行すると、個人種目だけの保存でも毎回 relay_records への
+      // 問い合わせが発生する。
+      const needsRelayWork =
+        savableRelayPlans.length > 0 ||
+        existingRecords.some((record) => record.is_relaying);
+
+      if (needsRelayWork && !hasError) {
+        const relayResult = await new TeamRelayRecordsAPI(supabase).replace(
+          {
+            teamId,
+            competitionId,
+            // competitions.pool_type は DB が NOT NULL なので `??` は挟まない
+            poolType: competition.pool_type,
+          },
+          savableRelayPlans,
+          insertedRecordIds,
+        );
+        // 既存の split_times insert 失敗と同じ扱い (集約して saveFailed を出す)
+        if (relayResult.failed) hasError = true;
+      } else if (needsRelayWork && hasError) {
+        console.error(
+          "records の書き込みに失敗したため relay_records の差し替えを中止しました",
+        );
+      }
+
+      // -------------------------------------------------------------------
+      // 【なぜ無効化を前後2箇所で呼ぶのか】
+      // このスクリーンは1回の保存で **2段階に分けて DB を書く**。
+      //   段階1: records / split_times / relay_records (ここまで完了)
+      //   段階2: uploadVideoForTeamMember が records.video_path /
+      //          video_thumbnail_path を後から書く (hasError の return より後)
+      // 各段階の直後に無効化が必要で、前後どちらか一方では足りない:
+      //   - 前だけ … 段階2の書き込みが反映されない。段階1の無効化で refetch した
+      //     結果が staleTime 5分で居座り、戻り先の大会タブが動画の無い状態を
+      //     最大5分表示する (第1弾でこの退行を作った)
+      //   - 後だけ … hasError で早期 return する経路を通らないので、部分失敗時に
+      //     一度も無効化されない。既存行の delete と一部の insert は DB に効いて
+      //     いるため、「もう存在しない記録」と「入った行の欠落」が同時に見える
+      // よって**同じキーを前後で重複して呼ぶのが正しい形**である。
+      // (delete 自体が失敗して throw する経路はこれより前で抜ける。そこは
+      //  records を1行も変更していないので無効化しないのが正しい)
+      // -------------------------------------------------------------------
+      queryClient.invalidateQueries({ queryKey: ["calendar"] });
+      queryClient.invalidateQueries({
+        queryKey: teamKeys.competitions(teamId),
+      });
+      // この操作を行った管理者自身のローカルキャッシュ上の記録一覧（大会タブ）を最新化する。
+      // invalidateQueries はこの端末のキャッシュにしか作用せず、代理登録された各メンバー
+      // 本人の端末には影響しない（別デバイスのキャッシュはクロスデバイスでは無効化できない）
+      queryClient.invalidateQueries({ queryKey: recordKeys.lists() });
+      // この画面は React Query のミューテーションを経由せず生の from("records") で
+      // 書き込むため、記録系フックに仕込まれたランキング無効化が走らない。
+      // チーム記録が生まれる主経路なので明示的に落とす (これが無いと
+      // 「ランキングを開く → 一括入力 → 戻る」で最大5分間、入力前の順位表が出る)。
+      // ランキングは動画パスを読まないので、こちらは段階2の後に再掲しない。
+      invalidateTeamRankings(queryClient);
 
       // 部分失敗時はリダイレクトしない（Web 準拠）。集約表示。
       if (hasError) {
@@ -1259,13 +1433,16 @@ export const TeamRecordBulkFormScreen: React.FC = () => {
         }
       }
 
+      // 段階2 (動画パスの書き込み) の直後の無効化。上の段階1の呼び出しと**同じキーを
+      // 意図的に重複して**呼ぶ (理由は段階1側のブロックコメント)。
+      // uploadVideoForTeamMember は team-assign 経由で records.video_path /
+      // video_thumbnail_path を後から書くため、ここが無いと戻り先の大会タブが
+      // staleTime 5分のあいだ動画の無いデータを表示する。
+      // ランキングは動画パスを読まないので invalidateTeamRankings は再掲しない。
       queryClient.invalidateQueries({ queryKey: ["calendar"] });
       queryClient.invalidateQueries({
         queryKey: teamKeys.competitions(teamId),
       });
-      // この操作を行った管理者自身のローカルキャッシュ上の記録一覧（大会タブ）を最新化する。
-      // invalidateQueries はこの端末のキャッシュにしか作用せず、代理登録された各メンバー
-      // 本人の端末には影響しない（別デバイスのキャッシュはクロスデバイスでは無効化できない）
       queryClient.invalidateQueries({ queryKey: recordKeys.lists() });
 
       // 記録保存は成功済み。動画の部分失敗のみの場合は「保存成功 + 一部動画失敗」を通知して戻る。
@@ -1505,6 +1682,7 @@ export const TeamRecordBulkFormScreen: React.FC = () => {
                         handleRelayTotalTimeChange(entry.id, text)
                       }
                       placeholder={t("teams.record.totalTimePlaceholder")}
+                      keyboardType="decimal-pad"
                     />
                   </View>
 
@@ -1599,6 +1777,7 @@ export const TeamRecordBulkFormScreen: React.FC = () => {
                               )
                             }
                             placeholder={t("teams.record.splitTimePlaceholder")}
+                            keyboardType="decimal-pad"
                           />
                           <Pressable
                             style={styles.removeSplitBtn}
@@ -1645,6 +1824,7 @@ export const TeamRecordBulkFormScreen: React.FC = () => {
                             handleTimeChange(entry.id, mr.memberUserId, text)
                           }
                           placeholder={t("teams.record.timePlaceholder")}
+                          keyboardType="decimal-pad"
                         />
                       </View>
 
@@ -1816,6 +1996,7 @@ export const TeamRecordBulkFormScreen: React.FC = () => {
                                 placeholder={t(
                                   "teams.record.splitTimePlaceholder",
                                 )}
+                                keyboardType="decimal-pad"
                               />
                               <Pressable
                                 style={styles.removeSplitBtn}

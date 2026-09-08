@@ -648,6 +648,7 @@ export default function EntriesClient({
                               <div className="flex gap-2">
                                 <input
                                   type="text"
+                                  inputMode="decimal"
                                   value={row.entryTimeInput}
                                   onChange={(e) => handleTimeInputChange(row.localId, e.target.value)}
                                   placeholder={t("record.timePlaceholder")}

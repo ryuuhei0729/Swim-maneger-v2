@@ -636,6 +636,7 @@ function TimeInputCell({
     <td className="px-3 py-2">
       <input
         type="text"
+        inputMode="decimal"
         value={input?.time || ""}
         onChange={(e) => onInputChange(styleId, poolType, isRelaying, "time", e.target.value)}
         onBlur={(e) => {
@@ -834,7 +835,7 @@ function BestTimeCard({
         <input
           id={`time-${styleId}-${poolType}`}
           type="text"
-          inputMode="text"
+          inputMode="decimal"
           autoCorrect="off"
           autoCapitalize="none"
           value={normalInput?.time || ""}
@@ -898,7 +899,7 @@ function BestTimeCard({
             <input
               id={`relay-time-${styleId}-${poolType}`}
               type="text"
-              inputMode="text"
+              inputMode="decimal"
               autoCorrect="off"
               autoCapitalize="none"
               value={relayInput?.time || ""}

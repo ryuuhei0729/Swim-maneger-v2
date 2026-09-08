@@ -332,6 +332,7 @@ export default function TimeInputModal({
                             </label>
                             <input
                               type="text"
+                              inputMode="decimal"
                               placeholder="31-2"
                               value={timeEntry.displayValue || ""}
                               onChange={(e) => handleTimeChange(timeEntry.id, e.target.value)}

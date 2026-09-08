@@ -2395,6 +2395,7 @@
       "tabGroups": "Gruppen",
       "tabPractices": "Trainings",
       "tabCompetitions": "Wettkämpfe",
+      "tabRankings": "Ranglisten",
       "tabAttendance": "Anwesenheit",
       "memberLoading": "Mitglieder werden geladen...",
       "memberFetchFailed": "Mitglieder konnten nicht geladen werden",
@@ -2765,7 +2766,8 @@
       "attendance": "Anwesenheit",
       "members": "Mitglieder",
       "practices": "Trainings",
-      "competitions": "Wettkämpfe"
+      "competitions": "Wettkämpfe",
+      "rankings": "Ranglisten"
     },
     "createModal": {
       "errorTitle": "Ein Fehler ist aufgetreten",
@@ -2884,6 +2886,100 @@
         "time": "Zeit",
         "competition": "Wettkampf",
         "date": "Datum"
+      }
+    },
+    "ranking": {
+      "title": "Team-Rekordranglisten",
+      "filter": {
+        "style": "Lage",
+        "distance": "Distanz",
+        "poolType": "Beckenart",
+        "gender": "Geschlecht",
+        "scope": "Umfang",
+        "period": "Zeitraum",
+        "aggregation": "Auswertung"
+      },
+      "gender": {
+        "male": "Männer",
+        "female": "Frauen"
+      },
+      "scope": {
+        "teamCompetitions": "Wettkämpfe des Teams",
+        "allCompetitions": "Alle Wettkämpfe",
+        "allCompetitionsNote": "Enthält auch Ergebnisse aus Wettkämpfen, an denen Mitglieder mit anderen Teams oder einzeln teilgenommen haben."
+      },
+      "period": {
+        "allTime": "Gesamt",
+        "fiscalYear": "Saison {year}",
+        "fiscalYearOrEarlier": "Saison {year} und früher",
+        "fiscalYearNote": "Ergebnisse ohne zugeordneten Wettkampf (Sammel-Eintrag) werden bei Auswahl einer Saison nicht berücksichtigt."
+      },
+      "aggregation": {
+        "personalBest": "Persönliche Bestzeit",
+        "allRaces": "Alle Rennen"
+      },
+      "col": {
+        "name": "Mitglied",
+        "time": "Zeit",
+        "competition": "Wettkampf",
+        "date": "Datum"
+      },
+      "empty": {
+        "noMatchTitle": "Keine passenden Ergebnisse",
+        "noMatchBody": "Es wurden keine Ergebnisse für die gewählte Lage, Distanz, Beckenart oder das gewählte Geschlecht gefunden. Ändern Sie die Filter.",
+        "noRecordsTitle": "Keine Wettkampfergebnisse im Team",
+        "noRecordsBody": "Sobald Mitglieder Wettkampfergebnisse eintragen, erscheint hier die Rangliste."
+      },
+      "error": "Ranglisten konnten nicht geladen werden",
+      "retry": "Erneut versuchen",
+      "individualUnavailable": {
+        "fetchFailed": "Die Lagen-Stammdaten konnten nicht geladen werden, daher sind Einzelstrecken-Rankings nicht verfügbar. Staffel-Rankings sind weiterhin verfügbar.",
+        "empty": "Es wurden keine Lagen-Stammdaten gefunden, daher sind Einzelstrecken-Rankings nicht verfügbar. Staffel-Rankings sind weiterhin verfügbar."
+      },
+      "loading": "Wird geladen...",
+      "showMore": "Mehr anzeigen",
+      "resultCount": "{count} Ergebnisse",
+      "truncatedNote": "Die Abrufgrenze von {limit} Ergebnissen ist erreicht. Langsamere Zeiten werden möglicherweise nicht angezeigt — Filter eingrenzen.",
+      "relay": {
+        "filter": {
+          "genderCategory": "Wertung"
+        },
+        "kind": {
+          "free": "Freistilstaffel",
+          "medley": "Lagenstaffel"
+        },
+        "genderCategory": {
+          "male": "Männer",
+          "female": "Frauen",
+          "mixed": "Mixed"
+        },
+        "col": {
+          "event": "Disziplin",
+          "time": "Gesamtzeit",
+          "competition": "Wettkampf",
+          "date": "Datum",
+          "legs": "Teilzeiten"
+        },
+        "eventLabel": "{distance}m×{legCount} {kind}",
+        "legDistanceOption": "{distance}m × {legCount}",
+        "legLabel": "{num}. Starter",
+        "legHeader": {
+          "swimmer": "Schwimmer",
+          "style": "Lage",
+          "legTime": "Teilzeit",
+          "cumulative": "Kumuliert"
+        },
+        "expand": "Teilzeiten anzeigen",
+        "collapse": "Teilzeiten ausblenden",
+        "retiredMember": "Ehemaliges Mitglied",
+        "noLegs": "Für dieses Ergebnis wurden keine Angaben zu den Schwimmern gespeichert",
+        "empty": {
+          "noMatchTitle": "Keine passenden Staffelergebnisse",
+          "noMatchBody": "Es wurden keine Staffelergebnisse für die gewählte Staffelart, Distanz, Beckenart oder Wertung gefunden. Ändern Sie die Filter.",
+          "noRecordsTitle": "Keine Staffelergebnisse im Team",
+          "noRecordsBody": "Sobald eine Staffel bei der Ergebniseingabe eines Wettkampfs gespeichert wird, erscheint hier die Rangliste."
+        },
+        "error": "Staffelranglisten konnten nicht geladen werden"
       }
     },
     "memberDetail": {
@@ -3380,6 +3476,7 @@
       "groups": "Gruppen",
       "practices": "Trainings",
       "competitions": "Wettkämpfe",
+      "rankings": "Ranglisten",
       "bulkRegister": "Sammelregistrierung",
       "settings": "Einstellungen"
     },
