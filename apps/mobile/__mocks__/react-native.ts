@@ -93,8 +93,21 @@ export const Image = ({
   return React.createElement("img", { ...props, src });
 };
 
-export const TextInput = ({ ...props }: Record<string, unknown>) =>
-  React.createElement("input", { type: "text", ...props });
+// testID は RN 側のプロップ名なので、そのまま spread すると DOM 属性 `testid` になり
+// testing-library の getByTestId (既定で data-testid を見る) から引けない。
+// TextInput だけ data-testid に変換する。
+//
+// 【重要】この変換を View / Pressable / Text にも広げてはいけない。
+// それらには testID 付きの本番要素が既に多数あり、`queryByTestId(...).toBeNull()` を
+// 期待する既存テスト (PracticeTabFormScreen.practiceScopeRowWipe / CompetitionTabFormScreen 等)
+// が「見つからないから null」で通っている。変換を広げると要素が見つかるようになり、
+// それらが一斉に赤くなる (= 現状それらのアサーションは空振りしている、という別課題)。
+export const TextInput = ({ testID, ...props }: Record<string, unknown>) =>
+  React.createElement("input", {
+    type: "text",
+    ...props,
+    ...(typeof testID === "string" ? { "data-testid": testID } : {}),
+  });
 
 // Switch API
 // value/onValueChange のみを DOM の button + data 属性で観察可能にする。

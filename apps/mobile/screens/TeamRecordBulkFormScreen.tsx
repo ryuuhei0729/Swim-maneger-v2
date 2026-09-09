@@ -1818,6 +1818,7 @@ export const TeamRecordBulkFormScreen: React.FC = () => {
                           {t("teams.record.timeLabel")}
                         </Text>
                         <TextInput
+                          testID="record-bulk-member-time"
                           style={styles.input}
                           value={mr.timeDisplayValue}
                           onChangeText={(text) =>

@@ -333,7 +333,7 @@ export default function TimeInputModal({
                             <input
                               type="text"
                               inputMode="decimal"
-                              placeholder="31-2"
+                              placeholder="2.00.00"
                               value={timeEntry.displayValue || ""}
                               onChange={(e) => handleTimeChange(timeEntry.id, e.target.value)}
                               onBlur={(e) => handleTimeConfirm(timeEntry.id, e.target.value)}

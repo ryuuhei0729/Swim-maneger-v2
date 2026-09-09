@@ -142,7 +142,7 @@ describe("TeamRecordBulkFormScreen — エントリー行の初期反映 (仕様
 
   it(
     "既存記録が無い大会でエントリーが1件あると、参考ラベル (forms.recordLog.entryTimeLabel) が" +
-      "表示される一方、タイム入力欄 (placeholder: 例: 1:30.50) は空欄のまま初期表示される" +
+      "表示される一方、タイム入力欄 (testID: record-bulk-member-time) は空欄のまま初期表示される" +
       "（人間の意図: entries.entry_time を記録タイム入力欄に紛れ込ませない、という" +
       "最重要契約の mobile 側確認）",
     async () => {
@@ -165,7 +165,7 @@ describe("TeamRecordBulkFormScreen — エントリー行の初期反映 (仕様
       });
 
       // タイム入力欄は空欄のまま (entry_time がそのまま入力値になっていない)
-      const timeInput = screen.getByPlaceholderText("例: 1:30.50") as HTMLInputElement;
+      const timeInput = screen.getByTestId("record-bulk-member-time") as HTMLInputElement;
       expect(timeInput.value).toBe("");
     },
   );
@@ -203,9 +203,7 @@ describe("TeamRecordBulkFormScreen — エントリー行の初期反映 (仕様
       const queryClient = makeQueryClient();
       render(<TeamRecordBulkFormScreen />, { wrapper: createWrapper(queryClient) });
 
-      const timeInputs = (await screen.findAllByPlaceholderText(
-        "例: 1:30.50",
-      )) as HTMLInputElement[];
+      const timeInputs = (await screen.findAllByTestId("record-bulk-member-time")) as HTMLInputElement[];
       // 太郎(既存, タイム保持) + 次郎(エントリー由来, 未入力) の2件
       expect(timeInputs).toHaveLength(2);
       const values = timeInputs.map((el) => el.value);
@@ -255,7 +253,7 @@ describe("TeamRecordBulkFormScreen — エントリー行の初期反映 (仕様
       });
 
       // タイム入力値そのものは既存の結果タイムのまま (参考ラベルの追加が入力値を上書きしない)
-      const timeInput = screen.getByPlaceholderText("例: 1:30.50") as HTMLInputElement;
+      const timeInput = screen.getByTestId("record-bulk-member-time") as HTMLInputElement;
       expect(timeInput.value).toBe("27.50");
     },
   );
@@ -303,9 +301,7 @@ describe("TeamRecordBulkFormScreen — エントリー行の初期反映 (仕様
       });
 
       // 平泳ぎのエントリー由来行が別カードとして追加され、未入力のまま
-      const timeInputs = screen.getAllByPlaceholderText(
-        "例: 1:30.50",
-      ) as HTMLInputElement[];
+      const timeInputs = screen.getAllByTestId("record-bulk-member-time") as HTMLInputElement[];
       expect(timeInputs).toHaveLength(1);
       expect(timeInputs[0]!.value).toBe(""); // 直前の toHaveLength(1) で存在は保証済み
     },

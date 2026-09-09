@@ -291,7 +291,7 @@ export default function TeamTimeInputModal({
                               <input
                                 type="text"
                                 inputMode="decimal"
-                                placeholder="31-2"
+                                placeholder="2.00.00"
                                 value={memberTimes[timeIndex]?.displayValue || ""}
                                 onChange={(e) =>
                                   handleTimeInput(member.id, timeIndex, e.target.value)

@@ -646,7 +646,7 @@ function TimeInputCell({
             onInputChange(styleId, poolType, isRelaying, "time", formatTimeBest(parsed));
           }
         }}
-        placeholder="1:23.45"
+        placeholder="2.00.00"
         className={`
           w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 placeholder-gray-400
           ${
@@ -846,7 +846,7 @@ function BestTimeCard({
               onInputChange(styleId, poolType, false, "time", formatTimeBest(parsed));
             }
           }}
-          placeholder="1:23.45"
+          placeholder="2.00.00"
           className={cn(
             "w-full min-h-[44px] px-3 py-2 text-base border rounded focus:outline-none focus:ring-2 placeholder-gray-400",
             normalInput?.error
@@ -910,7 +910,7 @@ function BestTimeCard({
                   onInputChange(styleId, poolType, true, "time", formatTimeBest(parsed));
                 }
               }}
-              placeholder="1:23.45"
+              placeholder="2.00.00"
               className={cn(
                 "w-full min-h-[44px] px-3 py-2 text-base border rounded focus:outline-none focus:ring-2 placeholder-gray-400",
                 relayInput?.error

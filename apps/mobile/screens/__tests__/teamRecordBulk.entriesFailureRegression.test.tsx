@@ -166,7 +166,7 @@ describe("TeamRecordBulkFormScreen — entries 取得失敗の回帰 (Critical, 
       expect(screen.queryByText("再試行")).toBeNull();
 
       // 既存記録 (太郎, 30.00秒) の入力・編集は続行できる (entries 失敗の影響を受けない)
-      const timeInput = screen.getByPlaceholderText("例: 1:30.50") as HTMLInputElement;
+      const timeInput = screen.getByTestId("record-bulk-member-time") as HTMLInputElement;
       expect(timeInput.value).toBe("30.00");
     },
   );

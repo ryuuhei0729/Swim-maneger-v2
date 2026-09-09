@@ -130,7 +130,7 @@ export function TimeParamsForm({ params, onChange }: TimeParamsFormProps) {
             value={timeDisplayValue}
             onChange={handleTimeChange}
             onBlur={handleTimeBlur}
-            placeholder="1:14.28"
+            placeholder="2.00.00"
             required
             className={timeError ? "border-red-500" : ""}
           />
@@ -318,7 +318,7 @@ export function RepsTimeParamsForm({ params, onChange }: RepsTimeParamsFormProps
             value={averageTimeDisplayValue}
             onChange={handleAverageTimeChange}
             onBlur={handleAverageTimeBlur}
-            placeholder="1:14.28"
+            placeholder="2.00.00"
             required
             className={averageTimeError ? "border-red-500" : ""}
           />

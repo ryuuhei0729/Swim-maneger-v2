@@ -554,6 +554,7 @@ export default function OcrScanModal({ isOpen, onClose, onApply, members }: OcrS
                             <input
                               type="text"
                               inputMode="decimal"
+                              placeholder="2.00.00"
                               value={editingValue}
                               onChange={(e) => setEditingValue(e.target.value)}
                               onBlur={handleTimeEditConfirm}

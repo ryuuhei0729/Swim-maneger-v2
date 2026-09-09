@@ -1309,7 +1309,7 @@ export default function CompetitionTabModal({
                                       entryTime: parsed ?? 0,
                                     });
                                   }}
-                                  placeholder="1:23.45"
+                                  placeholder="2.00.00"
                                   className="w-full h-8 sm:h-10"
                                   disabled={isLoading}
                                   data-testid={`entry-time-${clampedIndex + 1}`}
